@@ -1,4 +1,5 @@
 # Pine
+[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.1)](https://bintray.com/canyie/pine/core/0.0.1/link)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 [中文版本](README_cn.md)
@@ -9,6 +10,12 @@ Currently it supports Android 4.4(ART only) ~ 10.0 with aarch32/thumb-2/arm64 ar
 
 Note: For Android 6.0 and 32-bit mode, the parameters may be wrong; and for Android 9.0+, you need to bypass the hidden API restriction policy yourself (like [FreeReflection](https://github.com/tiann/FreeReflection)).
 ## Usage
+Add dependencies in build.gradle:
+```grooxy
+dependencies {
+    implementation 'top.canyie.pine:core:0.0.1'
+}
+```
 Basic configuration:
 ```java
 PineConfig.debug = true; // Need to print a more detailed log?

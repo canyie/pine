@@ -40,3 +40,15 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
+
+apply plugin: 'com.novoda.bintray-release'
+
+publish {
+    userOrg = rootProject.userOrg
+    repoName = rootProject.repoName
+    groupId = rootProject.groupId
+    artifactId = 'core'
+    publishVersion = '0.0.1'
+    desc = 'pine hook core library'
+    licences = rootProject.licences
+}

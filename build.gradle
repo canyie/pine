@@ -5,10 +5,10 @@ buildscript {
 		mavenLocal()
         google()
         jcenter()
-        
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.1'
+        classpath 'com.novoda:bintray-release:0.9.1'
         
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -20,8 +20,18 @@ allprojects {
 		mavenLocal()
         google()
         jcenter()
-        
     }
+
+    tasks.withType(Javadoc).all {
+        enabled = false
+    }
+}
+
+ext {
+    userOrg = 'canyie'
+    groupId = 'top.canyie.pine'
+    repoName = 'pine'
+    licences = ['MIT']
 }
 
 task clean(type: Delete) {

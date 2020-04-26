@@ -1,4 +1,5 @@
 # Pine
+[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.1)](https://bintray.com/canyie/pine/core/0.0.1/link)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE_CN)
 ## 简介
 Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook框架，它可以拦截本进程内几乎所有的java方法调用。
@@ -8,7 +9,13 @@ Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook�
 注：在Android 6.0 & 32位架构上，参数解析可能错误；另外对于Android 9.0及以上，你需要自行绕过隐藏API限制策略（比如使用[FreeReflection](https://github.com/tiann/FreeReflection)）
 
 ## 使用
-首先配置一些基础信息：
+在 build.gradle 中添加如下依赖（jcenter仓库）：
+```groovy
+dependencies {
+    implementation 'top.canyie.pine:core:0.0.1'
+}
+```
+配置一些基础信息：
 ```java
 PineConfig.debug = true; // 是否debug，true会输出较详细log
 PineConfig.debuggable = BuildConfig.DEBUG; // 该应用是否可调试，建议和配置文件中的值保持一致，否则会出现问题
