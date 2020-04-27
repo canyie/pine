@@ -14,14 +14,26 @@ uint32_t ArtMethod::kAccCompileDontBother = 0;
 size_t ArtMethod::size = 0;
 void *ArtMethod::art_quick_to_interpreter_bridge = nullptr;
 void *ArtMethod::art_quick_generic_jni_trampoline = nullptr;
+void *ArtMethod::art_interpreter_to_compiled_code_bridge = nullptr;
+void *ArtMethod::art_interpreter_to_interpreter_bridge = nullptr;
 void (*ArtMethod::copy_from)(ArtMethod *, ArtMethod *, size_t) = nullptr;
+
 Member<ArtMethod, uint32_t> ArtMethod::access_flags_;
+Member<ArtMethod, void *> ArtMethod::entry_point_from_jni_;
 Member<ArtMethod, void *> ArtMethod::entry_point_from_compiled_code_;
+Member<ArtMethod, void *> *ArtMethod::entry_point_from_interpreter_;
 Member<ArtMethod, uint32_t> *ArtMethod::declaring_class = nullptr;
 
 void ArtMethod::Init(ElfImg *handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
+
+    if (Android::version < Android::VERSION_N) {
+        art_interpreter_to_compiled_code_bridge = handle->GetSymbolAddress(
+                "artInterpreterToCompiledCodeBridge");
+        art_interpreter_to_interpreter_bridge = handle->GetSymbolAddress(
+                "artInterpreterToInterpreterBridge");
+    }
 
     const char *symbol_copy_from = nullptr;
     if (Android::version >= Android::VERSION_O) {
@@ -73,20 +85,10 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
             if ((*static_cast<uint32_t *>(ptr)) == access_flags) {
                 access_flags_.SetOffset(offset);
             } else if ((*static_cast<void **>(ptr)) == Ruler_m1) {
-                uint32_t entry_point_from_jni_size = Android::version == Android::VERSION_L
-                        ? sizeof(uint64_t) : sizeof(void *);
-                uint32_t compiled_code_entry_offset = offset + entry_point_from_jni_size;
-
-                if (Android::version >= Android::VERSION_O) {
-                    // Only align offset on Android O+ (PtrSizedFields is PACKED(4) in Android N or lower.)
-                    compiled_code_entry_offset = Align(compiled_code_entry_offset,
-                            entry_point_from_jni_size);
-                }
-
-                entry_point_from_compiled_code_.SetOffset(compiled_code_entry_offset);
+                entry_point_from_jni_.SetOffset(offset);
             }
 
-            bool done = access_flags_.IsValid() && entry_point_from_compiled_code_.IsValid();
+            bool done = access_flags_.IsValid() && entry_point_from_jni_.IsValid();
             if (UNLIKELY(done)) break;
         }
 
@@ -95,13 +97,35 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
             access_flags_.SetOffset(GetDefaultAccessFlagsOffset());
         }
 
-        if (UNLIKELY(!entry_point_from_compiled_code_.IsValid())) {
-            LOGW("Member entry_point_from_quick_compiled_code_ not found in ArtMethod, use default.");
+        if (LIKELY(entry_point_from_jni_.IsValid())) {
+            uint32_t entry_point_from_jni_size = Android::version == Android::VERSION_L
+                                                 ? sizeof(uint64_t) : sizeof(void *);
+            uint32_t compiled_code_entry_offset = entry_point_from_jni_.GetOffset()
+                    + entry_point_from_jni_size;
+
+            if (Android::version >= Android::VERSION_O) {
+                // Only align offset on Android O+ (PtrSizedFields is PACKED(4) in Android N or lower.)
+                compiled_code_entry_offset = Align(compiled_code_entry_offset,
+                                                   entry_point_from_jni_size);
+            }
+
+            entry_point_from_compiled_code_.SetOffset(compiled_code_entry_offset);
+
+        } else {
+            LOGW("Member entry_point_from_jni_ not found in ArtMethod, use default.");
+            entry_point_from_jni_.SetOffset(GetDefaultEntryPointFromJniOffset());
             entry_point_from_compiled_code_.SetOffset(
                     GetDefaultEntryPointFromQuickCompiledCodeOffset());
         }
 
-        if (Android::version >= Android::VERSION_N) {
+        if (Android::version < Android::VERSION_N) {
+            uint32_t entry_point_from_interpreter_size = Android::version == Android::VERSION_L
+                    ? sizeof(uint64_t) : sizeof(void *);
+
+            // Not align: PtrSizedFields is PACKED(4) in the android version.
+            entry_point_from_interpreter_ = new Member<ArtMethod, void *>(
+                    entry_point_from_jni_.GetOffset() - entry_point_from_interpreter_size);
+        } else {
             // On Android 7.0+, the declaring_class may be moved by the GC,
             // so we check and update it when invoke backup method.
             declaring_class = new Member<ArtMethod, uint32_t>(0);
@@ -111,6 +135,7 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
         LOGW("Android Kitkat, hardcode offset only...");
         access_flags_.SetOffset(28);
         entry_point_from_compiled_code_.SetOffset(32);
+        entry_point_from_interpreter_ = new Member<ArtMethod, void *>(36);
     }
 }
 
@@ -167,6 +192,6 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable) {
 
     SetAccessFlags(access_flags);
 
-    // TODO Set entry_point_from_interpreter_ to artInterpreterToCompiledCodeBridge
-    //  when Android version is lower than 7.0(24)
+    if (art_interpreter_to_compiled_code_bridge)
+        SetEntryPointFromInterpreter(art_interpreter_to_compiled_code_bridge);
 }

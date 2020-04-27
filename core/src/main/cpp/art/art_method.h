@@ -71,7 +71,11 @@ namespace pine::art {
                 }
 
                 SetEntryPointFromCompiledCode(interpreter_bridge);
-                // TODO When Android version is lower than 7.0(24), set entry_point_from_interpreter_
+
+                if (art_interpreter_to_interpreter_bridge) {
+                    SetEntryPointFromInterpreter(art_interpreter_to_interpreter_bridge);
+                }
+
                 return true;
             } else {
                 LOGE("Failed to decompile method: interpreter bridge not found");
@@ -120,7 +124,8 @@ namespace pine::art {
         void *GetEntryPointFromCompiledCode() {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
-                return reinterpret_cast<void *> (entry_point_from_compiled_code_.GetAs<uint64_t>(this));
+                return reinterpret_cast<void *> (
+                        entry_point_from_compiled_code_.GetAs<uint64_t>(this));
             }
             return entry_point_from_compiled_code_.Get(this);
         }
@@ -128,15 +133,57 @@ namespace pine::art {
         void SetEntryPointFromCompiledCode(void *entry) {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
-                entry_point_from_compiled_code_.SetAs<uint64_t>(this,
-                                                                 reinterpret_cast<uint64_t>(entry));
+                entry_point_from_compiled_code_.SetAs<uint64_t>(
+                        this, reinterpret_cast<uint64_t>(entry));
                 return;
             }
             entry_point_from_compiled_code_.Set(this, entry);
         }
 
+        void *GetEntryPointFromJni() {
+            if (Android::version == Android::VERSION_L) {
+                // Android 5.0, entry_point_from_jni_ is a uint64_t
+                return reinterpret_cast<void *>(
+                        entry_point_from_jni_.GetAs<uint64_t>(this));
+            }
+            return entry_point_from_jni_.Get(this);
+        }
+
+        void SetEntryPointFromJni(void *entry) {
+            if (Android::version == Android::VERSION_L) {
+                // Android 5.0, entry_point_from_jni_ is a uint64_t
+                entry_point_from_jni_.SetAs<uint64_t>(
+                        this, reinterpret_cast<uint64_t>(entry));
+                return;
+            }
+            entry_point_from_jni_.Set(this, entry);
+        }
+
+        void *GetEntryPointFromInterpreter() {
+            if (Android::version == Android::VERSION_L) {
+                // Android 5.0, entry_point_from_interpreter_ is a uint64_t
+                return reinterpret_cast<void *>(
+                        entry_point_from_interpreter_->GetAs<uint64_t>(this));
+            }
+            return entry_point_from_interpreter_->Get(this);
+        }
+
+        void SetEntryPointFromInterpreter(void *entry) {
+            if (Android::version == Android::VERSION_L) {
+                // Android 5.0, entry_point_from_interpreter_ is a uint64_t
+                entry_point_from_interpreter_->SetAs<uint64_t>(
+                        this, reinterpret_cast<uint64_t>(entry));
+                return;
+            }
+            entry_point_from_interpreter_->Set(this, entry);
+        }
+
         bool IsThumb() {
-            return (reinterpret_cast<uintptr_t> (GetEntryPointFromCompiledCode()) & 1) == 1;
+#ifdef __aarch64__
+            return false;
+#else
+            return (reinterpret_cast<uintptr_t>(GetEntryPointFromCompiledCode()) & 1) == 1;
+#endif
         }
 
         void *GetCompiledCodeAddr() {
@@ -190,6 +237,27 @@ namespace pine::art {
             }
         }
 
+        static int32_t GetDefaultEntryPointFromJniOffset() {
+            switch (Android::version) {
+                case Android::VERSION_Q :
+                case Android::VERSION_P :
+                    return Android::Is64Bit() ? 24 : 20;
+                case Android::VERSION_O_MR1 :
+                case Android::VERSION_O :
+                    return Android::Is64Bit() ? 32 : 24;
+                case Android::VERSION_N_MR1 :
+                case Android::VERSION_N :
+                    return Android::Is64Bit() ? 40 : 28;
+                case Android::VERSION_L_MR1 :
+                    return Android::Is64Bit() ? 44 : 40;
+                case Android::VERSION_L :
+                    return 32;
+                default:
+                    // Android Kitkat doesn't use this function.
+                    FATAL("Unexpected android version %d", Android::version);
+            }
+        }
+
         static int32_t GetDefaultEntryPointFromQuickCompiledCodeOffset() {
             switch (Android::version) {
                 case Android::VERSION_Q :
@@ -223,9 +291,14 @@ namespace pine::art {
         static size_t size;
         static void *art_quick_to_interpreter_bridge;
         static void *art_quick_generic_jni_trampoline;
+        static void *art_interpreter_to_interpreter_bridge;
+        static void *art_interpreter_to_compiled_code_bridge;
         static void (*copy_from)(ArtMethod *, ArtMethod *, size_t);
+
         static Member<ArtMethod, uint32_t> access_flags_;
         static Member<ArtMethod, void *> entry_point_from_compiled_code_;
+        static Member<ArtMethod, void *> entry_point_from_jni_;
+        static Member<ArtMethod, void *> *entry_point_from_interpreter_;
         static Member<ArtMethod, uint32_t> *declaring_class; // GCRoot is uint32_t
         DISALLOW_IMPLICIT_CONSTRUCTORS(ArtMethod);
     };
