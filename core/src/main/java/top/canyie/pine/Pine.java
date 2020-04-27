@@ -37,6 +37,7 @@ public final class Pine {
     private static final Object sHookLock = new Object();
     private static boolean is64Bit;
     private static volatile int hookMode = HookMode.AUTO;
+    private static HookListener sHookListener;
 
     private Pine() {
         throw new RuntimeException("Use static methods");
@@ -136,6 +137,14 @@ public final class Pine {
         hookMode = newHookMode;
     }
 
+    public static void setHookListener(HookListener l) {
+        sHookListener = l;
+    }
+
+    public static HookListener getHookListener() {
+        return sHookListener;
+    }
+
     public static MethodHook.Unhook hook(Method method, MethodHook callback) {
         if (method == null) throw new NullPointerException("method == null");
         if (callback == null) throw new NullPointerException("callback == null");
@@ -170,6 +179,12 @@ public final class Pine {
         if (PineConfig.debug)
             Log.d(TAG, "Hooking " + method + " callback " + callback);
         ensureInitialized();
+
+        HookListener hookListener = sHookListener;
+
+        if (hookListener != null)
+            hookListener.beforeHook(method, callback);
+
         long artMethod = getArtMethod(method);
         HookInfo hookInfo;
         boolean newMethod = false;
@@ -183,12 +198,16 @@ public final class Pine {
             }
         }
 
-        if (newMethod) {
+        if (newMethod)
             hookNewMethod(hookInfo, declaring, modifiers, method, isMethod);
-        }
 
         hookInfo.addCallback(callback);
-        return callback.new Unhook(hookInfo);
+        MethodHook.Unhook unhook = callback.new Unhook(hookInfo);
+
+        if (hookListener != null)
+            hookListener.afterHook(method, unhook);
+
+        return unhook;
     }
 
     private static void hookNewMethod(HookInfo hookInfo, Class<?> declaring, int modifiers,
@@ -592,6 +611,11 @@ public final class Pine {
         public Object invokeOriginalMethod(Object thisObject, Object... args) throws InvocationTargetException, IllegalAccessException {
             return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
         }
+    }
+
+    public interface HookListener {
+        void beforeHook(Member method, MethodHook callback);
+        void afterHook(Member method, MethodHook.Unhook unhook);
     }
 
     public interface LibLoader {
