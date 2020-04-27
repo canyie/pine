@@ -63,13 +63,6 @@ namespace pine::art {
             return Jit::CompileMethod(thread, this);
         }
 
-        bool CompileOrSetNonCompilable(Thread *thread) {
-            if (Android::version < Android::VERSION_N) return IsCompiled();
-            if (LIKELY(Compile(thread))) return true;
-            SetNonCompilable();
-            return false;
-        }
-
         bool Decompile(bool disableJit) {
             void *interpreter_bridge = GetInterpreterBridge();
             if (LIKELY(interpreter_bridge)) {

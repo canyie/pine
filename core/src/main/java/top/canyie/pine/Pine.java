@@ -218,7 +218,7 @@ public final class Pine {
             boolean compilable = !(Modifier.isNative(modifiers) || Proxy.isProxyClass(declaring));
 
             if (compilable) {
-                boolean compiled = compileOrSetNonCompilable(thread, method);
+                boolean compiled = compile0(thread, method);
                 if (!compiled) {
                     Log.e(TAG, "Failed to compile target method, force use replacement mode.");
                     isInlineHook = false;
@@ -490,8 +490,6 @@ public final class Pine {
     private static native boolean compile0(long thread, Member method);
 
     private static native boolean decompile0(Member method, boolean disableJit);
-
-    private static native boolean compileOrSetNonCompilable(long thread, Member method);
 
     private static native boolean disableJitInline0();
 

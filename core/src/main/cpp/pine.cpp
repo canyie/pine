@@ -153,12 +153,6 @@ jboolean Pine_disableJitInline0(JNIEnv *, jclass) {
     return static_cast<jboolean>(art::Jit::DisableInline());
 }
 
-jboolean Pine_compileOrSetNonCompilable(JNIEnv *env, jclass, jlong thread, jobject javaMethod) {
-    art::ArtMethod *method = art::ArtMethod::FromReflectedMethod(env, javaMethod);
-    return static_cast<jboolean>(method->CompileOrSetNonCompilable(
-            reinterpret_cast<art::Thread *>(thread)));
-}
-
 jobject Pine_getObject0(JNIEnv *env, jclass, jlong thread, jlong address) {
     return reinterpret_cast<art::Thread *>(thread)->AddLocalRef(env,
                                                                 reinterpret_cast<void *> (address));
@@ -294,8 +288,6 @@ static const JNINativeMethod gMethods[] = {
                                                                                                     (void *) Pine_hook0},
         {"compile0",                  "(JLjava/lang/reflect/Member;)Z",                             (void *) Pine_compile0},
         {"decompile0",                "(Ljava/lang/reflect/Member;Z)Z",                             (void *) Pine_decompile0},
-        {"compileOrSetNonCompilable", "(JLjava/lang/reflect/Member;)Z",
-                                                                                                    (void *) Pine_compileOrSetNonCompilable},
         {"disableJitInline0",         "()Z",                                                        (void *) Pine_disableJitInline0},
         {"updateDeclaringClass",      "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V",
                                                                                                     (void *) Pine_updateDeclaringClass},
