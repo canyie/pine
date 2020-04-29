@@ -139,8 +139,8 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
     }
 }
 
-void ArtMethod::BackupFrom(ArtMethod *source, void *entry) {
-    if (copy_from) {
+void ArtMethod::BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook, bool is_native_or_proxy) {
+    if (LIKELY(copy_from)) {
         copy_from(this, source, sizeof(void *));
     } else {
         memcpy(this, source, size);
@@ -157,10 +157,28 @@ void ArtMethod::BackupFrom(ArtMethod *source, void *entry) {
     }
     access_flags &= ~AccessFlags::kAccConstructor;
     SetAccessFlags(access_flags);
-    SetEntryPointFromCompiledCode(entry);
+
+    if (UNLIKELY(Android::version >= Android::VERSION_N && !is_inline_hook && !is_native_or_proxy)) {
+        // On Android N+, the method may compiled by JIT, and unknown problem occurs when calling
+        // the backup method if we use entry replacement mode. Just use the interpreter to execute.
+        // Possible reason: compiled code is recycled in JIT garbage collection.
+        SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
+
+        // For non-native and non-proxy methods, the entry_point_from_jni_ member is used to save
+        // ProfilingInfo, and the ProfilingInfo may saved original compiled code entry, the interpreter
+        // will jump directly to the saved_code_entry_ for execution. Clear entry_point_from_jni_ to avoid it.
+        entry_point_from_jni_.Set(this, nullptr);
+    } else {
+        SetEntryPointFromCompiledCode(entry);
+
+        // ArtMethod::CopyFrom() will clear data_ member, the member is used to save
+        // the original interface method for proxy method. Restore it to avoid errors.
+        if (UNLIKELY(is_native_or_proxy && Android::version >= Android::VERSION_O))
+            SetEntryPointFromJni(source->GetEntryPointFromJni());
+    }
 }
 
-void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable) {
+void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy) {
     uint32_t access_flags = GetAccessFlags();
     access_flags &= ~(AccessFlags::kAccSynchronized | AccessFlags::kAccDeclaredSynchronized);
 
@@ -172,7 +190,7 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable) {
         if (Android::version >= Android::VERSION_Q)
             access_flags &= ~AccessFlags::kAccFastInterpreterToInterpreterInvoke;
 
-        if (UNLIKELY(debuggable)) {
+        if (UNLIKELY(debuggable && !is_native_or_proxy)) {
             // Android 8.0+ and debug mode, ART may force the use of interpreter mode,
             // and entry_point_from_compiled_code_ will be ignored. Set kAccNative to avoid it.
             // See ClassLinker::ShouldUseInterpreterEntrypoint(ArtMethod*, const void*)

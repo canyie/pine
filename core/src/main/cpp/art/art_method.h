@@ -211,9 +211,9 @@ namespace pine::art {
             return code_size;
         }
 
-        void BackupFrom(ArtMethod *source, void *entry);
+        void BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook, bool is_native_or_proxy);
 
-        void AfterHook(bool is_inline_hook, bool debuggable);
+        void AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy);
 
     private:
         static int32_t GetDefaultAccessFlagsOffset() {

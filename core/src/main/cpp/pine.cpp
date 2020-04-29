@@ -60,7 +60,7 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jobject javaM1, j
 }
 
 jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, jobject javaTarget,
-                   jobject javaBridge, jboolean isInlineHook) {
+                   jobject javaBridge, jboolean isInlineHook, jboolean isNativeOrProxy) {
     auto thread = reinterpret_cast<art::Thread *> (threadAddress);
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
@@ -71,6 +71,7 @@ jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, j
     bridge->Compile(thread);
 
     bool is_inline_hook = static_cast<bool>(isInlineHook);
+    bool is_native_or_proxy = static_cast<bool>(isNativeOrProxy);
 
     if (is_inline_hook && UNLIKELY(trampoline_installer->CannotSafeInlineHook(target))) {
         LOGW("Cannot safe inline hook the target method, force replacement mode.");
@@ -116,8 +117,8 @@ jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, j
                             : trampoline_installer->InstallReplacementTrampoline(target, bridge);
 
         if (LIKELY(call_origin)) {
-            backup->BackupFrom(target, call_origin);
-            target->AfterHook(is_inline_hook, debuggable);
+            backup->BackupFrom(target, call_origin, is_inline_hook, is_native_or_proxy);
+            target->AfterHook(is_inline_hook, debuggable, is_native_or_proxy);
             success = true;
         } else {
             LOGE("Failed to hook the method!");
@@ -284,7 +285,7 @@ static const JNINativeMethod gMethods[] = {
         {"enableFastNative",          "()V",                                                        (void *) Pine_enableFastNative},
         {"getArtMethod",              "(Ljava/lang/reflect/Member;)J",                              (void *) Pine_getArtMethod},
         {"hook0",
-                                      "(JLjava/lang/Class;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;Z)Ljava/lang/reflect/Method;",
+                                      "(JLjava/lang/Class;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;ZZ)Ljava/lang/reflect/Method;",
                                                                                                     (void *) Pine_hook0},
         {"compile0",                  "(JLjava/lang/reflect/Member;)Z",                             (void *) Pine_compile0},
         {"decompile0",                "(Ljava/lang/reflect/Member;Z)Z",                             (void *) Pine_decompile0},

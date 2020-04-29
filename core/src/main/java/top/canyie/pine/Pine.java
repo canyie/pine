@@ -157,7 +157,7 @@ public final class Pine {
         if (Modifier.isAbstract(modifiers))
             throw new IllegalArgumentException("Cannot hook abstract methods: " + method);
 
-        return hookImpl(declaring, modifiers, method, callback, true);
+        return hookImpl(declaring, modifiers, method, callback);
     }
 
     public static MethodHook.Unhook hook(Constructor<?> constructor, MethodHook callback) {
@@ -172,10 +172,10 @@ public final class Pine {
         if (Modifier.isStatic(modifiers))
             throw new IllegalArgumentException("Cannot hook <clinit> (invoke when class-init)");
 
-        return hookImpl(declaring, modifiers, constructor, callback, false);
+        return hookImpl(declaring, modifiers, constructor, callback);
     }
 
-    private static MethodHook.Unhook hookImpl(Class<?> declaring, int modifiers, Member method, MethodHook callback, boolean isMethod) {
+    private static MethodHook.Unhook hookImpl(Class<?> declaring, int modifiers, Member method, MethodHook callback) {
         if (PineConfig.debug)
             Log.d(TAG, "Hooking " + method + " callback " + callback);
         ensureInitialized();
@@ -199,7 +199,7 @@ public final class Pine {
         }
 
         if (newMethod)
-            hookNewMethod(hookInfo, declaring, modifiers, method, isMethod);
+            hookNewMethod(hookInfo, declaring, modifiers, method);
 
         hookInfo.addCallback(callback);
         MethodHook.Unhook unhook = callback.new Unhook(hookInfo);
@@ -211,15 +211,17 @@ public final class Pine {
     }
 
     private static void hookNewMethod(HookInfo hookInfo, Class<?> declaring, int modifiers,
-                                      Member method, boolean isMethod) {
+                                      Member method) {
         boolean isInlineHook;
         if (hookMode == HookMode.AUTO) {
             // On Android N or lower, entry_point_from_compiled_code_ may be hard-coded in the machine code
             // (sharpening optimization), entry replacement will most likely not take effect, so we prefer
-            // to use inline hook; And on Android O+, this optimization is not performed, so we use a more
-            // stable entry replacement by default.
+            // to use inline hook; And on Android O+, this optimization is not performed,
+            // but in the entry replacement mode, we need to force the backup method to use interpreter
+            // to avoid use compiled code (may compiled by JIT, an unknown error occurs when the backup
+            // method is called), so we still prefer inline hook mode.
 
-            isInlineHook = Build.VERSION.SDK_INT < Build.VERSION_CODES.O;
+            isInlineHook = true;
         } else {
             isInlineHook = hookMode == HookMode.INLINE;
         }
@@ -230,13 +232,12 @@ public final class Pine {
 
         long thread = Primitives.currentArtThread();
 
-        // Only try compile target method when trying inline hook: If the target method is compiled
-        // by JIT, unknown problem happen when calling the backup method. This is a bug.
+        boolean isNativeOrProxy = Modifier.isNative(modifiers) || Proxy.isProxyClass(declaring);
+
+        // Only try compile target method when trying inline hook.
         if (isInlineHook) {
             // Cannot compile native or proxy methods.
-            boolean compilable = !(Modifier.isNative(modifiers) || Proxy.isProxyClass(declaring));
-
-            if (compilable) {
+            if (!isNativeOrProxy) {
                 boolean compiled = compile0(thread, method);
                 if (!compiled) {
                     Log.e(TAG, "Failed to compile target method, force use replacement mode.");
@@ -248,12 +249,11 @@ public final class Pine {
         }
 
         String bridgeMethodName;
-        if (isMethod) {
+        if (method instanceof Method) {
             hookInfo.paramTypes = ((Method) method).getParameterTypes();
             Class<?> returnType = ((Method) method).getReturnType();
             bridgeMethodName = returnType.isPrimitive() ? returnType.getName() + "Bridge" : "objectBridge";
         } else {
-            // noinspection ConstantConditions
             hookInfo.paramTypes = ((Constructor) method).getParameterTypes();
             // Constructor is actually a method named <init> and the return type is void.
             bridgeMethodName = "voidBridge";
@@ -265,7 +265,7 @@ public final class Pine {
         if (bridge == null)
             throw new AssertionError("Cannot find bridge method for " + method);
 
-        Method backup = hook0(thread, declaring, method, bridge, isInlineHook);
+        Method backup = hook0(thread, declaring, method, bridge, isInlineHook, isNativeOrProxy);
 
         if (backup == null)
             throw new RuntimeException("Failed to hook method " + method);
@@ -341,24 +341,24 @@ public final class Pine {
         }
 
         HookInfo hookInfo = sHookInfoMap.get(getArtMethod(method));
-        if (hookInfo != null) {
-            return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
-        }
-
-        // Not hooked
-        if (isMethod) {
-            return ((Method) method).invoke(thisObject, args);
-        } else {
-            if (thisObject != null)
-                throw new IllegalArgumentException(
-                        "Cannot invoke a not hooked Constructor with a non-null receiver");
-            try {
-                ((Constructor) method).newInstance(args);
-                return null;
-            } catch (InstantiationException e) {
-                throw new IllegalArgumentException("invalid Constructor", e);
+        if (hookInfo == null) {
+            // Not hooked
+            if (isMethod) {
+                return ((Method) method).invoke(thisObject, args);
+            } else {
+                if (thisObject != null)
+                    throw new IllegalArgumentException(
+                            "Cannot invoke a not hooked Constructor with a non-null receiver");
+                try {
+                    ((Constructor) method).newInstance(args);
+                    return null;
+                } catch (InstantiationException e) {
+                    throw new IllegalArgumentException("invalid Constructor", e);
+                }
             }
         }
+
+        return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
     }
 
     public static boolean compile(Member method) {
@@ -504,7 +504,7 @@ public final class Pine {
     private static native long getArtMethod(Member method);
 
     private static native Method hook0(long thread, Class<?> declaring, Member target, Method bridge,
-                                       boolean isInlineHook);
+                                       boolean isInlineHook, boolean isNativeOrProxy);
 
     private static native boolean compile0(long thread, Member method);
 
@@ -615,6 +615,7 @@ public final class Pine {
 
     public interface HookListener {
         void beforeHook(Member method, MethodHook callback);
+
         void afterHook(Member method, MethodHook.Unhook unhook);
     }
 

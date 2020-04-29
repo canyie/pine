@@ -18,6 +18,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             new TestItem("Direct Method Hook", new DirectMethodTest()),
             new TestItem("Constructor Hook", new ConstructorTest()),
             new TestItem("JNI Hook", new JNITest()),
+            new TestItem("Proxy Hook", new ProxyTest()),
             new TestItem("Throw Exception Hook", new ThrowExceptionTest()),
             new TestItem("Arg0 Hook", new Arg0Test()),
             new TestItem("Arg4 Hook", new Arg4Test()),
