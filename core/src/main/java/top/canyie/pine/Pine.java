@@ -99,31 +99,28 @@ public final class Pine {
     }
 
     private static void initBridgeMethods() {
-        Class<?> entryClass;
-        Class<?>[] paramTypes;
-
-        if (is64Bit) {
-            entryClass = Entry64.class;
-            paramTypes = new Class<?>[] {long.class, long.class, long.class,
-                    long.class, long.class, long.class, long.class};
-        } else {
-            entryClass = Entry32.class;
-            paramTypes = new Class<?>[] {int.class, int.class, int.class};
-        }
-
-        String[] bridgeMethodNames = {"voidBridge", "intBridge", "longBridge", "doubleBridge", "floatBridge",
-                "booleanBridge", "byteBridge", "charBridge", "shortBridge", "objectBridge"};
         try {
+            String entryClassName;
+            Class<?>[] paramTypes;
+
+            if (is64Bit) {
+                entryClassName = "top.canyie.pine.entry.Entry64";
+                paramTypes = new Class<?>[] {long.class, long.class, long.class,
+                        long.class, long.class, long.class, long.class};
+            } else {
+                entryClassName = "top.canyie.pine.entry.Entry32";
+                paramTypes = new Class<?>[] {int.class, int.class, int.class};
+            }
+
+            // Use Class.forName() to ensure entry class initialized.
+            Class<?> entryClass = Class.forName(entryClassName, true, Pine.class.getClassLoader());
+
+            String[] bridgeMethodNames = {"voidBridge", "intBridge", "longBridge", "doubleBridge", "floatBridge",
+                    "booleanBridge", "byteBridge", "charBridge", "shortBridge", "objectBridge"};
+
             for (String bridgeMethodName : bridgeMethodNames) {
                 Method bridge = entryClass.getDeclaredMethod(bridgeMethodName, paramTypes);
                 bridge.setAccessible(true);
-
-                // Resolve bridge method (bridge method is always static and with parameters)
-                try {
-                    bridge.invoke(null, (Object[]) EMPTY_OBJECT_ARRAY);
-                } catch (Exception ignored) {
-                }
-
                 sBridgeMethods.put(bridgeMethodName, bridge);
             }
         } catch (Exception e) {
