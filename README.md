@@ -1,5 +1,5 @@
 # Pine
-[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.1)](https://bintray.com/canyie/pine/core/0.0.1/link)
+[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.2)](https://bintray.com/canyie/pine/core/0.0.2/link)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 [中文版本](README_cn.md)
@@ -13,7 +13,7 @@ Note: For Android 6.0 and 32-bit mode, the parameters may be wrong; and for Andr
 Add dependencies in build.gradle:
 ```grooxy
 dependencies {
-    implementation 'top.canyie.pine:core:0.0.1'
+    implementation 'top.canyie.pine:core:0.0.2'
 }
 ```
 Basic configuration:
@@ -25,11 +25,11 @@ PineConfig.debuggable = BuildConfig.DEBUG; // This application is debuggable?
 Example 1: monitor the creation of activities
 ```java
 Pine.hook(Activity.class.getDeclaredMethod("onCreate", Bundle.class), new MethodHook() {
-    @Override public void beforeHookedMethod(Pine.CallFrame callFrame) {
+    @Override public void beforeCall(Pine.CallFrame callFrame) {
         Log.i(TAG, "Before " + callFrame.thisObject + " onCreate()");
     }
 
-    @Override public void afterHookedMethod(Pine.CallFrame callFrame) {
+    @Override public void afterCall(Pine.CallFrame callFrame) {
         Log.i(TAG, "After " + callFrame.thisObject + " onCreate()");
     }
 });
@@ -38,17 +38,17 @@ Pine.hook(Activity.class.getDeclaredMethod("onCreate", Bundle.class), new Method
 Example 2: monitor the creation and destroy of all java threads
 ```java
 final MethodHook runHook = new MethodHook() {
-    @Override public void beforeHookedMethod(Pine.CallFrame callFrame) throws Throwable {
+    @Override public void beforeCall(Pine.CallFrame callFrame) throws Throwable {
         Log.i(TAG, "Thread " + callFrame.thisObject + " started...");
     }
 
-    @Override public void afterHookedMethod(Pine.CallFrame callFrame) throws Throwable {
+    @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
         Log.i(TAG, "Thread " + callFrame.thisObject + " exit...");
     }
 };
 
 Pine.hook(Thread.class.getDeclaredMethod("start"), new MethodHook() {
-    @Override public void beforeHookedMethod(Pine.CallFrame callFrame) {
+    @Override public void beforeCall(Pine.CallFrame callFrame) {
         Pine.hook(ReflectionHelper.getMethod(callFrame.thisObject.getClass(), "run"), runHook);
     }
 });
