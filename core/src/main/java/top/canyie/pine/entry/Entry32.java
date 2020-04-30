@@ -55,8 +55,8 @@ public final class Entry32 {
 
     private static Object handleBridge(int artMethod, int extras, int sp) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
-        Pine.HookInfo hookInfo = Pine.getHookInfo(artMethod);
-        int[] argsAsInts = getArgsAsInts(hookInfo, extras, sp);
+        Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
+        int[] argsAsInts = getArgsAsInts(hookRecord, extras, sp);
         long thread = Primitives.currentArtThread();
 
         Object receiver;
@@ -64,17 +64,17 @@ public final class Entry32 {
 
         int index = 0;
 
-        if (hookInfo.isNonStatic) {
+        if (hookRecord.isNonStatic) {
             receiver = Pine.getObject(thread, argsAsInts[0]);
             index = 1;
         } else {
             receiver = null;
         }
 
-        if (hookInfo.paramNumber > 0) {
-            args = new Object[hookInfo.paramNumber];
-            for (int i = 0;i < hookInfo.paramNumber;i++) {
-                Class<?> paramType = hookInfo.paramTypes[i];
+        if (hookRecord.paramNumber > 0) {
+            args = new Object[hookRecord.paramNumber];
+            for (int i = 0;i < hookRecord.paramNumber;i++) {
+                Class<?> paramType = hookRecord.paramTypes[i];
                 Object value;
                 if (paramType.isPrimitive()) {
                     if (paramType == int.class) {
@@ -106,12 +106,12 @@ public final class Entry32 {
             args = Pine.EMPTY_OBJECT_ARRAY;
         }
 
-        return Pine.handleHookedMethod(hookInfo, receiver, args);
+        return Pine.handleHookedMethod(hookRecord, receiver, args);
     }
 
-    private static int[] getArgsAsInts(Pine.HookInfo hookInfo, int extras, int sp) {
-        int len = hookInfo.isNonStatic ? 1/*this*/ : 0;
-        Class<?>[] paramTypes = hookInfo.paramTypes;
+    private static int[] getArgsAsInts(Pine.HookRecord hookRecord, int extras, int sp) {
+        int len = hookRecord.isNonStatic ? 1/*this*/ : 0;
+        Class<?>[] paramTypes = hookRecord.paramTypes;
         for (Class<?> paramType : paramTypes) {
             len += paramType == long.class || paramType == double.class ? 2 : 1;
         }
@@ -121,8 +121,8 @@ public final class Entry32 {
         // will be skipped, move to r2-r3 instead. Use r2, r3, sp + 12.
         // See art::quick_invoke_reg_setup (in quick_entrypoints_cc_arm.cc)
         boolean skipR1 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && (!hookInfo.isNonStatic)
-                && hookInfo.paramNumber > 0
+                && (!hookRecord.isNonStatic)
+                && hookRecord.paramNumber > 0
                 && (paramTypes[0] == long.class || paramTypes[0] == double.class);
 
         Pine.getArgs32(extras, array, sp, skipR1);

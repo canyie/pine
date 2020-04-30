@@ -64,8 +64,8 @@ public final class Entry64 {
     private static Object handleBridge(long artMethod, long extras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
-        Pine.HookInfo hookInfo = Pine.getHookInfo(artMethod);
-        long[] argsAsLongs = getArgsAsLongs(hookInfo, extras, sp, x4, x5, x6, x7);
+        Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
+        long[] argsAsLongs = getArgsAsLongs(hookRecord, extras, sp, x4, x5, x6, x7);
         long thread = Primitives.currentArtThread();
 
         Object receiver;
@@ -73,17 +73,17 @@ public final class Entry64 {
 
         int index = 0;
 
-        if (hookInfo.isNonStatic) {
+        if (hookRecord.isNonStatic) {
             receiver = Pine.getObject(thread, argsAsLongs[0]);
             index = 1;
         } else {
             receiver = null;
         }
 
-        if (hookInfo.paramNumber > 0) {
-            args = new Object[hookInfo.paramNumber];
-            for (int i = 0; i < hookInfo.paramNumber; i++) {
-                Class<?> paramType = hookInfo.paramTypes[i];
+        if (hookRecord.paramNumber > 0) {
+            args = new Object[hookRecord.paramNumber];
+            for (int i = 0; i < hookRecord.paramNumber; i++) {
+                Class<?> paramType = hookRecord.paramTypes[i];
                 Object value;
                 if (paramType.isPrimitive()) {
                     if (paramType == int.class) {
@@ -115,12 +115,12 @@ public final class Entry64 {
             args = Pine.EMPTY_OBJECT_ARRAY;
         }
 
-        return Pine.handleHookedMethod(hookInfo, receiver, args);
+        return Pine.handleHookedMethod(hookRecord, receiver, args);
     }
 
-    private static long[] getArgsAsLongs(Pine.HookInfo hookInfo, long extras, long sp,
-                                       long x4, long x5, long x6, long x7) {
-        int length = (hookInfo.isNonStatic ? 1 : 0) + hookInfo.paramNumber;
+    private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp,
+                                         long x4, long x5, long x6, long x7) {
+        int length = (hookRecord.isNonStatic ? 1 : 0) + hookRecord.paramNumber;
         long[] array = length != 0 ? new long[length] : EMPTY_LONG_ARRAY;
         Pine.getArgs64(extras, array, sp);
 

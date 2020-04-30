@@ -297,7 +297,10 @@ namespace pine::art {
 
         static Member<ArtMethod, uint32_t> access_flags_;
         static Member<ArtMethod, void *> entry_point_from_compiled_code_;
+
+        // In Android 8.0+, it is actually called data_.
         static Member<ArtMethod, void *> entry_point_from_jni_;
+
         static Member<ArtMethod, void *> *entry_point_from_interpreter_;
         static Member<ArtMethod, uint32_t> *declaring_class; // GCRoot is uint32_t
         DISALLOW_IMPLICIT_CONSTRUCTORS(ArtMethod);

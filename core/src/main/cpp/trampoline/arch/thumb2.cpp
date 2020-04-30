@@ -94,7 +94,7 @@ size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod *target) {
 
 
 void *Thumb2TrampolineInstaller::Backup(art::ArtMethod *target) {
-    void *mem = Memory::AllocRWXSpace(kBackupTrampolineSize);
+    void *mem = Memory::AllocUnprotected(kBackupTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate executable memory for backup!");
         return nullptr;

@@ -23,8 +23,8 @@ public class DirectMethodTest extends Test {
         return false;
     }
 
-    @Override public void afterHookedMethod(Pine.CallFrame callFrame) throws Throwable {
-        super.afterHookedMethod(callFrame);
+    @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+        super.afterCall(callFrame);
         callFrame.setResult(true);
     }
 }

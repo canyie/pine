@@ -13,9 +13,9 @@
 namespace pine {
     class Memory {
     public:
-        static void *AllocRWXSpace(size_t size);
+        static void *AllocUnprotected(size_t size);
 
-        static inline bool MakePageWritable(void *ptr) {
+        static inline bool Unprotect(void *ptr) {
             size_t alignment = (uintptr_t) ptr % page_size;
             void *aligned_ptr = (void *) ((uintptr_t) ptr - alignment);
             int result = mprotect(aligned_ptr, page_size, PROT_READ | PROT_WRITE | PROT_EXEC);

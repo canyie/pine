@@ -55,14 +55,14 @@ public abstract class Test extends MethodHook {
 
     protected abstract int testImpl();
 
-    @Override public void beforeHookedMethod(Pine.CallFrame callFrame) throws Throwable {
+    @Override public void beforeCall(Pine.CallFrame callFrame) throws Throwable {
         isCallbackInvoked = true;
         Log.i(ExampleApp.TAG, "Before " + target.getDeclaringClass().getName() + "."
                 + target.getName() + "() with thisObject " + callFrame.thisObject
                 + " and args " + Arrays.toString(callFrame.args));
     }
 
-    @Override public void afterHookedMethod(Pine.CallFrame callFrame) throws Throwable {
+    @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
         Log.i(ExampleApp.TAG, "After " + target.getDeclaringClass().getName() + "."
                 + target.getName() + "(): result " + callFrame.getResult()
                 + " throwable " + callFrame.getThrowable());

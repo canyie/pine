@@ -32,7 +32,7 @@ void TrampolineInstaller::InitTrampolines() {
 }
 
 void *TrampolineInstaller::CreateDirectJumpTrampoline(void *to) {
-    void *mem = Memory::AllocRWXSpace(kDirectJumpTrampolineSize);
+    void *mem = Memory::AllocUnprotected(kDirectJumpTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate direct jump trampoline!");
         return nullptr;
@@ -51,7 +51,7 @@ void TrampolineInstaller::WriteDirectJumpTrampolineTo(void *mem, void *jump_to) 
 void *
 TrampolineInstaller::CreateBridgeJumpTrampoline(art::ArtMethod *target, art::ArtMethod *bridge,
                                                 void *origin_code_entry) {
-    void *mem = Memory::AllocRWXSpace(kBridgeJumpTrampolineSize);
+    void *mem = Memory::AllocUnprotected(kBridgeJumpTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate bridge jump trampoline!");
         return nullptr;
@@ -80,7 +80,7 @@ TrampolineInstaller::CreateBridgeJumpTrampoline(art::ArtMethod *target, art::Art
 
 void *
 TrampolineInstaller::CreateCallOriginTrampoline(art::ArtMethod *origin, void *original_code_entry) {
-    void *mem = Memory::AllocRWXSpace(kCallOriginTrampolineSize);
+    void *mem = Memory::AllocUnprotected(kCallOriginTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate call origin trampoline!");
         return nullptr;
@@ -102,7 +102,7 @@ TrampolineInstaller::CreateCallOriginTrampoline(art::ArtMethod *origin, void *or
 
 void *TrampolineInstaller::Backup(art::ArtMethod *target) {
     const size_t backup_size = kDirectJumpTrampolineSize;
-    void *mem = Memory::AllocRWXSpace(kBackupTrampolineSize);
+    void *mem = Memory::AllocUnprotected(kBackupTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate executable memory for backup!");
         return nullptr;
@@ -152,7 +152,7 @@ TrampolineInstaller::InstallReplacementTrampoline(art::ArtMethod *target, art::A
 
 void *TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod *target, art::ArtMethod *bridge) {
     void *target_code_addr = target->GetCompiledCodeAddr();
-    bool target_code_writable = Memory::MakePageWritable(target_code_addr);
+    bool target_code_writable = Memory::Unprotect(target_code_addr);
     if (UNLIKELY(!target_code_writable)) {
         LOGE("Failed to make target code writable!");
         return nullptr;

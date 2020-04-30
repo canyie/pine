@@ -18,7 +18,7 @@ static std::mutex mutex;
 
 const long Memory::page_size = sysconf(_SC_PAGESIZE);
 
-void *Memory::AllocRWXSpace(size_t size) {
+void *Memory::AllocUnprotected(size_t size) {
     if (UNLIKELY(size > page_size)) {
         LOGE("Attempting to allocate too much memory space (%x bytes)", size);
         errno = ENOMEM;

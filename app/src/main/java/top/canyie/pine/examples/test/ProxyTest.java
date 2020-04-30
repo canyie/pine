@@ -54,8 +54,8 @@ public class ProxyTest extends Test {
         }
     }
 
-    @Override public void afterHookedMethod(Pine.CallFrame callFrame) throws Throwable {
-        super.afterHookedMethod(callFrame);
+    @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+        super.afterCall(callFrame);
         if (Long.valueOf(114514L).equals(callFrame.getResult())) {
             callFrame.setResult(1919810L);
         }

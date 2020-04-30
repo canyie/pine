@@ -8,21 +8,21 @@ import java.lang.reflect.Member;
  * @author canyie
  */
 public abstract class MethodHook {
-    public void beforeHookedMethod(Pine.CallFrame callFrame) throws Throwable {
+    public void beforeCall(Pine.CallFrame callFrame) throws Throwable {
     }
 
-    public void afterHookedMethod(Pine.CallFrame callFrame) throws Throwable {
+    public void afterCall(Pine.CallFrame callFrame) throws Throwable {
     }
 
     public class Unhook {
-        private final Pine.HookInfo hookInfo;
+        private final Pine.HookRecord hookRecord;
 
-        public Unhook(Pine.HookInfo hookInfo) {
-            this.hookInfo = hookInfo;
+        public Unhook(Pine.HookRecord hookRecord) {
+            this.hookRecord = hookRecord;
         }
 
         public Member getTarget() {
-            return hookInfo.target;
+            return hookRecord.target;
         }
 
         public MethodHook getCallback() {
@@ -30,7 +30,7 @@ public abstract class MethodHook {
         }
 
         public void unhook() {
-            hookInfo.removeCallback(MethodHook.this);
+            hookRecord.removeCallback(MethodHook.this);
         }
     }
 }

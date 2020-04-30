@@ -19,8 +19,8 @@ public class ToastHookTest extends Test {
         return IGNORED;
     }
 
-    @Override public void beforeHookedMethod(Pine.CallFrame callFrame) throws Throwable {
-        super.beforeHookedMethod(callFrame);
+    @Override public void beforeCall(Pine.CallFrame callFrame) throws Throwable {
+        super.beforeCall(callFrame);
         callFrame.args[1] = "ToastHookTest success";
     }
 }

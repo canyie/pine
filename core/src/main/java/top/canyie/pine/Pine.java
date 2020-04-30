@@ -33,7 +33,7 @@ public final class Pine {
     public static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
     private static volatile boolean initialized;
     private static final Map<String, Method> sBridgeMethods = new HashMap<>(8, 2f);
-    private static final Map<Long, HookInfo> sHookInfoMap = new ConcurrentHashMap<>();
+    private static final Map<Long, HookRecord> sHookRecords = new ConcurrentHashMap<>();
     private static final Object sHookLock = new Object();
     private static boolean is64Bit;
     private static volatile int hookMode = HookMode.AUTO;
@@ -186,23 +186,23 @@ public final class Pine {
             hookListener.beforeHook(method, callback);
 
         long artMethod = getArtMethod(method);
-        HookInfo hookInfo;
+        HookRecord hookRecord;
         boolean newMethod = false;
 
         synchronized (sHookLock) {
-            hookInfo = sHookInfoMap.get(artMethod);
-            if (hookInfo == null) {
-                hookInfo = new HookInfo(method);
+            hookRecord = sHookRecords.get(artMethod);
+            if (hookRecord == null) {
+                hookRecord = new HookRecord(method);
                 newMethod = true;
-                sHookInfoMap.put(artMethod, hookInfo);
+                sHookRecords.put(artMethod, hookRecord);
             }
         }
 
         if (newMethod)
-            hookNewMethod(hookInfo, declaring, modifiers, method);
+            hookNewMethod(hookRecord, declaring, modifiers, method);
 
-        hookInfo.addCallback(callback);
-        MethodHook.Unhook unhook = callback.new Unhook(hookInfo);
+        hookRecord.addCallback(callback);
+        MethodHook.Unhook unhook = callback.new Unhook(hookRecord);
 
         if (hookListener != null)
             hookListener.afterHook(method, unhook);
@@ -210,7 +210,7 @@ public final class Pine {
         return unhook;
     }
 
-    private static void hookNewMethod(HookInfo hookInfo, Class<?> declaring, int modifiers,
+    private static void hookNewMethod(HookRecord hookRecord, Class<?> declaring, int modifiers,
                                       Member method) {
         boolean isInlineHook;
         if (hookMode == HookMode.AUTO) {
@@ -228,7 +228,7 @@ public final class Pine {
 
         boolean isStatic = Modifier.isStatic(modifiers);
         if (isStatic) resolve((Method) method);
-        hookInfo.isNonStatic = !isStatic;
+        hookRecord.isNonStatic = !isStatic;
 
         long thread = Primitives.currentArtThread();
 
@@ -250,16 +250,16 @@ public final class Pine {
 
         String bridgeMethodName;
         if (method instanceof Method) {
-            hookInfo.paramTypes = ((Method) method).getParameterTypes();
+            hookRecord.paramTypes = ((Method) method).getParameterTypes();
             Class<?> returnType = ((Method) method).getReturnType();
             bridgeMethodName = returnType.isPrimitive() ? returnType.getName() + "Bridge" : "objectBridge";
         } else {
-            hookInfo.paramTypes = ((Constructor) method).getParameterTypes();
+            hookRecord.paramTypes = ((Constructor) method).getParameterTypes();
             // Constructor is actually a method named <init> and the return type is void.
             bridgeMethodName = "voidBridge";
         }
 
-        hookInfo.paramNumber = hookInfo.paramTypes.length;
+        hookRecord.paramNumber = hookRecord.paramTypes.length;
 
         Method bridge = sBridgeMethods.get(bridgeMethodName);
         if (bridge == null)
@@ -271,7 +271,7 @@ public final class Pine {
             throw new RuntimeException("Failed to hook method " + method);
 
         backup.setAccessible(true);
-        hookInfo.backup = backup;
+        hookRecord.backup = backup;
     }
 
     private static void resolve(Method method) {
@@ -292,10 +292,10 @@ public final class Pine {
         throw new RuntimeException("No IllegalArgumentException thrown when resolve static method.");
     }
 
-    public static HookInfo getHookInfo(long artMethod) {
-        HookInfo result = sHookInfoMap.get(artMethod);
+    public static HookRecord getHookRecord(long artMethod) {
+        HookRecord result = sHookRecords.get(artMethod);
         if (result == null) {
-            throw new AssertionError("Cannot find HookInfo for ArtMethod pointer 0x" + Long.toHexString(artMethod));
+            throw new AssertionError("Cannot find HookRecord for ArtMethod pointer 0x" + Long.toHexString(artMethod));
         }
         return result;
     }
@@ -340,8 +340,8 @@ public final class Pine {
             throw new IllegalArgumentException("method must be of type Method or Constructor");
         }
 
-        HookInfo hookInfo = sHookInfoMap.get(getArtMethod(method));
-        if (hookInfo == null) {
+        HookRecord hookRecord = sHookRecords.get(getArtMethod(method));
+        if (hookRecord == null) {
             // Not hooked
             if (isMethod) {
                 return ((Method) method).invoke(thisObject, args);
@@ -358,7 +358,7 @@ public final class Pine {
             }
         }
 
-        return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
+        return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
     }
 
     public static boolean compile(Member method) {
@@ -413,31 +413,31 @@ public final class Pine {
         return disableJitInline0();
     }
 
-    public static Object handleHookedMethod(HookInfo hookInfo, Object thisObject, Object[] args)
+    public static Object handleHookedMethod(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
         if (PineConfig.debug)
-            Log.d(TAG, "handleHookedMethod: target=" + hookInfo.target + " thisObject=" +
+            Log.d(TAG, "handleHookedMethod: target=" + hookRecord.target + " thisObject=" +
                     thisObject + " args=" + Arrays.toString(args));
 
-        if (PineConfig.disableHooks || hookInfo.emptyCallbacks()) {
+        if (PineConfig.disableHooks || hookRecord.emptyCallbacks()) {
             try {
-                return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
+                return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
             } catch (InvocationTargetException e) {
                 throw e.getTargetException();
             }
         }
 
-        CallFrame callFrame = new CallFrame(hookInfo, thisObject, args);
-        MethodHook[] callbacks = hookInfo.getCallbacks();
+        CallFrame callFrame = new CallFrame(hookRecord, thisObject, args);
+        MethodHook[] callbacks = hookRecord.getCallbacks();
 
         // call before callbacks
         int beforeIdx = 0;
         do {
             MethodHook callback = callbacks[beforeIdx];
             try {
-                callback.beforeHookedMethod(callFrame);
+                callback.beforeCall(callFrame);
             } catch (Throwable e) {
-                Log.e(TAG, "Unexpected exception occurred when calling " + callback.getClass().getName() + ".beforeHookedMethod()", e);
+                Log.e(TAG, "Unexpected exception occurred when calling " + callback.getClass().getName() + ".beforeCall()", e);
                 // reset result (ignoring what the unexpectedly exiting callback did)
                 callFrame.resetResult();
                 continue;
@@ -465,9 +465,9 @@ public final class Pine {
             Object lastResult = callFrame.getResult();
             Throwable lastThrowable = callFrame.getThrowable();
             try {
-                callback.afterHookedMethod(callFrame);
+                callback.afterCall(callFrame);
             } catch (Throwable e) {
-                Log.e(TAG, "Unexpected exception occurred when calling " + callback.getClass().getName() + ".afterHookedMethod()", e);
+                Log.e(TAG, "Unexpected exception occurred when calling " + callback.getClass().getName() + ".afterCall()", e);
 
                 // reset to last result (ignoring what the unexpectedly exiting callback did)
                 if (lastThrowable == null)
@@ -523,7 +523,7 @@ public final class Pine {
     private static native void updateDeclaringClass(Member origin, Method backup);
 
 
-    public static final class HookInfo {
+    public static final class HookRecord {
         public final Member target;
         public Method backup;
         public boolean isNonStatic;
@@ -531,7 +531,7 @@ public final class Pine {
         public Class<?>[] paramTypes;
         private Set<MethodHook> callbacks = Collections.synchronizedSet(new HashSet<MethodHook>());
 
-        HookInfo(Member target) {
+        HookRecord(Member target) {
             this.target = target;
         }
 
@@ -559,11 +559,11 @@ public final class Pine {
         private Object result;
         private Throwable throwable;
         /* package */ boolean returnEarly;
-        private HookInfo hookInfo;
+        private HookRecord hookRecord;
 
-        public CallFrame(HookInfo hookInfo, Object thisObject, Object[] args) {
-            this.hookInfo = hookInfo;
-            this.method = hookInfo.target;
+        public CallFrame(HookRecord hookRecord, Object thisObject, Object[] args) {
+            this.hookRecord = hookRecord;
+            this.method = hookRecord.target;
             this.thisObject = thisObject;
             this.args = args;
         }
@@ -605,11 +605,11 @@ public final class Pine {
         }
 
         public Object invokeOriginalMethod() throws InvocationTargetException, IllegalAccessException {
-            return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
+            return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
         }
 
         public Object invokeOriginalMethod(Object thisObject, Object... args) throws InvocationTargetException, IllegalAccessException {
-            return callBackupMethod(hookInfo.target, hookInfo.backup, thisObject, args);
+            return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
         }
     }
 

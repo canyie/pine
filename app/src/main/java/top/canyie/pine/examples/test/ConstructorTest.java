@@ -23,8 +23,8 @@ public class ConstructorTest extends Test {
         }
     }
 
-    @Override public void beforeHookedMethod(Pine.CallFrame callFrame) throws Throwable {
-        super.beforeHookedMethod(callFrame);
+    @Override public void beforeCall(Pine.CallFrame callFrame) throws Throwable {
+        super.beforeCall(callFrame);
         int originArg = (int) callFrame.args[0];
         if (originArg != 114514)
             callFrame.setThrowable(new IllegalArgumentException("parse arguments error (got "
@@ -33,8 +33,8 @@ public class ConstructorTest extends Test {
         callFrame.args[0] = 1145141919;
     }
 
-    @Override public void afterHookedMethod(Pine.CallFrame callFrame) throws Throwable {
-        super.afterHookedMethod(callFrame);
+    @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
+        super.afterCall(callFrame);
         ((Target) callFrame.thisObject).success = true;
     }
 
