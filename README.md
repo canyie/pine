@@ -8,6 +8,8 @@ Pine is a dynamic java method hook framework on ART runtime, it can intercept al
 
 Currently it supports Android 4.4(ART only) ~ 10.0 with aarch32/thumb-2/arm64 architecture.
 
+About its working principle, you can refer to this Chinese [article](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/).
+
 Note: For Android 6.0 and 32-bit mode, the parameters may be wrong; and for Android 9.0+, you need to bypass the hidden API restriction policy yourself (like [FreeReflection](https://github.com/tiann/FreeReflection)).
 ## Usage
 Add dependencies in build.gradle:
