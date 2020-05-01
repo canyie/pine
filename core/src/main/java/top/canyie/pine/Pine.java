@@ -289,6 +289,12 @@ public final class Pine {
         throw new RuntimeException("No IllegalArgumentException thrown when resolve static method.");
     }
 
+    public static boolean isHooked(Member method) {
+        if (!(method instanceof Method || method instanceof Constructor))
+            throw new IllegalArgumentException("Only methods and constructors can be hooked: " + method);
+        return sHookRecords.containsKey(getArtMethod(method));
+    }
+
     public static HookRecord getHookRecord(long artMethod) {
         HookRecord result = sHookRecords.get(artMethod);
         if (result == null) {
@@ -410,10 +416,10 @@ public final class Pine {
         return disableJitInline0();
     }
 
-    public static Object handleHookedMethod(HookRecord hookRecord, Object thisObject, Object[] args)
+    public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
         if (PineConfig.debug)
-            Log.d(TAG, "handleHookedMethod: target=" + hookRecord.target + " thisObject=" +
+            Log.d(TAG, "handleCall: target=" + hookRecord.target + " thisObject=" +
                     thisObject + " args=" + Arrays.toString(args));
 
         if (PineConfig.disableHooks || hookRecord.emptyCallbacks()) {

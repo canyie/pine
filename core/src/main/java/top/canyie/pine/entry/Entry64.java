@@ -115,7 +115,7 @@ public final class Entry64 {
             args = Pine.EMPTY_OBJECT_ARRAY;
         }
 
-        return Pine.handleHookedMethod(hookRecord, receiver, args);
+        return Pine.handleCall(hookRecord, receiver, args);
     }
 
     private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp,
