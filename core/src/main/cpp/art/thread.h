@@ -37,7 +37,7 @@ namespace pine::art {
         }
 
         jobject AddLocalRef(JNIEnv *env, void *o) {
-            if (new_local_ref) {
+            if (LIKELY(new_local_ref)) {
                 return new_local_ref(env, o);
             }
             jweak global_weak_ref = add_weak_global_ref(Android::jvm, this, o);

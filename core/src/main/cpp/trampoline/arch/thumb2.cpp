@@ -119,5 +119,3 @@ void *Thumb2TrampolineInstaller::Backup(art::ArtMethod *target) {
     Memory::FlushCache(mem, kBackupTrampolineSize);
     return ToPC(mem);
 }
-
-

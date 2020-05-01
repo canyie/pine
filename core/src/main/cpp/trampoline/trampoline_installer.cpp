@@ -171,3 +171,13 @@ void *TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod *target, art::
 
     return backup;
 }
+
+bool TrampolineInstaller::NativeHookNoBackup(void *target, void *to) {
+    bool target_code_writable = Memory::Unprotect(target);
+    if (UNLIKELY(!target_code_writable)) {
+        LOGE("Failed to make target code %p writable!", target);
+        return false;
+    }
+    WriteDirectJumpTrampolineTo(target, to);
+    return true;
+}

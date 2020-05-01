@@ -45,6 +45,7 @@ namespace pine {
         }
         void *InstallReplacementTrampoline(art::ArtMethod *target, art::ArtMethod *bridge);
         void *InstallInlineTrampoline(art::ArtMethod *target, art::ArtMethod *bridge);
+        virtual bool NativeHookNoBackup(void *target, void *to);
 
     protected:
         static inline size_t SubAsSize(void *a, void *b) {

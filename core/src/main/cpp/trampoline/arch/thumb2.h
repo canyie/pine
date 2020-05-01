@@ -27,6 +27,11 @@ namespace pine {
         }
 
         virtual void *Backup(art::ArtMethod *target) override ;
+
+        virtual bool NativeHookNoBackup(void *target, void *to) override {
+            return TrampolineInstaller::NativeHookNoBackup(ToAddress(target), to);
+        }
+
     private:
         static inline bool IsThumb32(uint16_t inst) {
             return ((inst & 0xF000) == 0xF000) || ((inst & 0xF800) == 0xE800);

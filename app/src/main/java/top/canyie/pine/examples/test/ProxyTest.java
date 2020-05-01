@@ -26,13 +26,13 @@ public class ProxyTest extends Test {
                         String methodName = method.getName();
                         switch (methodName) {
                             case "toString":
-                                return callable.getClass().getName()
+                                return proxy.getClass().getName()
                                         + "@"
-                                        + Integer.toHexString(callable.hashCode());
+                                        + Integer.toHexString(proxy.hashCode());
                             case "hashCode":
-                                return System.identityHashCode(callable);
+                                return System.identityHashCode(proxy);
                             case "equals":
-                                return callable == args[0];
+                                return proxy == args[0];
                         }
 
                         Log.i(ExampleApp.TAG, "Proxy method called...");
