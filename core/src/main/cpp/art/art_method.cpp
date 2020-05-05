@@ -16,6 +16,7 @@ void *ArtMethod::art_quick_to_interpreter_bridge = nullptr;
 void *ArtMethod::art_quick_generic_jni_trampoline = nullptr;
 void *ArtMethod::art_interpreter_to_compiled_code_bridge = nullptr;
 void *ArtMethod::art_interpreter_to_interpreter_bridge = nullptr;
+
 void (*ArtMethod::copy_from)(ArtMethod *, ArtMethod *, size_t) = nullptr;
 
 Member<ArtMethod, uint32_t> ArtMethod::access_flags_;
@@ -24,7 +25,7 @@ Member<ArtMethod, void *> ArtMethod::entry_point_from_compiled_code_;
 Member<ArtMethod, void *> *ArtMethod::entry_point_from_interpreter_;
 Member<ArtMethod, uint32_t> *ArtMethod::declaring_class = nullptr;
 
-void ArtMethod::Init(ElfImg *handle) {
+void ArtMethod::Init(const ElfImg *handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
 
@@ -58,7 +59,7 @@ void ArtMethod::Init(ElfImg *handle) {
     }
 
     if (symbol_copy_from)
-        copy_from = reinterpret_cast<void (*)(ArtMethod *, ArtMethod *,size_t)>(
+        copy_from = reinterpret_cast<void (*)(ArtMethod *, ArtMethod *, size_t)>(
                 handle->GetSymbolAddress(symbol_copy_from));
 }
 
@@ -101,7 +102,7 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
             uint32_t entry_point_from_jni_size = Android::version == Android::VERSION_L
                                                  ? sizeof(uint64_t) : sizeof(void *);
             uint32_t compiled_code_entry_offset = entry_point_from_jni_.GetOffset()
-                    + entry_point_from_jni_size;
+                                                  + entry_point_from_jni_size;
 
             if (Android::version >= Android::VERSION_O) {
                 // Only align offset on Android O+ (PtrSizedFields is PACKED(4) in Android N or lower.)
@@ -120,7 +121,7 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
 
         if (Android::version < Android::VERSION_N) {
             uint32_t entry_point_from_interpreter_size = Android::version == Android::VERSION_L
-                    ? sizeof(uint64_t) : sizeof(void *);
+                                                         ? sizeof(uint64_t) : sizeof(void *);
 
             // Not align: PtrSizedFields is PACKED(4) in the android version.
             entry_point_from_interpreter_ = new Member<ArtMethod, void *>(
@@ -139,7 +140,8 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
     }
 }
 
-void ArtMethod::BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook, bool is_native_or_proxy) {
+void ArtMethod::BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook,
+                           bool is_native_or_proxy) {
     if (LIKELY(copy_from)) {
         copy_from(this, source, sizeof(void *));
     } else {
@@ -158,7 +160,10 @@ void ArtMethod::BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook, 
     access_flags &= ~AccessFlags::kAccConstructor;
     SetAccessFlags(access_flags);
 
-    if (UNLIKELY(Android::version >= Android::VERSION_N && !is_inline_hook && !is_native_or_proxy)) {
+    if (UNLIKELY(Android::version >= Android::VERSION_N
+                 && !is_inline_hook
+                 && !is_native_or_proxy
+                 && art_quick_to_interpreter_bridge)) {
         // On Android N+, the method may compiled by JIT, and unknown problem occurs when calling
         // the backup method if we use entry replacement mode. Just use the interpreter to execute.
         // Possible reason: compiled code is recycled in JIT garbage collection.

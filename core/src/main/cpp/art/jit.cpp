@@ -21,7 +21,7 @@ JitCompiler **Jit::global_compiler_ptr = nullptr;
 
 Member<void, size_t> *Jit::CompilerOptions_inline_max_code_units = nullptr;
 
-void Jit::Init(ElfImg *art_lib_handle, ElfImg *jit_lib_handle) {
+void Jit::Init(const ElfImg *art_lib_handle, const ElfImg *jit_lib_handle) {
     global_compiler_ptr = static_cast<JitCompiler **>(art_lib_handle->GetSymbolAddress(
             "_ZN3art3jit3Jit20jit_compiler_handle_E"));
 

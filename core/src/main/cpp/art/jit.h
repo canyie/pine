@@ -23,7 +23,7 @@ namespace pine::art {
 
     class Jit {
     public:
-        static void Init(ElfImg *art_lib_handle, ElfImg *jit_lib_handle);
+        static void Init(const ElfImg *art_lib_handle, const ElfImg *jit_lib_handle);
 
         static JitCompiler *GetCompiler() {
             return LIKELY(self_compiler) ? self_compiler : GetGlobalCompiler();

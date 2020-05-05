@@ -19,7 +19,7 @@
 namespace pine::art {
     class ArtMethod final {
     public:
-        static void Init(ElfImg *handle);
+        static void Init(const ElfImg *handle);
 
         static void InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags);
 

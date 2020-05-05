@@ -39,9 +39,9 @@ namespace pine {
     class ElfImg {
     public:
         ElfImg(const char* elf);
-        // Pine changed: Rename some function.
-        Elf_Addr GetSymbolOffset(const char* name);
-        void* GetSymbolAddress(const char* name);
+        // Pine changed: Rename some function & make some function const.
+        Elf_Addr GetSymbolOffset(const char* name) const;
+        void* GetSymbolAddress(const char* name) const;
 
         ~ElfImg();
 

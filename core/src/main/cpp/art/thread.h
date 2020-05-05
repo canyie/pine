@@ -21,7 +21,7 @@
 namespace pine::art {
     class Thread final {
     public:
-        static void Init(ElfImg *art_lib_handle);
+        static void Init(const ElfImg *art_lib_handle);
 
 //        static inline Thread* Current() {
 //            auto thread = reinterpret_cast<Thread *> (__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);

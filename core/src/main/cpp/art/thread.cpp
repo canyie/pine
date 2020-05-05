@@ -12,7 +12,7 @@ jweak (*Thread::add_weak_global_ref)(JavaVM *, Thread *, void *) = nullptr;
 
 void *(*Thread::decode_jobject)(Thread *, jobject) = nullptr;
 
-void Thread::Init(ElfImg *art_lib_handle) {
+void Thread::Init(const ElfImg *art_lib_handle) {
     new_local_ref = reinterpret_cast<jobject (*)(JNIEnv *, void *)>(art_lib_handle->GetSymbolAddress(
             "_ZN3art9JNIEnvExt11NewLocalRefEPNS_6mirror6ObjectE")); // art::JNIEnvExt::NewLocalRef(art::mirror::Object *)
 

@@ -115,7 +115,7 @@ ElfImg::~ElfImg() {
     }
 }
 
-Elf_Addr ElfImg::GetSymbolOffset(const char *name) {
+Elf_Addr ElfImg::GetSymbolOffset(const char *name) const {
     Elf_Addr _offset = 0;
 
     //search dynmtab
@@ -155,7 +155,7 @@ Elf_Addr ElfImg::GetSymbolOffset(const char *name) {
     return 0;
 }
 
-void *ElfImg::GetSymbolAddress(const char *name) {
+void *ElfImg::GetSymbolAddress(const char *name) const {
     Elf_Addr offset = GetSymbolOffset(name);
     if (LIKELY(offset > 0 && base != nullptr)) {
         // Pine changed: Use uintptr_t instead of size_t
