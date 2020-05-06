@@ -16,8 +16,6 @@ set(PINE_ARCH_UNRELATED_SOURCES
 if (CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -arch armv7")
     set(PINE_ARCH_RELATED_SOURCES
-            trampoline/arch/arm32.cpp
-            trampoline/arch/arm32.S
             trampoline/arch/thumb2.cpp
             trampoline/arch/thumb2.S)
 elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")

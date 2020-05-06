@@ -7,7 +7,38 @@
 using namespace pine;
 
 void Arm64TrampolineInstaller::InitTrampolines() {
-    TrampolineInstaller::InitTrampolines();
+    kDirectJumpTrampoline = AS_VOID_PTR(pine_direct_jump_trampoline);
+    kDirectJumpTrampolineEntryOffset = DirectJumpTrampolineOffset(
+            AS_VOID_PTR(pine_direct_jump_trampoline_jump_entry));
+
+    kBridgeJumpTrampoline = AS_VOID_PTR(pine_bridge_jump_trampoline);
+    kBridgeJumpTrampolineTargetMethodOffset = BridgeJumpTrampolineOffset(
+            AS_VOID_PTR(pine_bridge_jump_trampoline_target_method));
+    kBridgeJumpTrampolineExtrasOffset = BridgeJumpTrampolineOffset(
+            AS_VOID_PTR(pine_bridge_jump_trampoline_extras));
+    kBridgeJumpTrampolineBridgeMethodOffset = BridgeJumpTrampolineOffset(
+            AS_VOID_PTR(pine_bridge_jump_trampoline_bridge_method));
+    kBridgeJumpTrampolineBridgeEntryOffset = BridgeJumpTrampolineOffset(
+            AS_VOID_PTR(pine_bridge_jump_trampoline_bridge_entry));
+    kBridgeJumpTrampolineOriginCodeEntryOffset = BridgeJumpTrampolineOffset(
+            AS_VOID_PTR(pine_bridge_jump_trampoline_call_origin_entry));
+
+    kCallOriginTrampoline = AS_VOID_PTR(pine_call_origin_trampoline);
+    kCallOriginTrampolineOriginMethodOffset = CallOriginTrampolineOffset(
+            AS_VOID_PTR(pine_call_origin_trampoline_origin_method));
+    kCallOriginTrampolineOriginalEntryOffset = CallOriginTrampolineOffset(
+            AS_VOID_PTR(pine_call_origin_trampoline_origin_code_entry));
+
+    kBackupTrampoline = AS_VOID_PTR(pine_backup_trampoline);
+    kBackupTrampolineOriginMethodOffset = BackupTrampolineOffset(
+            AS_VOID_PTR(pine_backup_trampoline_origin_method));
+    kBackupTrampolineOverrideSpaceOffset = BackupTrampolineOffset(
+            AS_VOID_PTR(pine_backup_trampoline_override_space));
+    kBackupTrampolineRemainingCodeEntryOffset = BackupTrampolineOffset(
+            AS_VOID_PTR(pine_backup_trampoline_remaining_code_entry));
+
+    kTrampolinesEnd = AS_VOID_PTR(pine_trampolines_end);
+
     kDirectJumpTrampolineSize = 16;
 }
 
@@ -23,7 +54,7 @@ bool Arm64TrampolineInstaller::IsPCRelatedInst(uint32_t inst) {
 
 bool Arm64TrampolineInstaller::CannotBackup(art::ArtMethod *target) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target->GetEntryPointFromCompiledCode());
-    for (uint32_t index = 0;index < kDirectJumpTrampolineSize;index += 4) {
+    for (uint32_t index = 0; index < kDirectJumpTrampolineSize; index += 4) {
         uint32_t *p = reinterpret_cast<uint32_t *> (entry + index);
         if (UNLIKELY(IsPCRelatedInst(*p))) {
             return true;

@@ -6,29 +6,25 @@
 #include "memory.h"
 #include "extras.h"
 
+#ifdef __aarch64__
+#include "arch/arm64.h"
+#elif defined(__arm__)
+#include "arch/thumb2.h"
+#else
+#error unsupported architecture
+#endif
+
 using namespace pine;
 
-void TrampolineInstaller::InitTrampolines() {
-    kDirectJumpTrampoline = AS_VOID_PTR(pine_direct_jump_trampoline);
-    kDirectJumpTrampolineEntryOffset = DirectJumpTrampolineOffset(AS_VOID_PTR(pine_direct_jump_trampoline_jump_entry));
+TrampolineInstaller *TrampolineInstaller::default_ = nullptr;
 
-    kBridgeJumpTrampoline = AS_VOID_PTR(pine_bridge_jump_trampoline);
-    kBridgeJumpTrampolineTargetMethodOffset = BridgeJumpTrampolineOffset(AS_VOID_PTR(pine_bridge_jump_trampoline_target_method));
-    kBridgeJumpTrampolineExtrasOffset = BridgeJumpTrampolineOffset(AS_VOID_PTR(pine_bridge_jump_trampoline_extras));
-    kBridgeJumpTrampolineBridgeMethodOffset = BridgeJumpTrampolineOffset(AS_VOID_PTR(pine_bridge_jump_trampoline_bridge_method));
-    kBridgeJumpTrampolineBridgeEntryOffset = BridgeJumpTrampolineOffset(AS_VOID_PTR(pine_bridge_jump_trampoline_bridge_entry));
-    kBridgeJumpTrampolineOriginCodeEntryOffset = BridgeJumpTrampolineOffset(AS_VOID_PTR(pine_bridge_jump_trampoline_call_origin_entry));
-
-    kCallOriginTrampoline = AS_VOID_PTR(pine_call_origin_trampoline);
-    kCallOriginTrampolineOriginMethodOffset = CallOriginTrampolineOffset(AS_VOID_PTR(pine_call_origin_trampoline_origin_method));
-    kCallOriginTrampolineOriginalEntryOffset = CallOriginTrampolineOffset(AS_VOID_PTR(pine_call_origin_trampoline_origin_code_entry));
-
-    kBackupTrampoline = AS_VOID_PTR(pine_backup_trampoline);
-    kBackupTrampolineOriginMethodOffset = BackupTrampolineOffset(AS_VOID_PTR(pine_backup_trampoline_origin_method));
-    kBackupTrampolineOverrideSpaceOffset = BackupTrampolineOffset(AS_VOID_PTR(pine_backup_trampoline_override_space));
-    kBackupTrampolineRemainingCodeEntryOffset = BackupTrampolineOffset(AS_VOID_PTR(pine_backup_trampoline_remaining_code_entry));
-
-    kTrampolinesEnd = AS_VOID_PTR(pine_trampolines_end);
+void TrampolineInstaller::InitDefault() {
+#ifdef __aarch64__
+    default_ = new Arm64TrampolineInstaller;
+#else
+    default_ = new Thumb2TrampolineInstaller;
+#endif
+    default_->Init();
 }
 
 void *TrampolineInstaller::CreateDirectJumpTrampoline(void *to) {

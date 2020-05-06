@@ -21,6 +21,11 @@ if (UNLIKELY(((inst) & (mask)) == op)) return true
 namespace pine {
     class TrampolineInstaller {
     public:
+        static void InitDefault();
+        static TrampolineInstaller *GetDefault() {
+            return default_;
+        }
+
         TrampolineInstaller() {};
 
         void Init() {
@@ -68,7 +73,7 @@ namespace pine {
             return SubAsSize(ptr, kBackupTrampoline);
         }
 
-        virtual void InitTrampolines();
+        virtual void InitTrampolines() = 0;
 
         virtual void *CreateDirectJumpTrampoline(void *to);
         void WriteDirectJumpTrampolineTo(void *mem, void *jump_to);
@@ -77,6 +82,8 @@ namespace pine {
 
         virtual bool CannotBackup(art::ArtMethod *target) = 0;
         virtual void *Backup(art::ArtMethod *target);
+
+        static TrampolineInstaller *default_;
 
         void *kDirectJumpTrampoline;
         size_t kDirectJumpTrampolineEntryOffset;

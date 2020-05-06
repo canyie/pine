@@ -21,7 +21,7 @@ namespace pine {
             }
         }
 
-        static void ThrowNewException(JNIEnv *env, const char *class_name, const char *msg) {
+        static void Throw(JNIEnv *env, const char *class_name, const char *msg) {
             jclass c = env->FindClass(class_name);
             if (UNLIKELY(!c)) {
                 return;

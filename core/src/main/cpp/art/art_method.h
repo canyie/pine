@@ -189,7 +189,7 @@ namespace pine::art {
         void *GetCompiledCodeAddr() {
             void *addr = GetEntryPointFromCompiledCode();
 #ifdef __arm__
-            addr = reinterpret_cast<void *>(reinterpret_cast<uintptr_t> (addr) & ~1);
+            addr = reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(addr) & ~1);
 #endif
         return addr;
         }
@@ -201,7 +201,7 @@ namespace pine::art {
             //    uint8_t code_[0];
             //  }
             uint32_t code_size = *reinterpret_cast<uint32_t *>(
-                    reinterpret_cast<size_t> (GetCompiledCodeAddr()) - sizeof(uint32_t));
+                    reinterpret_cast<uintptr_t>(GetCompiledCodeAddr()) - sizeof(uint32_t));
             if (Android::version >= Android::VERSION_O) {
                 // On Android 8+, The highest bit is used to signify if the compiled
                 // code with the method header has should_deoptimize flag.

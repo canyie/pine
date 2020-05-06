@@ -12,48 +12,22 @@
 #include "trampoline/extras.h"
 #include "trampoline/memory.h"
 
-#ifdef __LP64__
-#include "trampoline/arch/arm64.h"
-#else
-#include "trampoline/arch/thumb2.h"
-#include "trampoline/arch/arm32.h"
-#endif
-
 #include "utils/well_known_classes.h"
+#include "trampoline/trampoline_installer.h"
 
 using namespace pine;
 
-TrampolineInstaller *trampoline_installer = nullptr;
 bool debuggable = false;
 
 void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jobject javaM1, jobject javaM2,
                 jint accessFlags, jboolean isDebuggable) {
     LOGI("Pine native init...");
+    TrampolineInstaller::InitDefault();
     Android::Init(env, androidVersion);
     auto m1 = art::ArtMethod::FromReflectedMethod(env, javaM1);
     auto m2 = art::ArtMethod::FromReflectedMethod(env, javaM2);
     art::ArtMethod::InitMembers(m1, m2, static_cast<uint32_t>(accessFlags));
     debuggable = static_cast<bool>(isDebuggable);
-
-#if defined(__aarch64__)
-    trampoline_installer = new Arm64TrampolineInstaller;
-#elif defined(__arm__)
-    {
-        ScopedLocalRef<jclass> java_lang_String(env, env->FindClass("java/lang/String"));
-        art::ArtMethod *hashCode = art::ArtMethod::FromMethodID(
-                env->GetMethodID(java_lang_String.Get(), "hashCode", "()I"));
-        if (LIKELY(hashCode->IsThumb())) {
-            trampoline_installer = new Thumb2TrampolineInstaller;
-        } else {
-            LOGW("arm32 (non thumb-2) mode, supported but not tested.");
-            trampoline_installer = new Arm32TrampolineInstaller;
-        }
-    }
-#else
-#error unsupported architecture
-#endif
-
-    trampoline_installer->Init();
 
     env->SetStaticBooleanField(Pine, env->GetStaticFieldID(Pine, "is64Bit", "Z"),
                                static_cast<jboolean>(Android::Is64Bit()));
@@ -61,7 +35,7 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jobject javaM1, j
 
 jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, jobject javaTarget,
                    jobject javaBridge, jboolean isInlineHook, jboolean isNativeOrProxy) {
-    auto thread = reinterpret_cast<art::Thread *> (threadAddress);
+    auto thread = reinterpret_cast<art::Thread *>(threadAddress);
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
 
@@ -72,6 +46,8 @@ jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, j
 
     bool is_inline_hook = static_cast<bool>(isInlineHook);
     bool is_native_or_proxy = static_cast<bool>(isNativeOrProxy);
+
+    TrampolineInstaller *trampoline_installer = TrampolineInstaller::GetDefault();
 
     if (is_inline_hook && UNLIKELY(trampoline_installer->CannotSafeInlineHook(target))) {
         LOGW("Cannot safe inline hook the target method, force replacement mode.");
@@ -95,11 +71,11 @@ jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, j
             int local_errno = errno;
             LOGE("Cannot allocate backup ArtMethod, errno %d(%s)", errno, strerror(errno));
             if (local_errno == ENOMEM) {
-                JNIHelper::ThrowNewException(env, "java/lang/OutOfMemoryError",
-                        "No memory for allocate backup method");
+                JNIHelper::Throw(env, "java/lang/OutOfMemoryError",
+                                 "No memory for allocate backup method");
             } else {
-                JNIHelper::ThrowNewException(env, "java/lang/RuntimeException",
-                        "hook failed: cannot allocate backup method");
+                JNIHelper::Throw(env, "java/lang/RuntimeException",
+                                 "hook failed: cannot allocate backup method");
             }
             return nullptr;
         }
@@ -131,7 +107,7 @@ jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, j
                                       static_cast<jboolean>(backup->IsStatic()));
     } else {
         // TODO Throw exception has detailed error message
-        JNIHelper::ThrowNewException(env, "java/lang/RuntimeException", "hook failed");
+        JNIHelper::Throw(env, "java/lang/RuntimeException", "hook failed");
         return nullptr;
     }
 }
