@@ -5,8 +5,6 @@ import android.os.Build;
 import android.util.Log;
 
 import top.canyie.pine.callback.MethodHook;
-import top.canyie.pine.entry.Entry32;
-import top.canyie.pine.entry.Entry64;
 import top.canyie.pine.utils.Primitives;
 import top.canyie.pine.utils.ReflectionHelper;
 
@@ -68,25 +66,7 @@ public final class Pine {
             LibLoader libLoader = PineConfig.libLoader;
             if (libLoader != null) libLoader.loadLib();
 
-            Method m1 = ReflectionHelper.getMethod(Ruler.class, "m1", (Class<?>[]) null);
-            Method m2 = ReflectionHelper.getMethod(Ruler.class, "m2", (Class<?>[]) null);
-
-            Method getAccessFlags = ReflectionHelper.findMethod(Method.class,
-                    "getAccessFlags", (Class<?>[]) null);
-            int accessFlags;
-            if (getAccessFlags != null) {
-                accessFlags = (int) getAccessFlags.invoke(m1);
-            } else {
-                Log.w(TAG, "Method Method.getAccessFlags() not found, use default access flags.");
-                accessFlags = Modifier.PRIVATE | Modifier.STATIC | Modifier.NATIVE;
-                // accessFlags = m1.getModifiers();
-            }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                accessFlags |= 0x10000000; // kAccPublicApi
-            }
-
-            init0(Build.VERSION.SDK_INT, m1, m2, accessFlags, PineConfig.debuggable);
+            init0(Build.VERSION.SDK_INT, PineConfig.debuggable);
             initBridgeMethods();
 
             if (PineConfig.useFastNative
@@ -499,8 +479,7 @@ public final class Pine {
         }
     }
 
-    private static native void init0(int androidVersion, Method m1, Method m2, int accessFlags,
-                                     boolean debuggable);
+    private static native void init0(int androidVersion, boolean debuggable);
 
     private static native void enableFastNative();
 

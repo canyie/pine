@@ -65,7 +65,6 @@ void Android::Init(JNIEnv *env, int sdk_version) {
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
     }
-
 }
 
 

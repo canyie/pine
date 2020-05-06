@@ -19,14 +19,20 @@ using namespace pine;
 
 bool debuggable = false;
 
-void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jobject javaM1, jobject javaM2,
-                jint accessFlags, jboolean isDebuggable) {
+void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebuggable) {
     LOGI("Pine native init...");
     TrampolineInstaller::InitDefault();
     Android::Init(env, androidVersion);
-    auto m1 = art::ArtMethod::FromReflectedMethod(env, javaM1);
-    auto m2 = art::ArtMethod::FromReflectedMethod(env, javaM2);
-    art::ArtMethod::InitMembers(m1, m2, static_cast<uint32_t>(accessFlags));
+    {
+        ScopedLocalRef<jclass> Ruler(env, env->FindClass("top/canyie/pine/Ruler"));
+        auto m1 = art::ArtMethod::FromMethodID(env->GetStaticMethodID(Ruler.Get(), "m1", "()V"));
+        auto m2 = art::ArtMethod::FromMethodID(env->GetStaticMethodID(Ruler.Get(), "m2", "()V"));
+        uint32_t expected_access_flags = AccessFlags::kAccPrivate | AccessFlags::kAccStatic | AccessFlags::kAccNative;
+        if (androidVersion >= Android::VERSION_Q) {
+            expected_access_flags |= AccessFlags::kAccPublicApi;
+        }
+        art::ArtMethod::InitMembers(m1, m2, expected_access_flags);
+    }
     debuggable = static_cast<bool>(isDebuggable);
 
     env->SetStaticBooleanField(Pine, env->GetStaticFieldID(Pine, "is64Bit", "Z"),
@@ -257,7 +263,7 @@ void Pine_enableFastNative(JNIEnv *env, jclass Pine) {
 }
 
 static const JNINativeMethod gMethods[] = {
-        {"init0",                     "(ILjava/lang/reflect/Method;Ljava/lang/reflect/Method;IZ)V", (void *) Pine_init0},
+        {"init0",                     "(IZ)V", (void *) Pine_init0},
         {"enableFastNative",          "()V",                                                        (void *) Pine_enableFastNative},
         {"getArtMethod",              "(Ljava/lang/reflect/Member;)J",                              (void *) Pine_getArtMethod},
         {"hook0",

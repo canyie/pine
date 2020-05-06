@@ -136,6 +136,8 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
         LOGW("Android Kitkat, hardcode offset only...");
         access_flags_.SetOffset(28);
         entry_point_from_compiled_code_.SetOffset(32);
+
+        // FIXME the offset seems to be wrong
         entry_point_from_interpreter_ = new Member<ArtMethod, void *>(36);
     }
 }
