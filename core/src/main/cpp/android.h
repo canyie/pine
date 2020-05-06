@@ -7,6 +7,7 @@
 
 #include <jni.h>
 #include "utils/macros.h"
+#include "utils/elf_img.h"
 
 namespace pine {
     class Android {
@@ -35,6 +36,8 @@ namespace pine {
         static const int VERSION_Q = 29;
         static const int VERSION_R = 30;
     private:
+        static void DisableHiddenApiPolicy(const ElfImg *handle);
+
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);
     };
 }

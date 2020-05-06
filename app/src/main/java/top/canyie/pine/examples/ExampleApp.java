@@ -21,7 +21,6 @@ public class ExampleApp extends Application {
     @Override protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         instance = this;
-        HiddenApis.exemptAll();
     }
 
     @Override public void onCreate() {
