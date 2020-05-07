@@ -1,27 +1,27 @@
 # Pine
-[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.2)](https://bintray.com/canyie/pine/core/0.0.2/link)
+[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.3)](https://bintray.com/canyie/pine/core/0.0.3/link)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 [中文版本](README_cn.md)
 ## Introduction
 Pine is a dynamic java method hook framework on ART runtime, it can intercept almost all java method calls in this process.
 
-Currently it supports Android 4.4(ART only) ~ 10.0 with aarch32/thumb-2/arm64 architecture.
+Currently it supports Android 4.4(ART only) ~ 10.0 with thumb-2/arm64 architecture.
 
 About its working principle, you can refer to this Chinese [article](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/).
 
-Note: For Android 6.0 and 32-bit mode, the arguments may be wrong; and for Android 9.0+, you need to bypass the hidden API restriction policy yourself (like [FreeReflection](https://github.com/tiann/FreeReflection)).
+Note: For Android 6.0 and 32-bit mode, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
 ## Usage
 Add dependencies in build.gradle:
 ```grooxy
 dependencies {
-    implementation 'top.canyie.pine:core:0.0.2'
+    implementation 'top.canyie.pine:core:0.0.3'
 }
 ```
 Basic configuration:
 ```java
-PineConfig.debug = true; // Need to print a more detailed log?
-PineConfig.debuggable = BuildConfig.DEBUG; // This application is debuggable?
+PineConfig.debug = true; // Need to print more detailed log?
+PineConfig.debuggable = BuildConfig.DEBUG; // This process is debuggable?
 ```
 
 Example 1: monitor the creation of activities

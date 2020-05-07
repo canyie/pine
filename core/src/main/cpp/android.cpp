@@ -86,11 +86,10 @@ void Android::DisableHiddenApiPolicy(const ElfImg *handle) {
 
 #define HOOK(symbol) do { \
 void *target = handle->GetSymbolAddress(symbol); \
-if (LIKELY(target)) { \
+if (LIKELY(target))  \
     trampoline_installer->NativeHookNoBackup(target, replace); \
-} else { \
-    LOGW("DisableHiddenApiPolicy: symbol %s not found", symbol); \
-} \
+else  \
+    LOGE("DisableHiddenApiPolicy: symbol %s not found", symbol); \
 } while(false)
 
     if (Android::version >= Android::VERSION_Q) {
