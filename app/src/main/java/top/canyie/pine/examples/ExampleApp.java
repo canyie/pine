@@ -2,14 +2,9 @@ package top.canyie.pine.examples;
 
 import android.app.Application;
 import android.content.Context;
-import android.util.Log;
-
-import java.lang.reflect.Member;
 
 import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
-import top.canyie.pine.callback.MethodHook;
-import top.canyie.pine.utils.ReflectionHelper;
 
 /**
  * @author canyie
