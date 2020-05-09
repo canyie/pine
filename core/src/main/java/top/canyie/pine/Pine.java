@@ -126,33 +126,27 @@ public final class Pine {
         if (method == null) throw new NullPointerException("method == null");
         if (callback == null) throw new NullPointerException("callback == null");
         method.setAccessible(true);
-        Class<?> declaring = method.getDeclaringClass();
-        if (declaring.isInterface())
-            throw new IllegalArgumentException("Cannot hook interfaces: " + method);
 
         int modifiers = method.getModifiers();
         if (Modifier.isAbstract(modifiers))
             throw new IllegalArgumentException("Cannot hook abstract methods: " + method);
 
-        return hookImpl(declaring, modifiers, method, callback);
+        return hookImpl(modifiers, method, callback);
     }
 
     public static MethodHook.Unhook hook(Constructor<?> constructor, MethodHook callback) {
         if (constructor == null) throw new NullPointerException("constructor == null");
         if (callback == null) throw new NullPointerException("callback == null");
         constructor.setAccessible(true);
-        Class<?> declaring = constructor.getDeclaringClass();
-        if (declaring.isInterface())
-            throw new IllegalArgumentException("Cannot hook interfaces: " + constructor);
 
         int modifiers = constructor.getModifiers();
         if (Modifier.isStatic(modifiers))
             throw new IllegalArgumentException("Cannot hook <clinit> (invoke when class-init)");
 
-        return hookImpl(declaring, modifiers, constructor, callback);
+        return hookImpl(modifiers, constructor, callback);
     }
 
-    private static MethodHook.Unhook hookImpl(Class<?> declaring, int modifiers, Member method, MethodHook callback) {
+    private static MethodHook.Unhook hookImpl(int modifiers, Member method, MethodHook callback) {
         if (PineConfig.debug)
             Log.d(TAG, "Hooking " + method + " callback " + callback);
         ensureInitialized();
@@ -176,7 +170,7 @@ public final class Pine {
         }
 
         if (newMethod)
-            hookNewMethod(hookRecord, declaring, modifiers, method);
+            hookNewMethod(hookRecord, modifiers, method);
 
         hookRecord.addCallback(callback);
         MethodHook.Unhook unhook = callback.new Unhook(hookRecord);
@@ -187,8 +181,7 @@ public final class Pine {
         return unhook;
     }
 
-    private static void hookNewMethod(HookRecord hookRecord, Class<?> declaring, int modifiers,
-                                      Member method) {
+    private static void hookNewMethod(HookRecord hookRecord, int modifiers, Member method) {
         boolean isInlineHook;
         if (hookMode == HookMode.AUTO) {
             // On Android N or lower, entry_point_from_compiled_code_ may be hard-coded in the machine code
@@ -206,6 +199,8 @@ public final class Pine {
         boolean isStatic = Modifier.isStatic(modifiers);
         if (isStatic) resolve((Method) method);
         hookRecord.isNonStatic = !isStatic;
+
+        Class<?> declaring = method.getDeclaringClass();
 
         long thread = Primitives.currentArtThread();
 
