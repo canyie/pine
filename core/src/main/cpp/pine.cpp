@@ -245,7 +245,7 @@ static const struct {
 #ifdef __LP64__
         {"getArgs64", "(J[JJ)V"}
 #else
-        {"getArgs32", "(I[II)V"}
+        {"getArgs32", "(I[IIZ)V"}
 #endif
 };
 
