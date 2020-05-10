@@ -346,9 +346,6 @@ public final class Pine {
         if (!(method instanceof Method || method instanceof Constructor))
             throw new IllegalArgumentException("Only methods and constructors can be compiled: " + method);
 
-        if (declaring.isInterface())
-            throw new IllegalArgumentException("Cannot compile interfaces: " + method);
-
         if (Modifier.isAbstract(modifiers))
             throw new IllegalArgumentException("Cannot compile abstract methods: " + method);
 
@@ -367,9 +364,6 @@ public final class Pine {
 
         if (!(method instanceof Method || method instanceof Constructor))
             throw new IllegalArgumentException("Only methods and constructors can be decompiled: " + method);
-
-        if (declaring.isInterface())
-            throw new IllegalArgumentException("Cannot decompile interfaces: " + method);
 
         if (Modifier.isAbstract(modifiers))
             throw new IllegalArgumentException("Cannot decompile abstract methods: " + method);
