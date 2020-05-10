@@ -63,6 +63,12 @@ void ArtMethod::Init(const ElfImg *handle) {
                 handle->GetSymbolAddress(symbol_copy_from));
 }
 
+inline size_t Difference(intptr_t a, intptr_t b) {
+    intptr_t size = b - a;
+    if (size < 0) size = -size;
+    return static_cast<size_t>(size);
+}
+
 inline uint32_t Align(uint32_t offset, uint32_t align_with) {
     uint32_t alignment = offset % align_with;
     if (alignment) {
@@ -78,13 +84,17 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
                                 : AccessFlags::kAccCompileDontBother_N;
     }
 
-    size = static_cast<size_t>(reinterpret_cast<uintptr_t>(m2) - reinterpret_cast<uintptr_t>(m1));
-
-    if (LIKELY(Android::version >= Android::VERSION_L)) {
+    size = Difference(reinterpret_cast<intptr_t>(m1), reinterpret_cast<intptr_t>(m2));
+    int android_version = Android::version;
+    if (LIKELY(android_version >= Android::VERSION_L)) {
         for (uint32_t offset = 0; offset < size; offset += 2) {
             void *ptr = reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(m1) + offset);
             if ((*static_cast<uint32_t *>(ptr)) == access_flags) {
                 access_flags_.SetOffset(offset);
+            } else if (UNLIKELY(android_version == Android::VERSION_L)) {
+                // On Android 5.0, type of entry_point_from_jni_ is uint64_t
+                if ((*static_cast<uint64_t *>(ptr)) == reinterpret_cast<uint64_t>(Ruler_m1))
+                    entry_point_from_jni_.SetOffset(offset);
             } else if ((*static_cast<void **>(ptr)) == Ruler_m1) {
                 entry_point_from_jni_.SetOffset(offset);
             }
@@ -98,16 +108,17 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
             access_flags_.SetOffset(GetDefaultAccessFlagsOffset());
         }
 
+        uint32_t entry_point_member_size = Android::version == Android::VERSION_L
+                ? sizeof(uint64_t) : sizeof(void *);
+
         if (LIKELY(entry_point_from_jni_.IsValid())) {
-            uint32_t entry_point_from_jni_size = Android::version == Android::VERSION_L
-                                                 ? sizeof(uint64_t) : sizeof(void *);
             uint32_t compiled_code_entry_offset = entry_point_from_jni_.GetOffset()
-                                                  + entry_point_from_jni_size;
+                    + entry_point_member_size;
 
             if (Android::version >= Android::VERSION_O) {
                 // Only align offset on Android O+ (PtrSizedFields is PACKED(4) in Android N or lower.)
                 compiled_code_entry_offset = Align(compiled_code_entry_offset,
-                                                   entry_point_from_jni_size);
+                                                   entry_point_member_size);
             }
 
             entry_point_from_compiled_code_.SetOffset(compiled_code_entry_offset);
@@ -120,12 +131,9 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
         }
 
         if (Android::version < Android::VERSION_N) {
-            uint32_t entry_point_from_interpreter_size = Android::version == Android::VERSION_L
-                                                         ? sizeof(uint64_t) : sizeof(void *);
-
             // Not align: PtrSizedFields is PACKED(4) in the android version.
             entry_point_from_interpreter_ = new Member<ArtMethod, void *>(
-                    entry_point_from_jni_.GetOffset() - entry_point_from_interpreter_size);
+                    entry_point_from_jni_.GetOffset() - entry_point_member_size);
         } else {
             // On Android 7.0+, the declaring_class may be moved by the GC,
             // so we check and update it when invoke backup method.
@@ -137,7 +145,7 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
         access_flags_.SetOffset(28);
         entry_point_from_compiled_code_.SetOffset(32);
 
-        // FIXME the offset seems to be wrong
+        // FIXME This offset has not been verified, so it may be wrong
         entry_point_from_interpreter_ = new Member<ArtMethod, void *>(36);
     }
 }
