@@ -6,13 +6,17 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
+import top.canyie.pine.Pine;
+
 /**
  * @author canyie
  */
 public final class Primitives {
+    private static final String TAG = "Primitives";
     private static Class<?> unsafeClass;
     private static Object unsafe;
     private static Method putObject;
+    private static boolean triedGetThreadNativePeer;
     private static Field threadNativePeer;
     private static boolean triedGetShadowKlassField;
     private static Field shadowKlassField;
@@ -20,15 +24,30 @@ public final class Primitives {
     private static Field classAccessFlagsField;
 
     public static long currentArtThread() {
-        try {
-            if (threadNativePeer == null) {
+        if (!triedGetThreadNativePeer) {
+            triedGetThreadNativePeer = true;
+            try {
                 threadNativePeer = Thread.class.getDeclaredField("nativePeer");
                 threadNativePeer.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                Log.w(TAG, "Thread.nativePeer not found, use native.", e);
             }
-            return threadNativePeer.getLong(Thread.currentThread());
-        } catch (Exception e) {
-            throw new RuntimeException("Cannot get Thread.nativePeer", e);
         }
+
+        long thread;
+        if (threadNativePeer != null) {
+            try {
+                thread = threadNativePeer.getLong(Thread.currentThread());
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot get Thread.nativePeer", e);
+            }
+        } else {
+            thread = Pine.currentArtThread0();
+        }
+
+        if (thread == 0) throw new RuntimeException("thread == 0");
+
+        return thread;
     }
 
     public static void setObjectClass(Object target, Class<?> newClass) {

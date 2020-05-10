@@ -251,6 +251,10 @@ void Pine_updateDeclaringClass(JNIEnv *env, jclass, jobject javaOrigin, jobject 
     }
 }
 
+jlong Pine_currentArtThread0(JNIEnv *, jclass ) {
+    return reinterpret_cast<jlong>(art::Thread::Current());
+}
+
 static const struct {
     const char *name;
     const char *signature;
@@ -261,6 +265,7 @@ static const struct {
         {"disableJitInline0", "()Z"},
         {"getObject0", "(JJ)Ljava/lang/Object;"},
         {"getAddress0", "(JLjava/lang/Object;)J"},
+        {"currentArtThread0", "()J"},
 #ifdef __LP64__
         {"getArgs64", "(J[JJ)V"}
 #else
@@ -295,6 +300,7 @@ static const JNINativeMethod gMethods[] = {
                                                                                                     (void *) Pine_updateDeclaringClass},
         {"getObject0",                "(JJ)Ljava/lang/Object;",                                     (void *) Pine_getObject0},
         {"getAddress0",               "(JLjava/lang/Object;)J",                                     (void *) Pine_getAddress0},
+        {"currentArtThread0", "()J", (void *) Pine_currentArtThread0},
 
 #ifdef __LP64__
         {"getArgs64",                 "(J[JJ)V",                                                    (void *) Pine_getArgs64}

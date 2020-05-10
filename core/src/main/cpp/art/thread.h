@@ -5,6 +5,7 @@
 #ifndef PINE_THREAD_H
 #define PINE_THREAD_H
 
+#include <pthread.h>
 #include "../android.h"
 #include "../utils/log.h"
 #include "../utils/macros.h"
@@ -21,12 +22,23 @@
 namespace pine::art {
     class Thread final {
     public:
-        static void Init(const ElfImg *art_lib_handle);
+        static void Init(const ElfImg *handle);
 
-//        static inline Thread* Current() {
-//            auto thread = reinterpret_cast<Thread *> (__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
-//            return thread;
-//        }
+        static inline Thread* Current() {
+            Thread *thread;
+            if (Android::version >= Android::VERSION_N) {
+                thread = reinterpret_cast<Thread *>(__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
+            } else if (current) {
+                thread = current();
+            } else if (key_self) {
+                thread = static_cast<Thread *>(pthread_getspecific(*key_self));
+            } else {
+                // This function only called when Thread.nativePeer is unavailable.
+                LOGE("Unable to get art::Thread by any means... this's crazy!");
+                thread = nullptr;
+            }
+            return thread;
+        }
 
         inline int32_t GetStateAndFlags() {
             return *GetStateAndFlagsPtr();
@@ -62,6 +74,8 @@ namespace pine::art {
             return reinterpret_cast<int32_t *> (this);
         }
 
+        static Thread *(*current)();
+        static pthread_key_t *key_self;
         static jobject (*new_local_ref)(JNIEnv *, void *);
         static jweak (*add_weak_global_ref) (JavaVM *, Thread *, void *);
         static void * (*decode_jobject)(Thread *, jobject);

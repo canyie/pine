@@ -499,6 +499,8 @@ public final class Pine {
 
     private static native void updateDeclaringClass(Member origin, Method backup);
 
+    public static native long currentArtThread0();
+
 
     public static final class HookRecord {
         public final Member target;
