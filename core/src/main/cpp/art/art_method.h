@@ -38,6 +38,14 @@ namespace pine::art {
             return static_cast<ArtMethod *>(malloc(size));
         }
 
+        static void *GetQuickToInterpreterBridge() {
+            return art_quick_to_interpreter_bridge;
+        }
+
+        static void SetQuickToInterpreterBridge(void *entry) {
+            art_quick_to_interpreter_bridge = entry;
+        }
+
         jmethodID ToMethodID() {
             return reinterpret_cast<jmethodID> (this);
         }

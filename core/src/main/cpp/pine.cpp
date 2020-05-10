@@ -33,6 +33,25 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
         }
         art::ArtMethod::InitMembers(m1, m2, expected_access_flags);
     }
+
+    if (UNLIKELY(!art::ArtMethod::GetQuickToInterpreterBridge())) {
+        // This is a workaround for art_quick_to_interpreter_bridge not found.
+        // This case is almost impossible to enter
+        // because its symbols are found almost always on all devices.
+        // But if it happened... Try to get it with an abstract method (it is not compilable
+        // and its entry is art_quick_to_interpreter_bridge)
+        // Note: We DO NOT use platform's abstract methods
+        // because their entry may not be interpreter entry.
+
+        LOGE("art_quick_to_interpreter_bridge not found, try workaround");
+
+        ScopedLocalRef<jclass> I(env, env->FindClass("top/canyie/pine/Ruler$I"));
+        auto m = art::ArtMethod::FromMethodID(env->GetMethodID(I.Get(), "m", "()V"));
+        void *entry = m->GetEntryPointFromCompiledCode();
+        LOGE("New art_quick_to_interpreter_bridge %p", entry);
+        art::ArtMethod::SetQuickToInterpreterBridge(entry);
+    }
+
     debuggable = static_cast<bool>(isDebuggable);
 
     env->SetStaticBooleanField(Pine, env->GetStaticFieldID(Pine, "is64Bit", "Z"),
@@ -55,7 +74,7 @@ jobject Pine_hook0(JNIEnv *env, jclass, jlong threadAddress, jclass declaring, j
 
     TrampolineInstaller *trampoline_installer = TrampolineInstaller::GetDefault();
 
-    if (is_inline_hook && UNLIKELY(trampoline_installer->CannotSafeInlineHook(target))) {
+    if (UNLIKELY(is_inline_hook && trampoline_installer->CannotSafeInlineHook(target))) {
         LOGW("Cannot safe inline hook the target method, force replacement mode.");
         is_inline_hook = false;
     }
