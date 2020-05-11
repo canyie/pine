@@ -15,22 +15,59 @@
 #include <unistd.h>
 #include "log.h"
 #include "macros.h"
+#include "../android.h"
 
 // Pine changed: namespace
 using namespace pine;
 
+inline bool CanRead(const char *file) {
+    return access(file, R_OK) == 0;
+}
+
 ElfImg::ElfImg(const char *elf) {
+    // Pine changed: Relative path support
     this->elf = elf;
+    if (elf[0] == '/') {
+        Open(elf);
+    } else {
+        // Relative path
+        char buffer[64] = {0};
+        if (Android::version >= Android::VERSION_Q) {
+            strcpy(buffer, kApexArtLibDir);
+            strcat(buffer, elf);
+            if (CanRead(buffer)) {
+                Open(buffer);
+                return;
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+
+            strcpy(buffer, kApexRuntimeLibDir);
+            strcat(buffer, elf);
+            if (CanRead(buffer)) {
+                Open(buffer);
+                return;
+            }
+
+            memset(buffer, 0, sizeof(buffer));
+        }
+        strcpy(buffer, kSystemLibDir);
+        strcat(buffer, elf);
+        Open(buffer);
+    }
+}
+
+void ElfImg::Open(const char *path) {
     //load elf
-    int fd = open(elf, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to mode
+    int fd = open(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to mode
     if (UNLIKELY(fd < 0)) {
-        LOGE("failed to open %s", elf);
+        LOGE("failed to open %s", path);
         return;
     }
 
     size = lseek(fd, 0, SEEK_END);
     if (UNLIKELY(size <= 0)) {
-        LOGE("lseek() failed for %s", elf);
+        LOGE("lseek() failed for %s", path);
     }
 
     header = reinterpret_cast<Elf_Ehdr *>(mmap(0, size, PROT_READ, MAP_SHARED, fd, 0));
@@ -45,8 +82,8 @@ ElfImg::ElfImg(const char *elf) {
     // size_t shoff = reinterpret_cast<size_t>(section_header);
     auto shoff = reinterpret_cast<uintptr_t>(section_header);
     char *section_str = reinterpret_cast<char *>(section_header[header->e_shstrndx].sh_offset +
-            // ((size_t) header)
-            ((uintptr_t) header));
+                                                 // ((size_t) header)
+                                                 ((uintptr_t) header));
 
     for (int i = 0; i < header->e_shnum; i++, shoff += header->e_shentsize) {
         Elf_Shdr *section_h = (Elf_Shdr *) shoff;
@@ -96,11 +133,11 @@ ElfImg::ElfImg(const char *elf) {
     if (UNLIKELY(!symtab_offset)) {
         // Pine changed: print log with filename
         // LOGW("can't find symtab from sections\n");
-        LOGW("can't find symtab from sections in %s\n", elf);
+        LOGW("can't find symtab from sections in %s\n", path);
     }
 
     //load module base
-    base = GetModuleBase(elf);
+    base = GetModuleBase(path);
 }
 
 ElfImg::~ElfImg() {
@@ -196,3 +233,4 @@ void *ElfImg::GetModuleBase(const char *name) {
 
     return reinterpret_cast<void *>(load_addr);
 }
+

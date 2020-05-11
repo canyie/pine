@@ -8,11 +8,11 @@
 #include <cstdlib>
 #include <jni.h>
 #include <atomic>
-#include "access_flags.h""
+#include "access_flags.h"
 #include "../android.h"
 #include "../utils/macros.h"
 #include "../utils/elf_img.h"
-#include "../utils/member.h
+#include "../utils/member.h"
 #include "../utils/log.h"
 #include "../utils/well_known_classes.h"
 #include "jit.h"

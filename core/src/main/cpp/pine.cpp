@@ -276,12 +276,9 @@ static const struct {
 void Pine_enableFastNative(JNIEnv *env, jclass Pine) {
     LOGI("Experimental feature FastNative is enabled.");
     for (auto method_info : gFastNativeMethods) {
-        auto method = art::ArtMethod::FromMethodID(env->GetStaticMethodID(
-                Pine, method_info.name, method_info.signature));
-        if (UNLIKELY(!method)) {
-            LOGF("Cannot find native method %s%s", method_info.name, method_info.signature);
-            return; // has a pending NoSuchMethodError
-        }
+        auto method = art::ArtMethod::Require(env, Pine, method_info.name, method_info.signature,
+                                              true);
+        assert(method != nullptr);
         method->SetFastNative();
     }
 }
