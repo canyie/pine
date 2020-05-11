@@ -6,6 +6,8 @@
 #include "art_method.h"
 #include "../utils/elf_img.h"
 #include "../jni_bridge.h"
+#include "../utils/well_known_classes.h"
+#include "../utils/scoped_local_ref.h"
 
 using namespace pine::art;
 
@@ -61,6 +63,30 @@ void ArtMethod::Init(const ElfImg *handle) {
     if (symbol_copy_from)
         copy_from = reinterpret_cast<void (*)(ArtMethod *, ArtMethod *, size_t)>(
                 handle->GetSymbolAddress(symbol_copy_from));
+}
+
+ArtMethod *ArtMethod::FromReflectedMethod(JNIEnv *env, jobject javaMethod) {
+    jmethodID m = env->FromReflectedMethod(javaMethod);
+    if (Android::version >= Android::VERSION_R) {
+        if (reinterpret_cast<uintptr_t>(m) & 1) {
+            return GetArtMethodForR(env, javaMethod);
+        }
+    }
+    return reinterpret_cast<ArtMethod *>(m);
+}
+
+ArtMethod *
+ArtMethod::Require(JNIEnv *env, jclass c, const char *name, const char *signature, bool is_static) {
+    jmethodID m = is_static ? env->GetStaticMethodID(c, name, signature)
+                            : env->GetMethodID(c, name, signature);
+    if (Android::version >= Android::VERSION_R) {
+        if (reinterpret_cast<uintptr_t>(m) & 1) {
+            ScopedLocalRef javaMethod(env,
+                    env->ToReflectedMethod(c, m, static_cast<jboolean>(is_static)));
+            return GetArtMethodForR(env, javaMethod.Get());
+        }
+    }
+    return reinterpret_cast<ArtMethod *>(m);
 }
 
 inline size_t Difference(intptr_t a, intptr_t b) {
@@ -228,3 +254,4 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_o
     if (art_interpreter_to_compiled_code_bridge)
         SetEntryPointFromInterpreter(art_interpreter_to_compiled_code_bridge);
 }
+

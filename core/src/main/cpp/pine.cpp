@@ -25,8 +25,8 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
     Android::Init(env, androidVersion);
     {
         ScopedLocalRef<jclass> Ruler(env, env->FindClass("top/canyie/pine/Ruler"));
-        auto m1 = art::ArtMethod::FromMethodID(env->GetStaticMethodID(Ruler.Get(), "m1", "()V"));
-        auto m2 = art::ArtMethod::FromMethodID(env->GetStaticMethodID(Ruler.Get(), "m2", "()V"));
+        auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "()V", true);
+        auto m2 = art::ArtMethod::Require(env, Ruler.Get(), "m2", "()V", true);
         uint32_t expected_access_flags = AccessFlags::kAccPrivate | AccessFlags::kAccStatic | AccessFlags::kAccNative;
         if (androidVersion >= Android::VERSION_Q) {
             expected_access_flags |= AccessFlags::kAccPublicApi;
@@ -46,7 +46,7 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
         LOGE("art_quick_to_interpreter_bridge not found, try workaround");
 
         ScopedLocalRef<jclass> I(env, env->FindClass("top/canyie/pine/Ruler$I"));
-        auto m = art::ArtMethod::FromMethodID(env->GetMethodID(I.Get(), "m", "()V"));
+        auto m = art::ArtMethod::Require(env, I.Get(), "m", "()V", false);
         void *entry = m->GetEntryPointFromCompiledCode();
         LOGE("New art_quick_to_interpreter_bridge %p", entry);
         art::ArtMethod::SetQuickToInterpreterBridge(entry);

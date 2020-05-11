@@ -8,12 +8,13 @@
 #include <cstdlib>
 #include <jni.h>
 #include <atomic>
-#include "access_flags.h"
+#include "access_flags.h""
+#include "../android.h"
 #include "../utils/macros.h"
 #include "../utils/elf_img.h"
-#include "../utils/member.h"
-#include "../android.h"
+#include "../utils/member.h
 #include "../utils/log.h"
+#include "../utils/well_known_classes.h"
 #include "jit.h"
 
 namespace pine::art {
@@ -23,15 +24,18 @@ namespace pine::art {
 
         static void InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags);
 
-        static ArtMethod *FromReflectedMethod(JNIEnv *env, jobject javaMethod) {
-            return FromMethodID(env->FromReflectedMethod(javaMethod));
-        }
+        static ArtMethod *FromReflectedMethod(JNIEnv *env, jobject javaMethod);
 
-        static ArtMethod *FromMethodID(jmethodID method) {
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "OCDFAInspection"
-            return reinterpret_cast<ArtMethod *> (method);
-#pragma clang diagnostic pop
+        static ArtMethod *Require(JNIEnv *env, jclass c, const char *name,
+                const char *signature, bool is_static);
+
+        static ArtMethod *GetArtMethodForR(JNIEnv *env, jobject javaMethod) {
+            // We assume that jmethodID is the real ArtMethod pointer, which is no longer correct on Android R.
+            // Fortunately, in Java, the Executable object has a member called artMethod,
+            // and it still seems to hold the actual ArtMethod pointer.
+            jlong artMethod = env->GetLongField(javaMethod,
+                                                WellKnownClasses::java_lang_reflect_Executable_artMethod);
+            return reinterpret_cast<ArtMethod *>(artMethod);
         }
 
         static ArtMethod *New() {

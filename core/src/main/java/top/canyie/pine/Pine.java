@@ -6,7 +6,6 @@ import android.util.Log;
 
 import top.canyie.pine.callback.MethodHook;
 import top.canyie.pine.utils.Primitives;
-import top.canyie.pine.utils.ReflectionHelper;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -51,12 +50,14 @@ public final class Pine {
     }
 
     @SuppressLint("ObsoleteSdkInt") private static void initialize() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT ||
-                Build.VERSION.SDK_INT > Build.VERSION_CODES.Q)
+        int sdkLevel = Build.VERSION.SDK_INT;
+        if (sdkLevel < Build.VERSION_CODES.KITKAT || sdkLevel > Build.VERSION_CODES.Q)
             throw new RuntimeException("Unsupported android sdk level " + Build.VERSION.SDK_INT);
-        else if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q &&
-                Build.VERSION.PREVIEW_SDK_INT > 0)
-            throw new RuntimeException("Not supported Android R now!");
+        else if (sdkLevel == Build.VERSION_CODES.Q && Build.VERSION.PREVIEW_SDK_INT > 0) {
+            // Android R Preview, not test...
+            Log.w(TAG, "Android R preview, not test.");
+            sdkLevel = 30;
+        }
 
         String vmVersion = System.getProperty("java.vm.version");
         if (vmVersion == null || !vmVersion.startsWith("2"))
@@ -66,13 +67,11 @@ public final class Pine {
             LibLoader libLoader = PineConfig.libLoader;
             if (libLoader != null) libLoader.loadLib();
 
-            init0(Build.VERSION.SDK_INT, PineConfig.debuggable);
+            init0(sdkLevel, PineConfig.debuggable);
             initBridgeMethods();
 
-            if (PineConfig.useFastNative
-                    && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            if (PineConfig.useFastNative && sdkLevel >= Build.VERSION_CODES.LOLLIPOP)
                 enableFastNative();
-
         } catch (Exception e) {
             throw new RuntimeException("Pine init error", e);
         }
