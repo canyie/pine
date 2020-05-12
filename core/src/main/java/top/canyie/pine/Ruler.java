@@ -1,6 +1,5 @@
 package top.canyie.pine;
 
-
 /**
  * @author canyie
  * Internal ruler used for calculating ArtMethod size and members offset.
