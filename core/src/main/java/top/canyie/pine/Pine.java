@@ -91,7 +91,7 @@ public final class Pine {
                 paramTypes = new Class<?>[] {int.class, int.class, int.class};
             }
 
-            // Use Class.forName() to ensure entry class initialized.
+            // Use Class.forName() to ensure entry class is initialized.
             Class<?> entryClass = Class.forName(entryClassName, true, Pine.class.getClassLoader());
 
             String[] bridgeMethodNames = {"voidBridge", "intBridge", "longBridge", "doubleBridge", "floatBridge",

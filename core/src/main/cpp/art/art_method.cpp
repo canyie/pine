@@ -106,8 +106,8 @@ inline uint32_t Align(uint32_t offset, uint32_t align_with) {
 void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags) {
     if (Android::version >= Android::VERSION_N) {
         kAccCompileDontBother = (Android::version >= Android::VERSION_O_MR1)
-                                ? AccessFlags::kAccCompileDontBother_O_MR1
-                                : AccessFlags::kAccCompileDontBother_N;
+                                ? AccessFlags::kCompileDontBother_O_MR1
+                                : AccessFlags::kCompileDontBother_N;
     }
 
     size = Difference(reinterpret_cast<intptr_t>(m1), reinterpret_cast<intptr_t>(m2));
@@ -188,12 +188,12 @@ void ArtMethod::BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook,
     if (Android::version >= Android::VERSION_N) {
         access_flags |= kAccCompileDontBother;
     }
-    if ((access_flags & AccessFlags::kAccStatic) == 0) {
+    if ((access_flags & AccessFlags::kStatic) == 0) {
         // Non-static method, set kAccPrivate to ensure it is a direct method.
-        access_flags &= ~(AccessFlags::kAccPublic | AccessFlags::kAccProtected);
-        access_flags |= AccessFlags::kAccPrivate;
+        access_flags &= ~(AccessFlags::kPublic | AccessFlags::kProtected);
+        access_flags |= AccessFlags::kPrivate;
     }
-    access_flags &= ~AccessFlags::kAccConstructor;
+    access_flags &= ~AccessFlags::kConstructor;
     SetAccessFlags(access_flags);
 
     if (UNLIKELY(Android::version >= Android::VERSION_N
@@ -221,31 +221,35 @@ void ArtMethod::BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook,
 
 void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy) {
     uint32_t access_flags = GetAccessFlags();
-    access_flags &= ~(AccessFlags::kAccSynchronized | AccessFlags::kAccDeclaredSynchronized);
+    access_flags &= ~(AccessFlags::kSynchronized | AccessFlags::kDeclaredSynchronized);
 
     if (Android::version >= Android::VERSION_N) {
         access_flags |= kAccCompileDontBother;
     }
 
     if (Android::version >= Android::VERSION_O && !is_inline_hook) {
-        if (Android::version >= Android::VERSION_Q)
-            access_flags &= ~AccessFlags::kAccFastInterpreterToInterpreterInvoke;
-
         if (UNLIKELY(debuggable && !is_native_or_proxy)) {
             // Android 8.0+ and debug mode, ART may force the use of interpreter mode,
             // and entry_point_from_compiled_code_ will be ignored. Set kAccNative to avoid it.
             // See ClassLinker::ShouldUseInterpreterEntrypoint(ArtMethod*, const void*)
-            access_flags |= AccessFlags::kAccNative;
+            access_flags |= AccessFlags::kNative;
         }
     }
 
-    bool is_native = (access_flags & AccessFlags::kAccNative) != 0;
+    if (Android::version >= Android::VERSION_Q) {
+        // On Android 10+, a method can be execute with fast interpreter is cached in access flags,
+        // and we may need to disable fast interpreter for a hooked method.
+        // Clear the cached flag(kAccFastInterpreterToInterpreterInvoke) to refresh the state.
+        access_flags &= ~AccessFlags::kFastInterpreterToInterpreterInvoke;
+    }
+
+    bool is_native = (access_flags & AccessFlags::kNative) != 0;
     if (UNLIKELY(is_native && Android::version >= Android::VERSION_L)) {
         // GC is disabled when executing FastNative and CriticalNative methods
         // and may cause deadlocks. This is not applicable for hooked methods.
-        access_flags &= ~AccessFlags::kAccFastNative;
+        access_flags &= ~AccessFlags::kFastNative;
         if (Android::version >= Android::VERSION_P) {
-            access_flags &= ~AccessFlags::kAccCriticalNative;
+            access_flags &= ~AccessFlags::kCriticalNative;
         }
     }
 

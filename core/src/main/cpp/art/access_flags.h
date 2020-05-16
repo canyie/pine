@@ -9,26 +9,28 @@
 #include "../utils/macros.h"
 
 namespace pine {
-    class AccessFlags {
+    class AccessFlags final {
     public:
-        static constexpr uint32_t kAccPublic = 0x0001;
-        static constexpr uint32_t kAccPrivate = 0x0002;
-        static constexpr uint32_t kAccProtected = 0x0004;
-        static constexpr uint32_t kAccStatic = 0x0008;
-        static constexpr uint32_t kAccFinal = 0x0010;
-        static constexpr uint32_t kAccSynchronized = 0x0020;
-        static constexpr uint32_t kAccNative = 0x0100;
-        static constexpr uint32_t kAccConstructor = 0x00010000;
-        static constexpr uint32_t kAccDeclaredSynchronized = 0x00020000;
-        static constexpr uint32_t kAccSkipAccessChecks = 0x00080000;
-        static constexpr uint32_t kAccMiranda = 0x00200000;
-        static constexpr uint32_t kAccFastNative = 0x00080000;
-        static constexpr uint32_t kAccCriticalNative = 0x00200000;
-        static constexpr uint32_t kAccCompileDontBother_N = 0x01000000;
-        static constexpr uint32_t kAccCompileDontBother_O_MR1 = 0x02000000;
-        static constexpr uint32_t kAccPublicApi = 0x10000000;
-        static constexpr uint32_t kAccCorePlatformApi = 0x20000000;
-        static constexpr uint32_t kAccFastInterpreterToInterpreterInvoke = 0x40000000;
+        static constexpr uint32_t kPublic = 0x0001;
+        static constexpr uint32_t kPrivate = 0x0002;
+        static constexpr uint32_t kProtected = 0x0004;
+        static constexpr uint32_t kStatic = 0x0008;
+        static constexpr uint32_t kFinal = 0x0010;
+        static constexpr uint32_t kSynchronized = 0x0020;
+        static constexpr uint32_t kNative = 0x0100;
+        static constexpr uint32_t kConstructor = 0x00010000;
+        static constexpr uint32_t kDeclaredSynchronized = 0x00020000;
+        static constexpr uint32_t kSkipAccessChecks = 0x00080000;
+        static constexpr uint32_t kMiranda = 0x00200000;
+        static constexpr uint32_t kFastNative = 0x00080000;
+        static constexpr uint32_t kCriticalNative = 0x00200000;
+        static constexpr uint32_t kDontInline_M = 0x00400000;
+        static constexpr uint32_t kCompileDontBother_N = 0x01000000;
+        static constexpr uint32_t kCompileDontBother_O_MR1 = 0x02000000;
+        static constexpr uint32_t kSingleImplementation = 0x08000000;
+        static constexpr uint32_t kPublicApi = 0x10000000;
+        static constexpr uint32_t kCorePlatformApi = 0x20000000;
+        static constexpr uint32_t kFastInterpreterToInterpreterInvoke = 0x40000000;
     private:
         DISALLOW_IMPLICIT_CONSTRUCTORS(AccessFlags);
     };

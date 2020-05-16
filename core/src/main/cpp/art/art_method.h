@@ -102,15 +102,15 @@ namespace pine::art {
 
         void SetFastNative() {
             assert(IsNative());
-            AddAccessFlags(AccessFlags::kAccFastNative);
+            AddAccessFlags(AccessFlags::kFastNative);
         }
 
         bool IsStatic() {
-            return HasAccessFlags(AccessFlags::kAccStatic);
+            return HasAccessFlags(AccessFlags::kStatic);
         }
 
         bool IsNative() {
-            return HasAccessFlags(AccessFlags::kAccNative);
+            return HasAccessFlags(AccessFlags::kNative);
         }
 
         uint32_t GetAccessFlags() {

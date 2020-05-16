@@ -27,9 +27,9 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
         ScopedLocalRef<jclass> Ruler(env, env->FindClass("top/canyie/pine/Ruler"));
         auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "()V", true);
         auto m2 = art::ArtMethod::Require(env, Ruler.Get(), "m2", "()V", true);
-        uint32_t expected_access_flags = AccessFlags::kAccPrivate | AccessFlags::kAccStatic | AccessFlags::kAccNative;
+        uint32_t expected_access_flags = AccessFlags::kPrivate | AccessFlags::kStatic | AccessFlags::kNative;
         if (androidVersion >= Android::VERSION_Q) {
-            expected_access_flags |= AccessFlags::kAccPublicApi;
+            expected_access_flags |= AccessFlags::kPublicApi;
         }
         art::ArtMethod::InitMembers(m1, m2, expected_access_flags);
     }
