@@ -13,7 +13,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     }
 
     {
-        ScopedLocalRef<jclass> Pine(env, env->FindClass("top/canyie/pine/Pine"));
+        ScopedLocalClassRef Pine(env, "top/canyie/pine/Pine");
         if (UNLIKELY(Pine.IsNull())) {
             return JNI_ERR;
         }
@@ -23,7 +23,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     }
 
     {
-        ScopedLocalRef<jclass> Ruler(env, env->FindClass("top/canyie/pine/Ruler"));
+        ScopedLocalClassRef Ruler(env, "top/canyie/pine/Ruler");
         if (UNLIKELY(Ruler.IsNull())) {
             return JNI_ERR;
         }

@@ -24,7 +24,7 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
     TrampolineInstaller::InitDefault();
     Android::Init(env, androidVersion);
     {
-        ScopedLocalRef<jclass> Ruler(env, env->FindClass("top/canyie/pine/Ruler"));
+        ScopedLocalClassRef Ruler(env, "top/canyie/pine/Ruler");
         auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "()V", true);
         auto m2 = art::ArtMethod::Require(env, Ruler.Get(), "m2", "()V", true);
         uint32_t expected_access_flags = AccessFlags::kPrivate | AccessFlags::kStatic | AccessFlags::kNative;
@@ -45,7 +45,7 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
 
         LOGE("art_quick_to_interpreter_bridge not found, try workaround");
 
-        ScopedLocalRef<jclass> I(env, env->FindClass("top/canyie/pine/Ruler$I"));
+        ScopedLocalClassRef I(env, "top/canyie/pine/Ruler$I");
         auto m = art::ArtMethod::Require(env, I.Get(), "m", "()V", false);
         void *entry = m->GetEntryPointFromCompiledCode();
         LOGE("New art_quick_to_interpreter_bridge %p", entry);
@@ -251,7 +251,7 @@ void Pine_updateDeclaringClass(JNIEnv *env, jclass, jobject javaOrigin, jobject 
     }
 }
 
-jlong Pine_currentArtThread0(JNIEnv *, jclass ) {
+jlong Pine_currentArtThread0(JNIEnv *, jclass) {
     return reinterpret_cast<jlong>(art::Thread::Current());
 }
 
