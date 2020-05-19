@@ -27,6 +27,7 @@ namespace pine {
         static constexpr uint32_t kDontInline_M = 0x00400000;
         static constexpr uint32_t kCompileDontBother_N = 0x01000000;
         static constexpr uint32_t kCompileDontBother_O_MR1 = 0x02000000;
+        static constexpr uint32_t kPreCompiled = 0x00200000;
         static constexpr uint32_t kSingleImplementation = 0x08000000;
         static constexpr uint32_t kPublicApi = 0x10000000;
         static constexpr uint32_t kCorePlatformApi = 0x20000000;

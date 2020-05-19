@@ -43,6 +43,10 @@ public:
         return mLocalRef == nullptr;
     }
 
+    JNIEnv *Env() {
+        return env;
+    }
+
     bool operator==(std::nullptr_t) const {
         return IsNull();
     }
@@ -84,6 +88,17 @@ public:
     }
 
     ScopedLocalClassRef(JNIEnv *env, const char *name) : ScopedLocalRef(env, env->FindClass(name)) {
+    }
+
+    jmethodID FindMethodID(const char *name, const char *signature) {
+        JNIEnv *env = Env();
+        jmethodID method = env->GetMethodID(Get(), name, signature);
+        if (LIKELY(method != nullptr)) {
+            return method;
+        } else {
+            env->ExceptionClear();
+            return nullptr;
+        }
     }
 };
 

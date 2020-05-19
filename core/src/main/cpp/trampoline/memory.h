@@ -26,6 +26,15 @@ namespace pine {
             return true;
         }
 
+        template <typename T>
+        static int FindOffset(void *start, T value, size_t size, uint step) {
+            for (uint32_t offset = 0;offset < size;offset += step) {
+                T current = *reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(start) + offset);
+                if (current == value) return static_cast<int>(offset);
+            }
+            return -1;
+        }
+
         static inline void FlushCache(void *addr, size_t size) {
             __builtin___clear_cache((char *) addr, (char *) ((uintptr_t) addr + size));
         }

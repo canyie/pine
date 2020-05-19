@@ -8,6 +8,7 @@
 #include "../jni_bridge.h"
 #include "../utils/well_known_classes.h"
 #include "../utils/scoped_local_ref.h"
+#include "../trampoline/memory.h"
 
 using namespace pine::art;
 
@@ -130,8 +131,35 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
         }
 
         if (UNLIKELY(!access_flags_.IsValid())) {
-            LOGW("Member access_flags_ not found in ArtMethod, use default.");
-            access_flags_.SetOffset(GetDefaultAccessFlagsOffset());
+            do {
+                if (LIKELY(Android::version >= Android::VERSION_N)) {
+                    // TODO: Is this really possible?
+                    LOGW("failed to find access_flags_ with default access flags, try again with kAccCompileDontBother");
+                    access_flags |= kAccCompileDontBother;
+                    int offset = Memory::FindOffset(m1, access_flags, size, 2);
+                    if (LIKELY(offset >= 0)) {
+                        LOGW("Found access_flags_ with kAccCompileDontBother, offset %d", offset);
+                        access_flags_.SetOffset(offset);
+                        break;
+                    }
+
+                    if (LIKELY(Android::version >= Android::VERSION_R)) {
+                        // Android R has a new access flags: kAccPreCompiled
+                        // TODO: Is this really possible?
+                        LOGW("failed to find access_flags_ with default access flags, try again with kAccPreCompiled");
+                        access_flags |= AccessFlags::kPreCompiled;
+                        // Don't clear kAccCompileDontBother.
+                        offset = Memory::FindOffset(m1, access_flags, size, 2);
+                        if (LIKELY(offset >= 0)) {
+                            LOGW("Found access_flags_ with kAccPreCompiled, offset %d", offset);
+                            access_flags_.SetOffset(offset);
+                            break;
+                        }
+                    }
+                }
+                LOGE("Member access_flags_ not found in ArtMethod, use default.");
+                access_flags_.SetOffset(GetDefaultAccessFlagsOffset());
+            } while (false);
         }
 
         uint32_t entry_point_member_size = Android::version == Android::VERSION_L
@@ -150,7 +178,7 @@ void ArtMethod::InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags)
             entry_point_from_compiled_code_.SetOffset(compiled_code_entry_offset);
 
         } else {
-            LOGW("Member entry_point_from_jni_ not found in ArtMethod, use default.");
+            LOGE("Member entry_point_from_jni_ not found in ArtMethod, use default.");
             entry_point_from_jni_.SetOffset(GetDefaultEntryPointFromJniOffset());
             entry_point_from_compiled_code_.SetOffset(
                     GetDefaultEntryPointFromQuickCompiledCodeOffset());

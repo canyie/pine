@@ -27,7 +27,28 @@ void Pine_init0(JNIEnv *env, jclass Pine, jint androidVersion, jboolean isDebugg
         ScopedLocalClassRef Ruler(env, "top/canyie/pine/Ruler");
         auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "()V", true);
         auto m2 = art::ArtMethod::Require(env, Ruler.Get(), "m2", "()V", true);
-        uint32_t expected_access_flags = AccessFlags::kPrivate | AccessFlags::kStatic | AccessFlags::kNative;
+
+        uint32_t expected_access_flags;
+        do {
+            ScopedLocalClassRef Method(env, "java/lang/reflect/Method");
+            jmethodID getAccessFlags = Method.FindMethodID("getAccessFlags", "()I");
+            if (LIKELY(getAccessFlags != nullptr)) {
+                ScopedLocalRef javaM1(env, env->ToReflectedMethod(
+                        Ruler.Get(), m1->ToMethodID(), JNI_TRUE));
+                expected_access_flags = static_cast<uint32_t>(env->CallIntMethod(
+                        javaM1.Get(), getAccessFlags));
+
+                if (LIKELY(!env->ExceptionCheck())) break;
+
+                LOGW("Method.getAccessFlags threw exception unexpectedly, use default access flags.");
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+            } else {
+                LOGW("Method.getAccessFlags not found, use default access flags.");
+            }
+            expected_access_flags = AccessFlags::kPrivate | AccessFlags::kStatic | AccessFlags::kNative;
+        } while (false);
+
         if (androidVersion >= Android::VERSION_Q) {
             expected_access_flags |= AccessFlags::kPublicApi;
         }
