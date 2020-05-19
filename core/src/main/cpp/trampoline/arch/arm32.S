@@ -21,9 +21,9 @@ ldr ip, pine_bridge_jump_trampoline_extras
 
 acquire_lock:
 ldrex r0, [ip]
-cmp r0, #0
+cmp r0, #1
 wfene // other thread holding the lock, wait it release lock
-mov r0, #1
+mov r0, #0
 strexeq r0, r0, [ip]
 cmpeq r0, #0 // store succeeded?
 bne acquire_lock // acquire lock failed, try again

@@ -17,16 +17,16 @@ namespace pine {
         }
 
         void ReleaseLock() {
-            CHECK(lock_flag == 1, "Unexpected lock_flag %d", lock_flag);
+            CHECK(lock_flag == 0, "Unexpected lock_flag %d", lock_flag);
 
             dmb(); // Ensure all previous accesses are observed before the lock is released.
-            lock_flag = 0;
+            lock_flag = 1;
             dsb(); // Ensure completion of the store that cleared the lock before sending the event.
             sev(); // Wake up the thread that is waiting for the lock.
         }
 
-        /** Thread lock flag, 0: unlocked, 1: locked. */
-        volatile uint32_t lock_flag = 0;
+        /** Thread lock flag, 1: unlocked, 0: locked. */
+        volatile uint32_t lock_flag = 1;
         /** r1(32 bit) or x1(64 bit) register */
         void *r1 = nullptr;
         /** r2(32 bit) or x2(64 bit) register */

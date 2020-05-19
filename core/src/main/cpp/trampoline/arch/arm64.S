@@ -27,10 +27,9 @@ wfe // Wait other thread to release the lock
 
 acquire_lock:
 ldaxr w16, [x17]
-cbnz w16, lock_failed // lock_flag != 0 (has other thread holding the lock), fail.
-mov w16, #1
-stlxr w0, w16, [x17] // try set lock_flag to 1
-cbnz w0, lock_failed // failed, try again.
+cbz w16, lock_failed // lock_flag == 0 (has other thread holding the lock), fail.
+stlxr w16, wzr, [x17] // try set lock_flag to 0
+cbnz w16, lock_failed // failed, try again.
 
 // Now we hold the lock!
 str x1, [x17, #4]
