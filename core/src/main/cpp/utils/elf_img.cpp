@@ -24,11 +24,11 @@ inline bool CanRead(const char *file) {
     return access(file, R_OK) == 0;
 }
 
-ElfImg::ElfImg(const char *elf) {
+ElfImg::ElfImg(const char *elf, bool warn_if_symtab_not_found) {
     // Pine changed: Relative path support
     this->elf = elf;
     if (elf[0] == '/') {
-        Open(elf);
+        Open(elf, warn_if_symtab_not_found);
     } else {
         // Relative path
         char buffer[64] = {0};
@@ -36,7 +36,7 @@ ElfImg::ElfImg(const char *elf) {
             strcpy(buffer, kApexArtLibDir);
             strcat(buffer, elf);
             if (CanRead(buffer)) {
-                Open(buffer);
+                Open(buffer, warn_if_symtab_not_found);
                 return;
             }
 
@@ -45,7 +45,7 @@ ElfImg::ElfImg(const char *elf) {
             strcpy(buffer, kApexRuntimeLibDir);
             strcat(buffer, elf);
             if (CanRead(buffer)) {
-                Open(buffer);
+                Open(buffer, warn_if_symtab_not_found);
                 return;
             }
 
@@ -53,11 +53,11 @@ ElfImg::ElfImg(const char *elf) {
         }
         strcpy(buffer, kSystemLibDir);
         strcat(buffer, elf);
-        Open(buffer);
+        Open(buffer, warn_if_symtab_not_found);
     }
 }
 
-void ElfImg::Open(const char *path) {
+void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
     //load elf
     int fd = open(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to mode
     if (UNLIKELY(fd < 0)) {
@@ -130,7 +130,7 @@ void ElfImg::Open(const char *path) {
         }
     }
 
-    if (UNLIKELY(!symtab_offset)) {
+    if (UNLIKELY(!symtab_offset && warn_if_symtab_not_found)) {
         // Pine changed: print log with filename
         // LOGW("can't find symtab from sections\n");
         LOGW("can't find symtab from sections in %s\n", path);

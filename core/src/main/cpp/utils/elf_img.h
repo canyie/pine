@@ -38,7 +38,7 @@ typedef Elf32_Off Elf_Off;
 namespace pine {
     class ElfImg {
     public:
-        ElfImg(const char* elf);
+        ElfImg(const char* elf, bool warn_if_symtab_not_found = true);
         // Pine changed: Rename some function & make some function const.
         Elf_Addr GetSymbolOffset(const char* name) const;
         void* GetSymbolAddress(const char* name) const;
@@ -46,7 +46,7 @@ namespace pine {
         ~ElfImg();
 
     private:
-        void Open(const char *path);
+        void Open(const char *path, bool warn_if_symtab_not_found);
         // Pine changed: GetModuleBase is private
         void* GetModuleBase(const char* name);
 

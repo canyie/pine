@@ -40,7 +40,7 @@ void Android::Init(JNIEnv *env, int sdk_version) {
         art::Thread::Init(&art_lib_handle);
         art::ArtMethod::Init(&art_lib_handle);
         if (sdk_version >= VERSION_N) {
-            ElfImg jit_lib_handle("libart-compiler.so");
+            ElfImg jit_lib_handle("libart-compiler.so", false);
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
     }
