@@ -51,4 +51,5 @@ publish {
     publishVersion = '0.0.3'
     desc = 'pine hook core library'
     licences = rootProject.licences
+    website = rootProject.website
 }

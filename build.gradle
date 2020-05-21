@@ -32,6 +32,7 @@ ext {
     groupId = 'top.canyie.pine'
     repoName = 'pine'
     licences = ['MIT']
+    website = "https://github.com/canyie/pine"
 }
 
 task clean(type: Delete) {
