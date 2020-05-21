@@ -70,6 +70,7 @@ Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
 - [Epic](https://github.com/tiann/epic)
 - [AndroidELF](https://github.com/ganyao114/AndroidELF)
 - [FastHook](https://github.com/turing-technician/FastHook)
+- [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
 
 ## License
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)
