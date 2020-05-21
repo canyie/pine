@@ -11,8 +11,8 @@
 #include <malloc.h>
 #include <cstring>
 #include <sys/mman.h>
-#include <fcntl.h>
 #include <unistd.h>
+#include "io_wrapper.h"
 #include "log.h"
 #include "macros.h"
 #include "../android.h"
@@ -59,7 +59,7 @@ ElfImg::ElfImg(const char *elf, bool warn_if_symtab_not_found) {
 
 void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
     //load elf
-    int fd = open(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to mode
+    int fd = WrappedOpen(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to flags
     if (UNLIKELY(fd < 0)) {
         LOGE("failed to open %s", path);
         return;
@@ -67,7 +67,7 @@ void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
 
     size = lseek(fd, 0, SEEK_END);
     if (UNLIKELY(size <= 0)) {
-        LOGE("lseek() failed for %s", path);
+        LOGE("lseek() failed for %s: errno %d (%s)", path, errno, strerror(errno));
     }
 
     header = reinterpret_cast<Elf_Ehdr *>(mmap(0, size, PROT_READ, MAP_SHARED, fd, 0));
@@ -210,7 +210,7 @@ void *ElfImg::GetModuleBase(const char *name) {
     // Pine changed: Use bool to instead of int
     bool found = false;
     // Pine changed: add "e" to mode
-    maps = fopen("/proc/self/maps", "re");
+    maps = WrappedFOpen("/proc/self/maps", "re");
     while (fgets(buff, sizeof(buff), maps)) {
         if ((strstr(buff, "r-xp") || strstr(buff, "r--p")) && strstr(buff, name)) {
             found = true;
