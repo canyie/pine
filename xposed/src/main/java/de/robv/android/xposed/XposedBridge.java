@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Set;
 
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam;
-import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import top.canyie.pine.Pine;
 import top.canyie.pine.callback.MethodReplacement;
@@ -37,7 +36,7 @@ public final class XposedBridge {
 	public static final ClassLoader BOOTCLASSLOADER = ClassLoader.getSystemClassLoader();
 
 	/** @hide */
-	public static final String TAG = "PineXposed";
+	public static final String TAG = PineXposed.TAG;
 
 	/** @deprecated Use {@link #getXposedVersion()} instead. */
 	@Deprecated

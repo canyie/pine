@@ -1,6 +1,7 @@
 package top.canyie.pine.xposed;
 
 import android.content.pm.ApplicationInfo;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -19,6 +20,7 @@ import de.robv.android.xposed.XposedBridge.CopyOnWriteSortedSet;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public final class PineXposed {
+    public static final String TAG = "PineXposed";
     public static boolean disableHooks = false;
 
     private static final CopyOnWriteSortedSet<XC_LoadPackage> sLoadedPackageCallbacks = new CopyOnWriteSortedSet<>();
@@ -27,27 +29,60 @@ public final class PineXposed {
 
     public static void loadInstalledModule(File module) {
         ZipFile zipFile = null;
-        BufferedReader input;
+        BufferedReader xposedInitReader;
         try {
             zipFile = new ZipFile(module);
             ZipEntry entry = zipFile.getEntry("assets/xposed_init");
             if (entry == null) {
-                Log.e(XposedBridge.TAG, "  Failed to load module " + module.getAbsolutePath() + " :");
-                Log.e(XposedBridge.TAG, "  assets/xposed_init not found in the module APK");
+                Log.e(TAG, "  Failed to load module " + module.getAbsolutePath() + " :");
+                Log.e(TAG, "  assets/xposed_init not found in the module APK");
                 closeQuietly(zipFile);
                 return;
             }
-            input = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
+            xposedInitReader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
         } catch (IOException e) {
             reportLoadModuleError(module, "  Cannot open assets/xposed_init in the module APK", e);
             closeQuietly(zipFile);
             return;
         }
 
-        PathClassLoader moduleClassLoader = new PathClassLoader(module.getAbsolutePath(), PineXposed.class.getClassLoader());
+        try {
+            PathClassLoader moduleClassLoader = new PathClassLoader(module.getAbsolutePath(), PineXposed.class.getClassLoader());
+            loadModuleImpl(module.getAbsolutePath(), xposedInitReader, moduleClassLoader);
+        } finally {
+            closeQuietly(zipFile);
+        }
+    }
+
+    public static void loadOpenedModule(ZipFile zipFile, ClassLoader moduleClassLoader) {
+        String module = zipFile.getName();
+        BufferedReader xposedInitReader;
+        try {
+            ZipEntry entry = zipFile.getEntry("assets/xposed_init");
+            if (entry == null) {
+                Log.e(TAG, "  Failed to load module " + module + " :");
+                Log.e(TAG, "  assets/xposed_init not found in the module APK");
+                return;
+            }
+            xposedInitReader = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
+        } catch (IOException e) {
+            reportLoadModuleError(module, "  Cannot open assets/xposed_init in the module APK", e);
+            closeQuietly(zipFile);
+            return;
+        }
+
+        try {
+            loadModuleImpl(module, xposedInitReader, moduleClassLoader);
+        } finally {
+            closeQuietly(zipFile);
+        }
+    }
+
+    private static void loadModuleImpl(String modulePath, BufferedReader xposedInitReader,
+                                       ClassLoader moduleClassLoader) {
         try {
             String className;
-            while ((className = input.readLine()) != null) {
+            while ((className = xposedInitReader.readLine()) != null) {
                 className = className.trim();
                 if (className.isEmpty() || className.startsWith("#"))
                     continue;
@@ -56,29 +91,28 @@ public final class PineXposed {
                     Class<?> c = Class.forName(className, true, moduleClassLoader);
 
                     if (!IXposedMod.class.isAssignableFrom(c)) {
-                        Log.e(XposedBridge.TAG, "    Cannot load callback class " + className + " in module " + module.getAbsolutePath() + " :");
-                        Log.e(XposedBridge.TAG, "    This class doesn't implement any sub-interface of IXposedMod, skipping it");
+                        Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
+                        Log.e(TAG, "    This class doesn't implement any sub-interface of IXposedMod, skipping it");
                         continue;
                     } else if (!IXposedHookLoadPackage.class.isAssignableFrom(c)) {
-                        Log.e(XposedBridge.TAG, "    Cannot load callback class " + className + " in module " + module.getAbsolutePath() + " :");
-                        Log.e(XposedBridge.TAG, "    This class requires unsupported feature (only supports IXposedHookLoadPackage now), skipping it");
+                        Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
+                        Log.e(TAG, "    This class requires unsupported feature (only supports IXposedHookLoadPackage now), skipping it");
                         continue;
                     }
 
                     IXposedMod callback = (IXposedMod) c.newInstance();
 
-                    if (callback instanceof IXposedHookLoadPackage)
+                    // if (callback instanceof IXposedHookLoadPackage)
                         hookLoadPackage((IXposedHookLoadPackage) callback);
 
                 } catch (Throwable e) {
-                    Log.e(XposedBridge.TAG, "    Failed to load class " + className + " in module " + module.getAbsolutePath() + " :", e);
+                    Log.e(TAG, "    Failed to load class " + className + " in module " + modulePath + " :", e);
                 }
             }
         } catch (IOException e) {
-            reportLoadModuleError(module, "  Cannot read assets/xposed_init in the module APK", e);
+            reportLoadModuleError(modulePath, "  Cannot read assets/xposed_init in the module APK", e);
         } finally {
-            closeQuietly(input);
-            closeQuietly(zipFile);
+            closeQuietly(xposedInitReader);
         }
     }
 
@@ -97,9 +131,9 @@ public final class PineXposed {
         XC_LoadPackage.callAll(param);
     }
 
-    private static void reportLoadModuleError(File module, String error, Throwable throwable) {
-        Log.e(XposedBridge.TAG, "Failed to load module " + module.getAbsolutePath() + " :");
-        Log.e(XposedBridge.TAG, error, throwable);
+    private static void reportLoadModuleError(Object module, String error, Throwable throwable) {
+        Log.e(TAG, "Failed to load module " + module + " :");
+        Log.e(TAG, error, throwable);
     }
 
     private static void closeQuietly(Closeable closeable) {
