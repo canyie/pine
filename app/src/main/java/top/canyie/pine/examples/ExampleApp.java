@@ -1,10 +1,16 @@
 package top.canyie.pine.examples;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.Context;
+import android.util.Log;
+
+import java.io.File;
 
 import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
+import xcrash.ICrashCallback;
+import xcrash.XCrash;
 
 /**
  * @author canyie
@@ -16,6 +22,27 @@ public class ExampleApp extends Application {
     @Override protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         instance = this;
+        initXCrash();
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored") @SuppressLint("SetWorldReadable")
+    private void initXCrash() {
+        File tombstones = new File(getFilesDir(), "tombstones");
+        if (!tombstones.exists()) tombstones.mkdirs();
+        tombstones.setReadable(true, false);
+        tombstones.setExecutable(true, false);
+
+        ICrashCallback callback = new ICrashCallback() {
+            @Override public void onCrash(String logPath, String emergency) throws Exception {
+                Log.e(TAG, "XCrash triggered: logPath " + logPath + " emergency " + emergency);
+                new File(logPath).setReadable(true, false);
+            }
+        };
+
+        XCrash.init(this, new XCrash.InitParameters()
+                .setJavaCallback(callback)
+                .setNativeCallback(callback)
+                .setAnrCallback(callback));
     }
 
     @Override public void onCreate() {

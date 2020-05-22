@@ -2,6 +2,7 @@ package top.canyie.pine.examples;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -57,13 +58,15 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
 
     private TextView output;
 
-    @Override
+    @SuppressLint("DefaultLocale") @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         ListView listView = findViewById(R.id.test_list);
         output = findViewById(R.id.test_output);
+        output.setText(String.format("Android %s (API %d); CPU Arch %s; No Test executed…",
+                Build.VERSION.RELEASE, Build.VERSION.SDK_INT, Build.CPU_ABI));
 
         String[] testNames = new String[sTestItems.length];
         for (int i = 0; i < sTestItems.length; i++) {
@@ -76,8 +79,8 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
         listView.setOnItemClickListener(this);
     }
 
-    @SuppressLint("SetTextI18n")
-    @Override public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+    @SuppressLint("SetTextI18n") @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         TestItem testItem = sTestItems[position];
         Log.i(ExampleApp.TAG, "Executing " + testItem.name);
         Test test = testItem.test;
