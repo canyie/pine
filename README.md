@@ -65,6 +65,7 @@ Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
 
 ### Xposed Support
 [![Download](https://api.bintray.com/packages/canyie/pine/xposed/images/download.svg)](https://bintray.com/canyie/pine/xposed/_latestVersion)
+
 Pine supports hooking methods in Xposed-style and loading Xposd modules. (Only supports java method hook now.)
 ```groovy
 implementation 'top.canyie.pine:xposed:<version>'
@@ -91,7 +92,7 @@ or like this:
 XposedBridge.hookMethod(target, callback);
 ```
 
-Load xposed modules (resources hook is not supported now):
+and you can load xposed modules (resources hook is not supported now):
 ```java
 // 1. load modules
 PineXposed.loadInstalledModule(new File(moudlePath));

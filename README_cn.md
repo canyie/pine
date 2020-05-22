@@ -69,12 +69,15 @@ Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
 
 ### Xposed支持
 [![Download](https://api.bintray.com/packages/canyie/pine/xposed/images/download.svg)](https://bintray.com/canyie/pine/xposed/_latestVersion)
+
 Pine支持以Xposed风格hook方法和加载Xposed模块（注：目前不支持资源hook等）。
+
 添加依赖：
 ```groovy
 implementation 'top.canyie.pine:xposed:<version>'
 ```
 （注：Xposed支持需要依赖core）
+
 然后你可以直接以Xposed风格hook方法：
 ```java
 XposedHelpers.findAndHookMethod(TextView.class, "setText",
