@@ -1,7 +1,6 @@
 package top.canyie.pine.xposed;
 
 import android.content.pm.ApplicationInfo;
-import android.text.TextUtils;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -15,7 +14,6 @@ import java.util.zip.ZipFile;
 import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.IXposedMod;
-import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedBridge.CopyOnWriteSortedSet;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 

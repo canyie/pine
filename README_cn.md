@@ -1,5 +1,5 @@
 # Pine
-[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.3)](https://bintray.com/canyie/pine/core/0.0.3/link)
+[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg)](https://bintray.com/canyie/pine/core/_latestVersion)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE_CN)
 ## 简介
 Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook框架，它可以拦截本进程内几乎所有的java方法调用。
@@ -11,6 +11,7 @@ Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook�
 注：在Android 6.0 & 32位架构上，参数解析可能错误；另外在Android 9.0及以上，Pine会关闭系统的隐藏API限制策略。
 
 ## 使用
+### 基础使用
 在 build.gradle 中添加如下依赖（jcenter仓库）：
 ```groovy
 dependencies {
@@ -64,6 +65,45 @@ Pine.hook(Thread.class.getDeclaredMethod("start"), new MethodHook() {
 ```java
 Method checkThread = Class.forName("android.view.ViewRootImpl").getDeclaredMethod("checkThread");
 Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
+```
+
+### Xposed支持
+[![Download](https://api.bintray.com/packages/canyie/pine/xposed/images/download.svg)](https://bintray.com/canyie/pine/xposed/_latestVersion)
+Pine支持以Xposed风格hook方法和加载Xposed模块（注：目前不支持资源hook等）。
+添加依赖：
+```groovy
+implementation 'top.canyie.pine:xposed:<version>'
+```
+（注：Xposed支持需要依赖core）
+然后你可以直接以Xposed风格hook方法：
+```java
+XposedHelpers.findAndHookMethod(TextView.class, "setText",
+                CharSequence.class, TextView.BufferType.class, boolean.class, int.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Log.e(TAG, "Before TextView.setText");
+                        param.args[0] = "hooked";
+                    }
+
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Log.e(TAG, "After TextView.setText");
+                    }
+                });
+```
+也可以使用:
+```java
+XposedBridge.hookMethod(target, callback);
+```
+
+也可以直接加载Xposed模块：
+```java
+// 1. load modules
+PineXposed.loadInstalledModule(new File(moudlePath));
+
+// 2. call all 'IXposedHookLoadPackage' callback
+PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
 
 ## 交流讨论

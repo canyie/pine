@@ -1,5 +1,5 @@
 # Pine
-[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg?version=0.0.3)](https://bintray.com/canyie/pine/core/0.0.3/link)
+[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg)](https://bintray.com/canyie/pine/core/_latestVersion)
 [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 [中文版本](README_cn.md)
@@ -12,16 +12,17 @@ About its working principle, you can refer to this Chinese [article](https://can
 
 Note: For Android 6.0 and 32-bit mode, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
 ## Usage
-Add dependencies in build.gradle:
+### Basic Usage
+Add dependencies in build.gradle (like this):
 ```grooxy
 dependencies {
-    implementation 'top.canyie.pine:core:0.0.3'
+    implementation 'top.canyie.pine:core:<version>'
 }
 ```
 Basic configuration:
 ```java
 PineConfig.debug = true; // Need to print more detailed log?
-PineConfig.debuggable = BuildConfig.DEBUG; // This process is debuggable?
+PineConfig.debuggable = BuildConfig.DEBUG; // Is this process debuggable?
 ```
 
 Example 1: monitor the creation of activities
@@ -60,6 +61,43 @@ Example 3: force allow any threads to modify the ui:
 ```java
 Method checkThread = Class.forName("android.view.ViewRootImpl").getDeclaredMethod("checkThread");
 Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
+```
+
+### Xposed Support
+[![Download](https://api.bintray.com/packages/canyie/pine/xposed/images/download.svg)](https://bintray.com/canyie/pine/xposed/_latestVersion)
+Pine supports hooking methods in Xposed-style and loading Xposd modules. (Only supports java method hook now.)
+```groovy
+implementation 'top.canyie.pine:xposed:<version>'
+```
+Direct hook methods in Xposed-style:
+```java
+XposedHelpers.findAndHookMethod(TextView.class, "setText",
+                CharSequence.class, TextView.BufferType.class, boolean.class, int.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Log.e(TAG, "Before TextView.setText");
+                        param.args[0] = "hooked";
+                    }
+
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        Log.e(TAG, "After TextView.setText");
+                    }
+                });
+```
+or like this:
+```java
+XposedBridge.hookMethod(target, callback);
+```
+
+Load xposed modules (resources hook is not supported now):
+```java
+// 1. load modules
+PineXposed.loadInstalledModule(new File(moudlePath));
+
+// 2. call all 'IXposedHookLoadPackage' callback
+PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
 
 ## Discussion
