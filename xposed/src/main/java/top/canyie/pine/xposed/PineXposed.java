@@ -13,6 +13,7 @@ import java.util.zip.ZipFile;
 
 import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.IXposedHookLoadPackage;
+import de.robv.android.xposed.IXposedHookZygoteInit;
 import de.robv.android.xposed.IXposedMod;
 import de.robv.android.xposed.XposedBridge.CopyOnWriteSortedSet;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -20,8 +21,10 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 public final class PineXposed {
     public static final String TAG = "PineXposed";
     public static boolean disableHooks = false;
+    public static boolean disableZygoteInitCallbacks = false;
 
     private static final CopyOnWriteSortedSet<XC_LoadPackage> sLoadedPackageCallbacks = new CopyOnWriteSortedSet<>();
+
     private PineXposed() {
     }
 
@@ -86,23 +89,34 @@ public final class PineXposed {
                     continue;
 
                 try {
-                    Class<?> c = Class.forName(className, true, moduleClassLoader);
+                    Class<?> c = moduleClassLoader.loadClass(className);
 
                     if (!IXposedMod.class.isAssignableFrom(c)) {
                         Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
                         Log.e(TAG, "    This class doesn't implement any sub-interface of IXposedMod, skipping it");
                         continue;
+                    } else if (IXposedHookZygoteInit.class.isAssignableFrom(c) && disableZygoteInitCallbacks) {
+                        Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
+                        Log.e(TAG, "    This class requires zygote init callbacks (which are disabled), skipping it");
+                        continue;
                     } else if (!IXposedHookLoadPackage.class.isAssignableFrom(c)) {
                         Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
-                        Log.e(TAG, "    This class requires unsupported feature (only supports IXposedHookLoadPackage now), skipping it");
+                        Log.e(TAG, "    This class requires unsupported feature (only supports " +
+                                "IXposedHookLoadPackage and IXposedHookZygoteInit now), skipping it");
                         continue;
                     }
 
                     IXposedMod callback = (IXposedMod) c.newInstance();
 
-                    // if (callback instanceof IXposedHookLoadPackage)
-                        hookLoadPackage((IXposedHookLoadPackage) callback);
+                    if (callback instanceof IXposedHookZygoteInit) {
+                        IXposedHookZygoteInit.StartupParam param = new IXposedHookZygoteInit.StartupParam();
+                        param.modulePath = modulePath;
+                        param.startsSystemServer = false;
+                        ((IXposedHookZygoteInit) callback).initZygote(param);
+                    }
 
+                    if (callback instanceof IXposedHookLoadPackage)
+                        hookLoadPackage((IXposedHookLoadPackage) callback);
                 } catch (Throwable e) {
                     Log.e(TAG, "    Failed to load class " + className + " in module " + modulePath + " :", e);
                 }
