@@ -6,6 +6,7 @@
 #define PINE_MEMORY_H
 
 #include <cerrno>
+#include <mutex>
 #include <sys/mman.h>
 #include "../utils/macros.h"
 #include "../utils/log.h"
@@ -39,7 +40,10 @@ namespace pine {
             __builtin___clear_cache((char *) addr, (char *) ((uintptr_t) addr + size));
         }
     private:
-        static const long page_size;
+        static const size_t page_size;
+        static uintptr_t address;
+        static size_t offset;
+        static std::mutex mutex;
         DISALLOW_IMPLICIT_CONSTRUCTORS(Memory);
     };
 }
