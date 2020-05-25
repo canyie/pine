@@ -35,7 +35,7 @@ cbnz w16, lock_failed // failed, try again.
 str x1, [x17, #4]
 str x2, [x17, #12]
 str x3, [x17, #20]
-ldr x1, pine_bridge_jump_trampoline_target_method // first param = callee ArtMethod
+mov x1, x0 // first param = callee ArtMethod
 mov x2, x17 // second param = extras (saved x1, x2, x3)
 mov x3, sp // third param = sp
 ldr x0, pine_bridge_jump_trampoline_bridge_method
