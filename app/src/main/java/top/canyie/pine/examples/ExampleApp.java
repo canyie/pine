@@ -39,7 +39,18 @@ public class ExampleApp extends Application {
             }
         };
 
+        final int logLinesOfSystemAndEventMax = 300;
+        final int logLinesOfMainMax = 1200;
         XCrash.init(this, new XCrash.InitParameters()
+                .setJavaLogcatSystemLines(logLinesOfSystemAndEventMax)
+                .setJavaLogcatEventsLines(logLinesOfSystemAndEventMax)
+                .setNativeLogcatSystemLines(logLinesOfSystemAndEventMax)
+                .setNativeLogcatEventsLines(logLinesOfSystemAndEventMax)
+                .setAnrLogcatSystemLines(logLinesOfSystemAndEventMax)
+                .setAnrLogcatEventsLines(logLinesOfSystemAndEventMax)
+                .setJavaLogcatMainLines(logLinesOfMainMax)
+                .setNativeLogcatMainLines(logLinesOfMainMax)
+                .setAnrLogcatMainLines(logLinesOfMainMax)
                 .setJavaCallback(callback)
                 .setNativeCallback(callback)
                 .setAnrCallback(callback));
