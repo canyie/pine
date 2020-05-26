@@ -10,7 +10,7 @@
 #include "utils/log.h"
 #include "utils/jni_helper.h"
 #include "trampoline/extras.h"
-#include "trampoline/memory.h"
+#include "utils/memory.h"
 
 #include "utils/well_known_classes.h"
 #include "trampoline/trampoline_installer.h"

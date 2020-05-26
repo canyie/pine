@@ -8,7 +8,7 @@
 #include "../jni_bridge.h"
 #include "../utils/well_known_classes.h"
 #include "../utils/scoped_local_ref.h"
-#include "../trampoline/memory.h"
+#include "../utils/memory.h"
 
 using namespace pine::art;
 

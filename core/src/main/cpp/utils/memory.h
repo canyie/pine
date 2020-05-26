@@ -8,8 +8,8 @@
 #include <cerrno>
 #include <mutex>
 #include <sys/mman.h>
-#include "../utils/macros.h"
-#include "../utils/log.h"
+#include "macros.h"
+#include "log.h"
 
 namespace pine {
     class Memory {

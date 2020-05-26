@@ -3,8 +3,9 @@
 //
 
 #include "trampoline_installer.h"
-#include "memory.h"
 #include "extras.h"
+#include "../utils/memory.h"
+#include "../utils/scoped_memory_access_protection.h"
 
 #ifdef __aarch64__
 #include "arch/arm64.h"
@@ -160,7 +161,10 @@ void *TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod *target, art::
     void *bridge_jump_trampoline = CreateBridgeJumpTrampoline(target, bridge, backup);
     if (UNLIKELY(!bridge_jump_trampoline)) return nullptr;
 
-    WriteDirectJumpTrampolineTo(target_code_addr, bridge_jump_trampoline);
+    {
+        ScopedMemoryAccessProtection protection(target_code_addr, kDirectJumpTrampolineSize);
+        WriteDirectJumpTrampolineTo(target_code_addr, bridge_jump_trampoline);
+    }
 
     LOGD("InstallInlineTrampoline: target_code_addr %p backup %p bridge_jump %p",
             target_code_addr, backup, bridge_jump_trampoline);
@@ -174,6 +178,10 @@ bool TrampolineInstaller::NativeHookNoBackup(void *target, void *to) {
         LOGE("Failed to make target code %p writable!", target);
         return false;
     }
-    WriteDirectJumpTrampolineTo(target, to);
+
+    {
+        ScopedMemoryAccessProtection protection(target, kDirectJumpTrampolineSize);
+        WriteDirectJumpTrampolineTo(target, to);
+    }
     return true;
 }

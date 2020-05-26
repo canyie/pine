@@ -8,8 +8,9 @@ set(PINE_ARCH_UNRELATED_SOURCES
         art/art_method.cpp
         art/thread.cpp
         art/jit.cpp
-        trampoline/memory.cpp
         trampoline/trampoline_installer.cpp
+        utils/memory.cpp
+        utils/scoped_memory_access_protection.cpp
         utils/elf_img.cpp
         utils/well_known_classes.cpp)
 

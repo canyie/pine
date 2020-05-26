@@ -7,7 +7,7 @@
 #include <sys/prctl.h>
 #include <bits/sysconf.h>
 #include "memory.h"
-#include "../utils/lock.h"
+#include "lock.h"
 
 using namespace pine;
 

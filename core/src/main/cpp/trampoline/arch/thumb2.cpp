@@ -3,8 +3,8 @@
 //
 
 #include "thumb2.h"
-#include "../memory.h"
 #include "../extras.h"
+#include "../../utils/memory.h"
 
 using namespace pine;
 
