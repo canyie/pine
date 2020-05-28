@@ -13,15 +13,16 @@ namespace pine {
     class Android {
     public:
         static inline bool Is64Bit() {
-            return sizeof(void *) == 8;
+            return sizeof(void*) == 8;
         }
 
-        static void Init(JNIEnv *env, int sdk_version);
+        static void Init(JNIEnv* env, int sdk_version);
 
         static int version;
-        static JavaVM *jvm;
+        static JavaVM* jvm;
 
         static void (*suspend_vm)();
+
         static void (*resume_vm)();
 
         static const int VERSION_K = 19;
@@ -36,7 +37,7 @@ namespace pine {
         static const int VERSION_Q = 29;
         static const int VERSION_R = 30;
     private:
-        static void DisableHiddenApiPolicy(const ElfImg *handle);
+        static void DisableHiddenApiPolicy(const ElfImg* handle);
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);
     };

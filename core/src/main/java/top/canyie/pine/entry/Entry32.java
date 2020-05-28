@@ -64,11 +64,11 @@ public final class Entry32 {
 
         int index = 0;
 
-        if (hookRecord.isNonStatic) {
+        if (hookRecord.isStatic) {
+            receiver = null;
+        } else {
             receiver = Pine.getObject(thread, argsAsInts[0]);
             index = 1;
-        } else {
-            receiver = null;
         }
 
         if (hookRecord.paramNumber > 0) {
@@ -110,7 +110,7 @@ public final class Entry32 {
     }
 
     private static int[] getArgsAsInts(Pine.HookRecord hookRecord, int extras, int sp) {
-        int len = hookRecord.isNonStatic ? 1/*this*/ : 0;
+        int len = hookRecord.isStatic ? 0 : 1/*this*/;
         Class<?>[] paramTypes = hookRecord.paramTypes;
         for (Class<?> paramType : paramTypes) {
             len += paramType == long.class || paramType == double.class ? 2 : 1;
@@ -121,7 +121,7 @@ public final class Entry32 {
         // will be skipped, move to r2-r3 instead. Use r2, r3, sp + 12.
         // See art::quick_invoke_reg_setup (in quick_entrypoints_cc_arm.cc)
         boolean skipR1 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && (!hookRecord.isNonStatic)
+                && (hookRecord.isStatic)
                 && hookRecord.paramNumber > 0
                 && (paramTypes[0] == long.class || paramTypes[0] == double.class);
 

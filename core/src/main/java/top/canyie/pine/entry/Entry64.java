@@ -73,11 +73,11 @@ public final class Entry64 {
 
         int index = 0;
 
-        if (hookRecord.isNonStatic) {
+        if (hookRecord.isStatic) {
+            receiver = null;
+        } else {
             receiver = Pine.getObject(thread, argsAsLongs[0]);
             index = 1;
-        } else {
-            receiver = null;
         }
 
         if (hookRecord.paramNumber > 0) {
@@ -120,7 +120,7 @@ public final class Entry64 {
 
     private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp,
                                          long x4, long x5, long x6, long x7) {
-        int length = (hookRecord.isNonStatic ? 1 : 0) + hookRecord.paramNumber;
+        int length = (hookRecord.isStatic ? 0 : 1 /*this*/) + hookRecord.paramNumber;
         long[] array = length != 0 ? new long[length] : EMPTY_LONG_ARRAY;
         Pine.getArgs64(extras, array, sp);
 

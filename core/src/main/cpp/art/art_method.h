@@ -20,33 +20,33 @@
 namespace pine::art {
     class ArtMethod final {
     public:
-        static void Init(const ElfImg *handle);
+        static void Init(const ElfImg* handle);
 
-        static void InitMembers(ArtMethod *m1, ArtMethod *m2, uint32_t access_flags);
+        static void InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags);
 
-        static ArtMethod *FromReflectedMethod(JNIEnv *env, jobject javaMethod);
+        static ArtMethod* FromReflectedMethod(JNIEnv* env, jobject javaMethod);
 
-        static ArtMethod *Require(JNIEnv *env, jclass c, const char *name,
-                const char *signature, bool is_static);
+        static ArtMethod* Require(JNIEnv* env, jclass c, const char* name,
+                                  const char* signature, bool is_static);
 
-        static ArtMethod *GetArtMethodForR(JNIEnv *env, jobject javaMethod) {
+        static ArtMethod* GetArtMethodForR(JNIEnv* env, jobject javaMethod) {
             // We assume that jmethodID is the real ArtMethod pointer, which is no longer correct on Android R.
             // Fortunately, in Java, the Executable object has a member called artMethod,
             // and it still seems to hold the actual ArtMethod pointer.
             jlong artMethod = env->GetLongField(javaMethod,
                                                 WellKnownClasses::java_lang_reflect_Executable_artMethod);
-            return reinterpret_cast<ArtMethod *>(artMethod);
+            return reinterpret_cast<ArtMethod*>(artMethod);
         }
 
-        static ArtMethod *New() {
-            return static_cast<ArtMethod *>(malloc(size));
+        static ArtMethod* New() {
+            return static_cast<ArtMethod*>(malloc(size));
         }
 
-        static void *GetQuickToInterpreterBridge() {
+        static void* GetQuickToInterpreterBridge() {
             return art_quick_to_interpreter_bridge;
         }
 
-        static void SetQuickToInterpreterBridge(void *entry) {
+        static void SetQuickToInterpreterBridge(void* entry) {
             art_quick_to_interpreter_bridge = entry;
         }
 
@@ -68,7 +68,7 @@ namespace pine::art {
             return GetEntryPointFromCompiledCode() != GetInterpreterBridge();
         }
 
-        bool Compile(Thread *thread) {
+        bool Compile(Thread* thread) {
             if (LIKELY(IsCompiled())) return true;
             if (UNLIKELY(Android::version < Android::VERSION_N)) return false;
             if (UNLIKELY(HasAccessFlags(kAccCompileDontBother))) return false;
@@ -76,7 +76,7 @@ namespace pine::art {
         }
 
         bool Decompile(bool disableJit) {
-            void *interpreter_bridge = GetInterpreterBridge();
+            void* interpreter_bridge = GetInterpreterBridge();
             if (LIKELY(interpreter_bridge)) {
                 if (disableJit) {
                     SetNonCompilable();
@@ -133,16 +133,16 @@ namespace pine::art {
             SetAccessFlags(GetAccessFlags() & ~flags);
         }
 
-        void *GetEntryPointFromCompiledCode() {
+        void* GetEntryPointFromCompiledCode() {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
-                return reinterpret_cast<void *> (
+                return reinterpret_cast<void*> (
                         entry_point_from_compiled_code_.GetAs<uint64_t>(this));
             }
             return entry_point_from_compiled_code_.Get(this);
         }
 
-        void SetEntryPointFromCompiledCode(void *entry) {
+        void SetEntryPointFromCompiledCode(void* entry) {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
                 entry_point_from_compiled_code_.SetAs<uint64_t>(
@@ -152,16 +152,16 @@ namespace pine::art {
             entry_point_from_compiled_code_.Set(this, entry);
         }
 
-        void *GetEntryPointFromJni() {
+        void* GetEntryPointFromJni() {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_jni_ is a uint64_t
-                return reinterpret_cast<void *>(
+                return reinterpret_cast<void*>(
                         entry_point_from_jni_.GetAs<uint64_t>(this));
             }
             return entry_point_from_jni_.Get(this);
         }
 
-        void SetEntryPointFromJni(void *entry) {
+        void SetEntryPointFromJni(void* entry) {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_jni_ is a uint64_t
                 entry_point_from_jni_.SetAs<uint64_t>(
@@ -171,16 +171,16 @@ namespace pine::art {
             entry_point_from_jni_.Set(this, entry);
         }
 
-        void *GetEntryPointFromInterpreter() {
+        void* GetEntryPointFromInterpreter() {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_interpreter_ is a uint64_t
-                return reinterpret_cast<void *>(
+                return reinterpret_cast<void*>(
                         entry_point_from_interpreter_->GetAs<uint64_t>(this));
             }
             return entry_point_from_interpreter_->Get(this);
         }
 
-        void SetEntryPointFromInterpreter(void *entry) {
+        void SetEntryPointFromInterpreter(void* entry) {
             if (Android::version == Android::VERSION_L) {
                 // Android 5.0, entry_point_from_interpreter_ is a uint64_t
                 entry_point_from_interpreter_->SetAs<uint64_t>(
@@ -198,12 +198,12 @@ namespace pine::art {
 #endif
         }
 
-        void *GetCompiledCodeAddr() {
-            void *addr = GetEntryPointFromCompiledCode();
+        void* GetCompiledCodeAddr() {
+            void* addr = GetEntryPointFromCompiledCode();
 #ifdef __arm__
-            addr = reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(addr) & ~1);
+            addr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(addr) & ~1);
 #endif
-        return addr;
+            return addr;
         }
 
         uint32_t GetCompiledCodeSize() {
@@ -212,7 +212,7 @@ namespace pine::art {
             //    uint32_t code_size_ = 0u;
             //    uint8_t code_[0];
             //  }
-            uint32_t code_size = *reinterpret_cast<uint32_t *>(
+            uint32_t code_size = *reinterpret_cast<uint32_t*>(
                     reinterpret_cast<uintptr_t>(GetCompiledCodeAddr()) - sizeof(uint32_t));
             if (Android::version >= Android::VERSION_O) {
                 // On Android 8+, The highest bit is used to signify if the compiled
@@ -223,7 +223,7 @@ namespace pine::art {
             return code_size;
         }
 
-        void BackupFrom(ArtMethod *source, void *entry, bool is_inline_hook, bool is_native_or_proxy);
+        void BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy);
 
         void AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy);
 
@@ -293,7 +293,7 @@ namespace pine::art {
             }
         }
 
-        void *GetInterpreterBridge() {
+        void* GetInterpreterBridge() {
             return UNLIKELY(IsNative()) ? art_quick_generic_jni_trampoline
                                         : art_quick_to_interpreter_bridge;
         }
@@ -301,20 +301,21 @@ namespace pine::art {
         static uint32_t kAccCompileDontBother;
 
         static size_t size;
-        static void *art_quick_to_interpreter_bridge;
-        static void *art_quick_generic_jni_trampoline;
-        static void *art_interpreter_to_interpreter_bridge;
-        static void *art_interpreter_to_compiled_code_bridge;
-        static void (*copy_from)(ArtMethod *, ArtMethod *, size_t);
+        static void* art_quick_to_interpreter_bridge;
+        static void* art_quick_generic_jni_trampoline;
+        static void* art_interpreter_to_interpreter_bridge;
+        static void* art_interpreter_to_compiled_code_bridge;
+
+        static void (*copy_from)(ArtMethod*, ArtMethod*, size_t);
 
         static Member<ArtMethod, uint32_t> access_flags_;
-        static Member<ArtMethod, void *> entry_point_from_compiled_code_;
+        static Member<ArtMethod, void*> entry_point_from_compiled_code_;
 
         // In Android 8.0+, it is actually called data_.
-        static Member<ArtMethod, void *> entry_point_from_jni_;
+        static Member<ArtMethod, void*> entry_point_from_jni_;
 
-        static Member<ArtMethod, void *> *entry_point_from_interpreter_;
-        static Member<ArtMethod, uint32_t> *declaring_class; // GCRoot is uint32_t
+        static Member<ArtMethod, void*>* entry_point_from_interpreter_;
+        static Member<ArtMethod, uint32_t>* declaring_class; // GCRoot is uint32_t
         DISALLOW_IMPLICIT_CONSTRUCTORS(ArtMethod);
     };
 }

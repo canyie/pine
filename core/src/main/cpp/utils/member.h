@@ -30,14 +30,14 @@ public:
     }
 
     template <typename ToType>
-    void SetAs(IType *instance, ToType value) {
+    void SetAs(IType* instance, ToType value) {
         if (UNLIKELY(!IsValid())) {
             return;
         }
         memcpy(reinterpret_cast<void *> ((uintptr_t) instance + offset), &value, sizeof(ToType));
     }
 
-    void Set(IType *instance, MType value) {
+    void Set(IType* instance, MType value) {
         SetAs<MType>(instance, value);
     }
 

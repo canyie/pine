@@ -24,10 +24,10 @@ bool Arm32TrampolineInstaller::IsPCRelatedInst(uint32_t inst) {
     return false;
 }
 
-bool Arm32TrampolineInstaller::CannotBackup(art::ArtMethod *target) {
+bool Arm32TrampolineInstaller::CannotBackup(art::ArtMethod* target) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target->GetEntryPointFromCompiledCode());
     for (uint32_t index = 0;index < kDirectJumpTrampolineSize;index += 4) {
-        uint32_t *p = reinterpret_cast<uint32_t *> (entry + index);
+        uint32_t* p = reinterpret_cast<uint32_t*>(entry + index);
         if (UNLIKELY(IsPCRelatedInst(*p))) {
             return true;
         }

@@ -16,7 +16,7 @@ namespace pine {
         return error == EINTR || error == EIO;
     }
 
-    int WrappedOpen(const char *pathname, int flags, int max_retries = 2) {
+    int WrappedOpen(const char* pathname, int flags, int max_retries = 2) {
         for (;;) {
             int fd = open(pathname, flags);
             if (LIKELY(fd >= 0)) {
@@ -34,19 +34,19 @@ namespace pine {
         }
     }
 
-    FILE *WrappedFOpen(const char *pathname, const char *mode, int max_retries = 2) {
+    FILE* WrappedFOpen(const char* pathname, const char* mode, int max_retries = 2) {
         for (;;) {
-            FILE *file = fopen(pathname, mode);
+            FILE* file = fopen(pathname, mode);
             if (LIKELY(file)) {
                 return file;
             }
 
             if (LIKELY(CanRetry(errno) && max_retries-- > 0)) {
                 LOGW("Retrying to fopen %s with mode %s: errno %d (%s)",
-                        pathname, mode, errno, strerror(errno));
+                     pathname, mode, errno, strerror(errno));
             } else {
                 LOGE("Failed to fopen %s with mode %s: errno %d (%s)",
-                        pathname, mode, errno, strerror(errno));
+                     pathname, mode, errno, strerror(errno));
                 return nullptr;
             }
         }

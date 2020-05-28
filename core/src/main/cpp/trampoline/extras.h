@@ -28,11 +28,11 @@ namespace pine {
         /** Thread lock flag, 1: unlocked, 0: locked. */
         volatile uint32_t lock_flag = 1;
         /** r1(32 bit) or x1(64 bit) register */
-        void *r1 = nullptr;
+        void* r1 = nullptr;
         /** r2(32 bit) or x2(64 bit) register */
-        void *r2 = nullptr;
+        void* r2 = nullptr;
         /** r3(32 bit) or x3(64 bit) register */
-        void *r3 = nullptr;
+        void* r3 = nullptr;
     };
 }
 

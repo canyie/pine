@@ -22,16 +22,16 @@
 namespace pine::art {
     class Thread final {
     public:
-        static void Init(const ElfImg *handle);
+        static void Init(const ElfImg* handle);
 
         static inline Thread* Current() {
-            Thread *thread;
+            Thread* thread;
             if (Android::version >= Android::VERSION_N) {
-                thread = reinterpret_cast<Thread *>(__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
+                thread = reinterpret_cast<Thread*>(__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
             } else if (current) {
                 thread = current();
             } else if (key_self) {
-                thread = static_cast<Thread *>(pthread_getspecific(*key_self));
+                thread = static_cast<Thread*>(pthread_getspecific(*key_self));
             } else {
                 // This function only called when Thread.nativePeer is unavailable.
                 LOGE("Unable to get art::Thread by any means... this's crazy!");
@@ -48,7 +48,7 @@ namespace pine::art {
             *GetStateAndFlagsPtr() = state_and_flags;
         }
 
-        jobject AddLocalRef(JNIEnv *env, void *o) {
+        jobject AddLocalRef(JNIEnv* env, void* o) {
             if (LIKELY(new_local_ref)) {
                 return new_local_ref(env, o);
             }
@@ -58,12 +58,12 @@ namespace pine::art {
             return local_ref;
         }
 
-        void *DecodeJObject(jobject o) {
+        void* DecodeJObject(jobject o) {
             return decode_jobject(this, o);
         }
 
     private:
-        inline int32_t *GetStateAndFlagsPtr() {
+        inline int32_t* GetStateAndFlagsPtr() {
             // class Thread {
             //  struct PACKED(4) tls_32bit_sized_values {
             //    union StateAndFlags state_and_flags (32 bit)
@@ -71,14 +71,18 @@ namespace pine::art {
             //  }
             //  ...
             // }
-            return reinterpret_cast<int32_t *> (this);
+            return reinterpret_cast<int32_t*>(this);
         }
 
-        static Thread *(*current)();
-        static pthread_key_t *key_self;
-        static jobject (*new_local_ref)(JNIEnv *, void *);
-        static jweak (*add_weak_global_ref) (JavaVM *, Thread *, void *);
-        static void * (*decode_jobject)(Thread *, jobject);
+        static Thread* (*current)();
+
+        static pthread_key_t* key_self;
+
+        static jobject (*new_local_ref)(JNIEnv*, void*);
+
+        static jweak (*add_weak_global_ref)(JavaVM*, Thread*, void*);
+
+        static void* (*decode_jobject)(Thread*, jobject);
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Thread);
     };

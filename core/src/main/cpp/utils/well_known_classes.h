@@ -13,12 +13,12 @@
 namespace pine {
     class WellKnownClasses final {
     public:
-        static void Init(JNIEnv *env);
+        static void Init(JNIEnv* env);
         static jclass java_lang_reflect_ArtMethod;
         static jfieldID java_lang_reflect_Executable_artMethod;
 
     private:
-        static jclass RequireClass(JNIEnv *env, const char *name) {
+        static jclass RequireClass(JNIEnv* env, const char* name) {
             jclass local_ref = env->FindClass(name);
             CHECK(local_ref != nullptr, "Required class %s not found", name);
             jclass global_ref = static_cast<jclass>(env->NewGlobalRef(local_ref));
@@ -26,7 +26,7 @@ namespace pine {
             return global_ref;
         }
 
-        static jclass FindClass(JNIEnv *env, const char *name) {
+        static jclass FindClass(JNIEnv* env, const char* name) {
             jclass local_ref = env->FindClass(name);
             if (local_ref != nullptr) {
                 jclass global_ref = static_cast<jclass>(env->NewGlobalRef(local_ref));
@@ -38,8 +38,8 @@ namespace pine {
             }
         }
 
-        static jfieldID RequireNonStaticFieldID(JNIEnv *env, const char *class_name, const char *name,
-                                                const char *signature) {
+        static jfieldID RequireNonStaticFieldID(JNIEnv* env, const char* class_name, const char* name,
+                                                const char* signature) {
             jclass c = env->FindClass(name);
             CHECK(c != nullptr, "Required class %s not found", name);
             jfieldID field = env->GetFieldID(c, name, signature);

@@ -10,23 +10,34 @@ using namespace pine;
 
 void Thumb2TrampolineInstaller::InitTrampolines() {
     kDirectJumpTrampoline = ToAddress(AS_VOID_PTR(pine_thumb_direct_jump_trampoline));
-    kDirectJumpTrampolineEntryOffset = DirectJumpTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_direct_jump_trampoline_jump_entry)));
+    kDirectJumpTrampolineEntryOffset = DirectJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_direct_jump_trampoline_jump_entry)));
 
     kBridgeJumpTrampoline = ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline));
-    kBridgeJumpTrampolineTargetMethodOffset = BridgeJumpTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_target_method)));
-    kBridgeJumpTrampolineExtrasOffset = BridgeJumpTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_extras)));
-    kBridgeJumpTrampolineBridgeMethodOffset = BridgeJumpTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_bridge_method)));
-    kBridgeJumpTrampolineBridgeEntryOffset = BridgeJumpTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_bridge_entry)));
-    kBridgeJumpTrampolineOriginCodeEntryOffset = BridgeJumpTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_call_origin_entry)));
+    kBridgeJumpTrampolineTargetMethodOffset = BridgeJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_target_method)));
+    kBridgeJumpTrampolineExtrasOffset = BridgeJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_extras)));
+    kBridgeJumpTrampolineBridgeMethodOffset = BridgeJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_bridge_method)));
+    kBridgeJumpTrampolineBridgeEntryOffset = BridgeJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_bridge_entry)));
+    kBridgeJumpTrampolineOriginCodeEntryOffset = BridgeJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_call_origin_entry)));
 
     kCallOriginTrampoline = ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline));
-    kCallOriginTrampolineOriginMethodOffset = CallOriginTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline_origin_method)));
-    kCallOriginTrampolineOriginalEntryOffset = CallOriginTrampolineOffset(ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline_origin_code_entry)));
+    kCallOriginTrampolineOriginMethodOffset = CallOriginTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline_origin_method)));
+    kCallOriginTrampolineOriginalEntryOffset = CallOriginTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline_origin_code_entry)));
 
     kBackupTrampoline = ToAddress(AS_VOID_PTR(pine_thumb_backup_trampoline));
-    kBackupTrampolineOriginMethodOffset = BackupTrampolineOffset(AS_VOID_PTR(pine_thumb_backup_trampoline_origin_method));
-    kBackupTrampolineOverrideSpaceOffset = BackupTrampolineOffset(AS_VOID_PTR(pine_thumb_backup_trampoline_override_space));
-    kBackupTrampolineRemainingCodeEntryOffset = BackupTrampolineOffset(AS_VOID_PTR(pine_thumb_backup_trampoline_remaining_code_entry));
+    kBackupTrampolineOriginMethodOffset = BackupTrampolineOffset(
+            AS_VOID_PTR(pine_thumb_backup_trampoline_origin_method));
+    kBackupTrampolineOverrideSpaceOffset = BackupTrampolineOffset(
+            AS_VOID_PTR(pine_thumb_backup_trampoline_override_space));
+    kBackupTrampolineRemainingCodeEntryOffset = BackupTrampolineOffset(
+            AS_VOID_PTR(pine_thumb_backup_trampoline_remaining_code_entry));
 
     kTrampolinesEnd = ToAddress(AS_VOID_PTR(pine_thumb_trampolines_end));
 
@@ -58,13 +69,13 @@ bool Thumb2TrampolineInstaller::IsThumb16PCRelatedInst(uint16_t inst) {
     return false;
 }
 
-bool Thumb2TrampolineInstaller::CannotBackup(art::ArtMethod *target) {
+bool Thumb2TrampolineInstaller::CannotBackup(art::ArtMethod* target) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target->GetCompiledCodeAddr());
     uint32_t index = 0;
     while (index < kDirectJumpTrampolineSize) {
-        uint16_t *ptr16 = reinterpret_cast<uint16_t *> (entry + index);
-        uint32_t *ptr32 = reinterpret_cast<uint32_t *> (entry + index);
-        if (IsThumb32(*ptr16)) {
+        uint16_t* ptr16 = reinterpret_cast<uint16_t*>(entry + index);
+        uint32_t* ptr32 = reinterpret_cast<uint32_t*>(entry + index);
+        if (LIKELY(IsThumb32(*ptr16))) {
             if (UNLIKELY(IsThumb32PCRelatedInst(*ptr32))) {
                 return true;
             }
@@ -79,11 +90,11 @@ bool Thumb2TrampolineInstaller::CannotBackup(art::ArtMethod *target) {
     return false;
 }
 
-size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod *target) {
+size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod* target) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target->GetCompiledCodeAddr());
     size_t size = 0;
     while (size < kDirectJumpTrampolineSize) {
-        if (IsThumb32(*reinterpret_cast<uint16_t *> (entry + size))) {
+        if (LIKELY(IsThumb32(*reinterpret_cast<uint16_t*>(entry + size)))) {
             size += 4;
         } else {
             size += 2;
@@ -93,8 +104,8 @@ size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod *target) {
 }
 
 
-void *Thumb2TrampolineInstaller::Backup(art::ArtMethod *target) {
-    void *mem = Memory::AllocUnprotected(kBackupTrampolineSize);
+void* Thumb2TrampolineInstaller::Backup(art::ArtMethod* target) {
+    void* mem = Memory::AllocUnprotected(kBackupTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate executable memory for backup!");
         return nullptr;
@@ -104,15 +115,15 @@ void *Thumb2TrampolineInstaller::Backup(art::ArtMethod *target) {
 
     uintptr_t addr = reinterpret_cast<uintptr_t>(mem);
 
-    auto origin_out = reinterpret_cast<art::ArtMethod **>(addr + kBackupTrampolineOriginMethodOffset);
+    auto origin_out = reinterpret_cast<art::ArtMethod**>(addr + kBackupTrampolineOriginMethodOffset);
     *origin_out = target;
 
-    void *target_addr = target->GetCompiledCodeAddr();
+    void* target_addr = target->GetCompiledCodeAddr();
     memcpy(AS_VOID_PTR(addr + kBackupTrampolineOverrideSpaceOffset), target_addr, backup_size);
 
     if (LIKELY(target->GetCompiledCodeSize() != backup_size)) {
         // has remaining code
-        void **remaining_out = reinterpret_cast<void **>(addr + kBackupTrampolineRemainingCodeEntryOffset);
+        void** remaining_out = reinterpret_cast<void**>(addr + kBackupTrampolineRemainingCodeEntryOffset);
         *remaining_out = ToPC(AS_VOID_PTR(reinterpret_cast<uintptr_t>(target_addr) + backup_size));
     }
 

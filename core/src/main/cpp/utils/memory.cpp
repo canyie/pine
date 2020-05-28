@@ -17,7 +17,7 @@ uintptr_t Memory::address = 0;
 size_t Memory::offset = 0;
 std::mutex Memory::mutex;
 
-void *Memory::AllocUnprotected(size_t size) {
+void* Memory::AllocUnprotected(size_t size) {
     if (UNLIKELY(size > page_size)) {
         LOGE("Attempting to allocate too much memory space (%x bytes)", size);
         errno = ENOMEM;
@@ -29,13 +29,13 @@ void *Memory::AllocUnprotected(size_t size) {
     if (LIKELY(address)) {
         size_t next_offset = offset + size;
         if (LIKELY(next_offset <= page_size)) {
-            void *ptr = reinterpret_cast<void *>(address + offset);
+            void* ptr = reinterpret_cast<void*>(address + offset);
             offset = next_offset;
             return ptr;
         }
     }
 
-    void *mapped = mmap(nullptr, page_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    void* mapped = mmap(nullptr, page_size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     if (UNLIKELY(mapped == MAP_FAILED)) {
         LOGE("Unable to allocate executable memory: %s (%d)", strerror(errno), errno);

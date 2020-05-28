@@ -20,11 +20,11 @@
 // Pine changed: namespace
 using namespace pine;
 
-inline bool CanRead(const char *file) {
+inline bool CanRead(const char* file) {
     return access(file, R_OK) == 0;
 }
 
-ElfImg::ElfImg(const char *elf, bool warn_if_symtab_not_found) {
+ElfImg::ElfImg(const char* elf, bool warn_if_symtab_not_found) {
     // Pine changed: Relative path support
     this->elf = elf;
     if (elf[0] == '/') {
@@ -57,7 +57,7 @@ ElfImg::ElfImg(const char *elf, bool warn_if_symtab_not_found) {
     }
 }
 
-void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
+void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
     //load elf
     int fd = WrappedOpen(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to flags
     if (UNLIKELY(fd < 0)) {
@@ -70,24 +70,24 @@ void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
         LOGE("lseek() failed for %s: errno %d (%s)", path, errno, strerror(errno));
     }
 
-    header = reinterpret_cast<Elf_Ehdr *>(mmap(0, size, PROT_READ, MAP_SHARED, fd, 0));
+    header = reinterpret_cast<Elf_Ehdr*>(mmap(0, size, PROT_READ, MAP_SHARED, fd, 0));
 
     close(fd);
 
     // Pine changed: Use uintptr_t instead of size_t
 
     // section_header = reinterpret_cast<Elf_Shdr *>(((size_t) header) + header->e_shoff);
-    section_header = reinterpret_cast<Elf_Shdr *>(((uintptr_t) header) + header->e_shoff);
+    section_header = reinterpret_cast<Elf_Shdr*>(((uintptr_t) header) + header->e_shoff);
 
     // size_t shoff = reinterpret_cast<size_t>(section_header);
     auto shoff = reinterpret_cast<uintptr_t>(section_header);
-    char *section_str = reinterpret_cast<char *>(section_header[header->e_shstrndx].sh_offset +
-                                                 // ((size_t) header)
-                                                 ((uintptr_t) header));
+    char* section_str = reinterpret_cast<char*>(section_header[header->e_shstrndx].sh_offset +
+                                                // ((size_t) header)
+                                                ((uintptr_t) header));
 
     for (int i = 0; i < header->e_shnum; i++, shoff += header->e_shentsize) {
-        Elf_Shdr *section_h = (Elf_Shdr *) shoff;
-        char *sname = section_h->sh_name + section_str;
+        Elf_Shdr* section_h = (Elf_Shdr*) shoff;
+        char* sname = section_h->sh_name + section_str;
         Elf_Off entsize = section_h->sh_entsize;
         switch (section_h->sh_type) {
             case SHT_DYNSYM:
@@ -97,7 +97,7 @@ void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
                     dynsym_size = section_h->sh_size;
                     dynsym_count = dynsym_size / entsize;
                     // dynsym_start = reinterpret_cast<Elf_Sym *>(((size_t) header) + dynsym_offset);
-                    dynsym_start = reinterpret_cast<Elf_Sym *>(((uintptr_t) header) + dynsym_offset);
+                    dynsym_start = reinterpret_cast<Elf_Sym*>(((uintptr_t) header) + dynsym_offset);
                 }
                 break;
             case SHT_SYMTAB:
@@ -107,7 +107,7 @@ void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
                     symtab_size = section_h->sh_size;
                     symtab_count = symtab_size / entsize;
                     // symtab_start = reinterpret_cast<Elf_Sym *>(((size_t) header) + symtab_offset);
-                    symtab_start = reinterpret_cast<Elf_Sym *>(((uintptr_t) header) + symtab_offset);
+                    symtab_start = reinterpret_cast<Elf_Sym*>(((uintptr_t) header) + symtab_offset);
                 }
                 break;
             case SHT_STRTAB:
@@ -115,7 +115,7 @@ void ElfImg::Open(const char *path, bool warn_if_symtab_not_found) {
                     strtab = section_h;
                     symstr_offset = section_h->sh_offset;
                     // strtab_start = reinterpret_cast<Elf_Sym *>(((size_t) header) + symstr_offset);
-                    strtab_start = reinterpret_cast<Elf_Sym *>(((uintptr_t) header) + symstr_offset);
+                    strtab_start = reinterpret_cast<Elf_Sym*>(((uintptr_t) header) + symstr_offset);
                 }
                 if (strcmp(sname, ".strtab") == 0) {
                     symstr_offset_for_symtab = section_h->sh_offset;
@@ -152,13 +152,13 @@ ElfImg::~ElfImg() {
     }
 }
 
-Elf_Addr ElfImg::GetSymbolOffset(const char *name) const {
+Elf_Addr ElfImg::GetSymbolOffset(const char* name) const {
     Elf_Addr _offset = 0;
 
     //search dynmtab
     if (dynsym_start != nullptr && strtab_start != nullptr) {
-        Elf_Sym *sym = dynsym_start;
-        char *strings = (char *) strtab_start;
+        Elf_Sym* sym = dynsym_start;
+        char* strings = (char*) strtab_start;
         int k;
         for (k = 0; k < dynsym_count; k++, sym++)
             if (strcmp(strings + sym->st_name, name) == 0) {
@@ -175,8 +175,9 @@ Elf_Addr ElfImg::GetSymbolOffset(const char *name) const {
         for (int i = 0; i < symtab_count; i++) {
             unsigned int st_type = ELF_ST_TYPE(symtab_start[i].st_info);
             // char *st_name = reinterpret_cast<char *>(((size_t) header) + symstr_offset_for_symtab +
-            char *st_name = reinterpret_cast<char *>(((uintptr_t) header) + symstr_offset_for_symtab +
-                                                     symtab_start[i].st_name);
+            char* st_name = reinterpret_cast<char*>(((uintptr_t) header) +
+                                                    symstr_offset_for_symtab +
+                                                    symtab_start[i].st_name);
             if (st_type == STT_FUNC && symtab_start[i].st_size) {
                 if (strcmp(st_name, name) == 0) {
                     _offset = symtab_start[i].st_value;
@@ -192,19 +193,19 @@ Elf_Addr ElfImg::GetSymbolOffset(const char *name) const {
     return 0;
 }
 
-void *ElfImg::GetSymbolAddress(const char *name) const {
+void* ElfImg::GetSymbolAddress(const char* name) const {
     Elf_Addr offset = GetSymbolOffset(name);
     if (LIKELY(offset > 0 && base != nullptr)) {
         // Pine changed: Use uintptr_t instead of size_t
         // return reinterpret_cast<void *>((size_t) base + offset - bias);
-        return reinterpret_cast<void *>((uintptr_t) base + offset - bias);
+        return reinterpret_cast<void*>((uintptr_t) base + offset - bias);
     } else {
         return nullptr;
     }
 }
 
-void *ElfImg::GetModuleBase(const char *name) {
-    FILE *maps;
+void* ElfImg::GetModuleBase(const char* name) {
+    FILE* maps;
     char buff[256];
     off_t load_addr;
     // Pine changed: Use bool to instead of int
@@ -231,6 +232,6 @@ void *ElfImg::GetModuleBase(const char *name) {
 
     LOGD("get module base %s: %lu", name, load_addr);
 
-    return reinterpret_cast<void *>(load_addr);
+    return reinterpret_cast<void*>(load_addr);
 }
 

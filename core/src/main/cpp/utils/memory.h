@@ -14,11 +14,11 @@
 namespace pine {
     class Memory {
     public:
-        static void *AllocUnprotected(size_t size);
+        static void* AllocUnprotected(size_t size);
 
-        static inline bool Unprotect(void *ptr) {
+        static inline bool Unprotect(void* ptr) {
             size_t alignment = (uintptr_t) ptr % page_size;
-            void *aligned_ptr = (void *) ((uintptr_t) ptr - alignment);
+            void *aligned_ptr = (void*) ((uintptr_t) ptr - alignment);
             int result = mprotect(aligned_ptr, page_size, PROT_READ | PROT_WRITE | PROT_EXEC);
             if (UNLIKELY(result == -1)) {
                 LOGE("mprotect failed for %p: %s (%d)", ptr, strerror(errno), errno);
@@ -28,16 +28,16 @@ namespace pine {
         }
 
         template <typename T>
-        static int FindOffset(void *start, T value, size_t size, uint step) {
+        static int FindOffset(void* start, T value, size_t size, uint step) {
             for (uint32_t offset = 0;offset < size;offset += step) {
-                T current = *reinterpret_cast<T *>(reinterpret_cast<uintptr_t>(start) + offset);
+                T current = *reinterpret_cast<T*>(reinterpret_cast<uintptr_t>(start) + offset);
                 if (current == value) return static_cast<int>(offset);
             }
             return -1;
         }
 
-        static inline void FlushCache(void *addr, size_t size) {
-            __builtin___clear_cache((char *) addr, (char *) ((uintptr_t) addr + size));
+        static inline void FlushCache(void* addr, size_t size) {
+            __builtin___clear_cache((char*) addr, (char*) ((uintptr_t) addr + size));
         }
     private:
         static const size_t page_size;

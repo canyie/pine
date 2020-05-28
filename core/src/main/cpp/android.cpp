@@ -13,13 +13,13 @@
 using namespace pine;
 
 int Android::version = -1;
-JavaVM *Android::jvm = nullptr;
+JavaVM* Android::jvm = nullptr;
 
 void (*Android::suspend_vm)() = nullptr;
 
 void (*Android::resume_vm)() = nullptr;
 
-void Android::Init(JNIEnv *env, int sdk_version) {
+void Android::Init(JNIEnv* env, int sdk_version) {
     Android::version = sdk_version;
     if (UNLIKELY(env->GetJavaVM(&jvm) != JNI_OK)) {
         LOGF("Cannot get java vm");
@@ -30,7 +30,8 @@ void Android::Init(JNIEnv *env, int sdk_version) {
     {
         ElfImg art_lib_handle("libart.so");
         suspend_vm = reinterpret_cast<void (*)()>(
-                art_lib_handle.GetSymbolAddress("_ZN3art3Dbg9SuspendVMEv")); // art::Dbg::SuspendVM()
+                art_lib_handle.GetSymbolAddress(
+                        "_ZN3art3Dbg9SuspendVMEv")); // art::Dbg::SuspendVM()
         resume_vm = reinterpret_cast<void (*)()>(
                 art_lib_handle.GetSymbolAddress("_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
 
@@ -55,9 +56,9 @@ int FakeHandleHiddenApi() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cppcoreguidelines-macro-usage"
 
-void Android::DisableHiddenApiPolicy(const ElfImg *handle) {
-    TrampolineInstaller *trampoline_installer = TrampolineInstaller::GetDefault();
-    void *replace = reinterpret_cast<void *>(FakeHandleHiddenApi);
+void Android::DisableHiddenApiPolicy(const ElfImg* handle) {
+    TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
+    void* replace = reinterpret_cast<void*>(FakeHandleHiddenApi);
 
 #define HOOK(symbol) do { \
 void *target = handle->GetSymbolAddress(symbol); \

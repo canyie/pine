@@ -4,17 +4,17 @@
 
 #include <jni.h>
 
-jint JNITest_target(JNIEnv *, jclass, jint arg) {
+jint JNITest_target(JNIEnv*, jclass, jint arg) {
     return arg;
 }
 
 static const JNINativeMethod gMethods[] = {
-        {"target", "(I)I", (void *) JNITest_target}
+        {"target", "(I)I", (void*) JNITest_target}
 };
 
-extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM *jvm, void *) {
-    JNIEnv *env;
-    if (jvm->GetEnv(reinterpret_cast<void **>(&env), JNI_VERSION_1_6) != JNI_OK) {
+extern "C" JNIEXPORT jint JNI_OnLoad(JavaVM* jvm, void*) {
+    JNIEnv* env;
+    if (jvm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
         return JNI_ERR;
     }
     jclass clazz = env->FindClass("top/canyie/pine/examples/test/JNITest");

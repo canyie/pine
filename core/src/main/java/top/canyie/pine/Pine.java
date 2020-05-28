@@ -195,9 +195,8 @@ public final class Pine {
             isInlineHook = hookMode == HookMode.INLINE;
         }
 
-        boolean isStatic = Modifier.isStatic(modifiers);
-        if (isStatic) resolve((Method) method);
-        hookRecord.isNonStatic = !isStatic;
+        hookRecord.isStatic = Modifier.isStatic(modifiers);
+        if (hookRecord.isStatic) resolve((Method) method);
 
         Class<?> declaring = method.getDeclaringClass();
 
@@ -498,7 +497,7 @@ public final class Pine {
     public static final class HookRecord {
         public final Member target;
         public Method backup;
-        public boolean isNonStatic;
+        public boolean isStatic;
         public int paramNumber;
         public Class<?>[] paramTypes;
         private Set<MethodHook> callbacks = Collections.synchronizedSet(new HashSet<MethodHook>());

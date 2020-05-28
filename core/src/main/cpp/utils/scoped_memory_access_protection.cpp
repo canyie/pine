@@ -6,22 +6,22 @@
 
 using namespace pine;
 
-thread_local ScopedMemoryAccessProtection *ScopedMemoryAccessProtection::current = nullptr;
+thread_local ScopedMemoryAccessProtection* ScopedMemoryAccessProtection::current = nullptr;
 
-void ScopedMemoryAccessProtection::HandleSignal(int signal, siginfo_t *info, void *reserved) {
+void ScopedMemoryAccessProtection::HandleSignal(int signal, siginfo_t* info, void* reserved) {
     assert(signal == SIGSEGV);
-    ucontext_t *context = (ucontext_t *) reserved;
+    ucontext_t* context = static_cast<ucontext_t*>(reserved);
     uintptr_t fault_addr = context->uc_mcontext.fault_address;
 
     if (LIKELY(info->si_code == SEGV_ACCERR)) {
         if (LIKELY(fault_addr >= current->addr && fault_addr <= (current->addr + current->size))) {
             if (LIKELY(current->max_retries-- > 0)) {
-                LOGW("Segmentation fault when trying access %p, unprotect it and try again", (void *) fault_addr);
-                if (LIKELY(Memory::Unprotect(reinterpret_cast<void *>(fault_addr))))
+                LOGW("Segmentation fault when trying access %p, unprotect it and try again", (void*) fault_addr);
+                if (LIKELY(Memory::Unprotect(reinterpret_cast<void*>(fault_addr))))
                     return;
                 LOGE("Failed to unprotect fault address…");
             } else {
-                LOGE("Retried too many times to access %p", (void *) fault_addr);
+                LOGE("Retried too many times to access %p", (void*) fault_addr);
             }
         }
     }
@@ -32,4 +32,3 @@ void ScopedMemoryAccessProtection::HandleSignal(int signal, siginfo_t *info, voi
         current->def.sa_sigaction(signal, info, reserved);
     }
 }
-
