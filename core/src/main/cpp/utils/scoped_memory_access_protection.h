@@ -39,6 +39,8 @@ namespace pine {
         size_t size;
         uint32_t max_retries;
         struct sigaction def;
+
+        DISALLOW_COPY_AND_ASSIGN(ScopedMemoryAccessProtection);
     };
 
 }

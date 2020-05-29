@@ -11,6 +11,7 @@
 
 #include <linux/elf.h>
 #include <stdio.h>
+#include "macros.h"
 
 #if defined(__LP64__)
 typedef Elf64_Ehdr Elf_Ehdr;

@@ -48,6 +48,8 @@ namespace pine {
             env->DeleteLocalRef(c);
             return field;
         }
+
+        DISALLOW_IMPLICIT_CONSTRUCTORS(WellKnownClasses);
     };
 
 }

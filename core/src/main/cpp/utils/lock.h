@@ -4,6 +4,9 @@
 
 #ifndef PINE_LOCK_H
 #define PINE_LOCK_H
+
+#include "macros.h"
+
 namespace pine {
     class ScopedLock {
     public:
@@ -12,6 +15,8 @@ namespace pine {
         inline ~ScopedLock() { mLock.unlock(); }
     private:
         std::mutex& mLock;
+
+        DISALLOW_COPY_AND_ASSIGN(ScopedLock);
     };
 }
 #endif //PINE_LOCK_H

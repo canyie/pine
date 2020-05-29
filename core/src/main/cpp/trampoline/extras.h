@@ -33,6 +33,9 @@ namespace pine {
         void* r2 = nullptr;
         /** r3(32 bit) or x3(64 bit) register */
         void* r3 = nullptr;
+
+    private:
+        DISALLOW_COPY_AND_ASSIGN(Extras);
     };
 }
 

@@ -10,7 +10,7 @@
 #include "utils/elf_img.h"
 
 namespace pine {
-    class Android {
+    class Android final {
     public:
         static inline bool Is64Bit() {
             return sizeof(void*) == 8;
@@ -25,17 +25,17 @@ namespace pine {
 
         static void (*resume_vm)();
 
-        static const int VERSION_K = 19;
-        static const int VERSION_L = 21;
-        static const int VERSION_L_MR1 = 22;
-        static const int VERSION_M = 23;
-        static const int VERSION_N = 24;
-        static const int VERSION_N_MR1 = 25;
-        static const int VERSION_O = 26;
-        static const int VERSION_O_MR1 = 27;
-        static const int VERSION_P = 28;
-        static const int VERSION_Q = 29;
-        static const int VERSION_R = 30;
+        static constexpr int VERSION_K = 19;
+        static constexpr int VERSION_L = 21;
+        static constexpr int VERSION_L_MR1 = 22;
+        static constexpr int VERSION_M = 23;
+        static constexpr int VERSION_N = 24;
+        static constexpr int VERSION_N_MR1 = 25;
+        static constexpr int VERSION_O = 26;
+        static constexpr int VERSION_O_MR1 = 27;
+        static constexpr int VERSION_P = 28;
+        static constexpr int VERSION_Q = 29;
+        static constexpr int VERSION_R = 30;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle);
 

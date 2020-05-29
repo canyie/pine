@@ -225,7 +225,7 @@ public final class Pine {
             bridgeMethodName = returnType.isPrimitive() ? returnType.getName() + "Bridge" : "objectBridge";
         } else {
             hookRecord.paramTypes = ((Constructor) method).getParameterTypes();
-            // Constructor is actually a method named <init> and the return type is void.
+            // Constructor is actually a method named <init> and its return type is void.
             bridgeMethodName = "voidBridge";
         }
 
@@ -305,12 +305,9 @@ public final class Pine {
 
     public static Object invokeOriginalMethod(Member method, Object thisObject, Object... args) throws IllegalAccessException, InvocationTargetException {
         if (method == null) throw new NullPointerException("method == null");
-        boolean isMethod;
         if (method instanceof Method) {
-            isMethod = true;
             ((Method) method).setAccessible(true);
         } else if (method instanceof Constructor) {
-            isMethod = false;
             ((Constructor) method).setAccessible(true);
         } else {
             throw new IllegalArgumentException("method must be of type Method or Constructor");
@@ -319,9 +316,7 @@ public final class Pine {
         HookRecord hookRecord = sHookRecords.get(getArtMethod(method));
         if (hookRecord == null) {
             // Not hooked
-            if (isMethod) {
-                return ((Method) method).invoke(thisObject, args);
-            } else {
+            if (method instanceof Constructor) {
                 if (thisObject != null)
                     throw new IllegalArgumentException(
                             "Cannot invoke a not hooked Constructor with a non-null receiver");
@@ -331,6 +326,8 @@ public final class Pine {
                 } catch (InstantiationException e) {
                     throw new IllegalArgumentException("invalid Constructor", e);
                 }
+            } else {
+                return ((Method) method).invoke(thisObject, args);
             }
         }
 
