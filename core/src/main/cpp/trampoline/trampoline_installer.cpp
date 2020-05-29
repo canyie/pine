@@ -152,15 +152,6 @@ TrampolineInstaller::InstallReplacementTrampoline(art::ArtMethod* target, art::A
     return origin_code_entry;
 }
 
-void DumpCode(const char* name, void* p, size_t size = 32) {
-    unsigned char* ptr = reinterpret_cast<unsigned char*>(reinterpret_cast<uintptr_t>(p) & ~1);
-    LOGE("Dumping %s", name);
-    for (int i = 0; i < size; i++) {
-        LOGE("Offset %d value %#x", i, ptr[i]);
-    }
-    LOGE("End of dump %s", name);
-}
-
 void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge) {
     void* target_code_addr = target->GetCompiledCodeAddr();
     bool target_code_writable = Memory::Unprotect(target_code_addr);
@@ -169,11 +160,8 @@ void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::
         return nullptr;
     }
 
-    DumpCode("Origin code", target_code_addr);
-
     void* backup = Backup(target);
     if (UNLIKELY(!backup)) return nullptr;
-    DumpCode("Backup code", backup, 64);
 
     void* bridge_jump_trampoline = CreateBridgeJumpTrampoline(target, bridge, backup);
     if (UNLIKELY(!bridge_jump_trampoline)) return nullptr;

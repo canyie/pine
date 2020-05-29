@@ -5,8 +5,8 @@ import java.util.Random;
 /**
  * @author canyie
  */
-public class JNITest extends Test {
-    public JNITest() {
+public class DirectRegisterJNITest extends Test {
+    public DirectRegisterJNITest() {
         super("target", int.class);
     }
 
