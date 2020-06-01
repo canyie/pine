@@ -19,13 +19,16 @@ using namespace pine;
 
 TrampolineInstaller* TrampolineInstaller::default_ = nullptr;
 
-void TrampolineInstaller::InitDefault() {
+TrampolineInstaller* TrampolineInstaller::GetOrInitDefault() {
+    if (default_ == nullptr) {
 #ifdef __aarch64__
-    default_ = new Arm64TrampolineInstaller;
+        default_ = new Arm64TrampolineInstaller;
 #else
-    default_ = new Thumb2TrampolineInstaller;
+        default_ = new Thumb2TrampolineInstaller;
 #endif
-    default_->Init();
+        default_->Init();
+    }
+    return default_;
 }
 
 void* TrampolineInstaller::CreateDirectJumpTrampoline(void* to) {

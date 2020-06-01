@@ -101,7 +101,7 @@ namespace pine::art {
         }
 
         void SetFastNative() {
-            assert(IsNative());
+            // assert(IsNative());
             AddAccessFlags(AccessFlags::kFastNative);
         }
 

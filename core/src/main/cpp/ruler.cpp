@@ -10,12 +10,8 @@ void Ruler_m1(JNIEnv*, jclass) {
     LOGI("Don't call me...");
 }
 
-void Ruler_m2(JNIEnv*, jclass) {
-}
-
 static const JNINativeMethod gMethods[] = {
-        {"m1", "()V", reinterpret_cast<void*>(Ruler_m1)},
-        {"m2", "()V", reinterpret_cast<void*>(Ruler_m2)}
+        {"m1", "()V", reinterpret_cast<void*>(Ruler_m1)}
 };
 
 bool register_Ruler(JNIEnv* env, jclass Ruler) {

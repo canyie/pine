@@ -20,7 +20,7 @@ bool debuggable = false;
 
 void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean isDebuggable) {
     LOGI("Pine native init...");
-    TrampolineInstaller::InitDefault();
+    TrampolineInstaller::GetOrInitDefault(); // trigger TrampolineInstaller::default_ initialize
     Android::Init(env, androidVersion);
     {
         ScopedLocalClassRef Ruler(env, "top/canyie/pine/Ruler");
@@ -79,7 +79,7 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean isDebugg
 }
 
 jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject javaTarget,
-                   jobject javaBridge, jboolean isInlineHook, jboolean isNativeOrProxy) {
+            jobject javaBridge, jboolean isInlineHook, jboolean isNativeOrProxy) {
     auto thread = reinterpret_cast<art::Thread*>(threadAddress);
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
@@ -187,7 +187,7 @@ jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
 #ifdef __LP64__
 
 void Pine_getArgs64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp) {
-    auto extras = reinterpret_cast<Extras*> (javaExtras);
+    auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
         jlong* array = static_cast<jlong*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
@@ -219,10 +219,10 @@ void Pine_getArgs64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray,
 
 #else
 void Pine_getArgs32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp, jboolean skipR1) {
-    auto extras = reinterpret_cast<Extras *> (javaExtras);
+    auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
-        jint *array = static_cast<jint *>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
+        jint* array = static_cast<jint*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
         if (UNLIKELY(!array)) {
             constexpr const char *error_msg = "GetPrimitiveArrayCritical returned nullptr! javaArray is invalid?";
             LOGF(error_msg);
@@ -252,7 +252,7 @@ void Pine_getArgs32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, j
 
             // get args from stack
             for (int i = 3; i < length; i++) {
-                array[i] = *reinterpret_cast<jint *> (sp + 4 /*callee*/ + 4 * i);
+                array[i] = *reinterpret_cast<jint*> (sp + 4 /*callee*/ + 4 * i);
             }
         } while (false);
 #pragma clang diagnostic pop
@@ -297,7 +297,7 @@ static const struct {
 
 void Pine_enableFastNative(JNIEnv* env, jclass Pine) {
     LOGI("Experimental feature FastNative is enabled.");
-    for (auto method_info : gFastNativeMethods) {
+    for (auto& method_info : gFastNativeMethods) {
         auto method = art::ArtMethod::Require(env, Pine, method_info.name, method_info.signature,
                                               true);
         assert(method != nullptr);
@@ -327,4 +327,9 @@ static const JNINativeMethod gMethods[] = {
 
 bool register_Pine(JNIEnv* env, jclass Pine) {
     return LIKELY(env->RegisterNatives(Pine, gMethods, NELEM(gMethods)) == JNI_OK);
+}
+
+extern "C" __attribute__ ((visibility ("default")))
+void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {
+    TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(target, replace);
 }

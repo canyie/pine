@@ -20,7 +20,7 @@ if (UNLIKELY(((inst) & (mask)) == op)) return true
 namespace pine {
     class TrampolineInstaller {
     public:
-        static void InitDefault();
+        static TrampolineInstaller* GetOrInitDefault();
 
         static TrampolineInstaller* GetDefault() {
             return default_;
