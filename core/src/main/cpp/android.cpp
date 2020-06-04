@@ -49,7 +49,7 @@ void Android::Init(JNIEnv* env, int sdk_version) {
     WellKnownClasses::Init(env);
 }
 
-int FakeHandleHiddenApi() {
+static int FakeHandleHiddenApi() {
     return 0;
 }
 
@@ -86,3 +86,28 @@ else  \
 }
 
 #pragma clang diagnostic pop
+
+static bool FakeProcessProfilingInfo() {
+    LOGI("Skipped ProcessProfilingInfo.");
+    return true;
+}
+
+bool Android::DisableProfileSaver() {
+    // If the user needs this feature very much,
+    // we may find these symbols during initialization in the future to reduce time consumption.
+    void* process_profiling_info;
+    {
+        ElfImg handle("libart.so");
+        const char* symbol = version < VERSION_O ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEPt"
+                                                 : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt";
+        process_profiling_info = handle.GetSymbolAddress(symbol);
+    }
+
+    if (UNLIKELY(!process_profiling_info)) {
+        LOGE("Failed to disable ProfileSaver: art::ProfileSaver::ProcessProfilingInfo not found");
+        return false;
+    }
+    TrampolineInstaller::GetDefault()->NativeHookNoBackup(process_profiling_info,
+            reinterpret_cast<void*>(FakeProcessProfilingInfo));
+    return true;
+}

@@ -91,13 +91,13 @@ ArtMethod::Require(JNIEnv* env, jclass c, const char* name, const char* signatur
     return reinterpret_cast<ArtMethod*>(m);
 }
 
-inline size_t Difference(intptr_t a, intptr_t b) {
+static inline size_t Difference(intptr_t a, intptr_t b) {
     intptr_t size = b - a;
     if (size < 0) size = -size;
     return static_cast<size_t>(size);
 }
 
-inline uint32_t Align(uint32_t offset, uint32_t align_with) {
+static inline uint32_t Align(uint32_t offset, uint32_t align_with) {
     uint32_t alignment = offset % align_with;
     if (alignment) {
         offset += (align_with - alignment);

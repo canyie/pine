@@ -79,7 +79,7 @@ bool Jit::CompileMethod(Thread* thread, void* method) {
     return result;
 }
 
-void fake_jit_update_options(void* handle) {
+static void fake_jit_update_options(void* handle) {
     LOGI("Ignoring request to update CompilerOptions from ART.");
 }
 

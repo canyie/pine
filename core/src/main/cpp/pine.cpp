@@ -175,9 +175,12 @@ jboolean Pine_disableJitInline0(JNIEnv*, jclass) {
     return static_cast<jboolean>(art::Jit::DisableInline());
 }
 
+jboolean Pine_disableProfileSaver0(JNIEnv*, jclass) {
+    return static_cast<jboolean>(Android::DisableProfileSaver());
+}
+
 jobject Pine_getObject0(JNIEnv* env, jclass, jlong thread, jlong address) {
-    return reinterpret_cast<art::Thread*>(thread)->AddLocalRef(env,
-                                                               reinterpret_cast<void*> (address));
+    return reinterpret_cast<art::Thread*>(thread)->AddLocalRef(env, reinterpret_cast<void*>(address));
 }
 
 jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
@@ -285,6 +288,7 @@ static const struct {
         {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V"},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z"},
         {"disableJitInline0", "()Z"},
+        {"disableProfileSaver0", "()Z"},
         {"getObject0", "(JJ)Ljava/lang/Object;"},
         {"getAddress0", "(JLjava/lang/Object;)J"},
         {"currentArtThread0", "()J"},
@@ -313,6 +317,7 @@ static const JNINativeMethod gMethods[] = {
         {"compile0", "(JLjava/lang/reflect/Member;)Z", (void*) Pine_compile0},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z", (void*) Pine_decompile0},
         {"disableJitInline0", "()Z", (void*) Pine_disableJitInline0},
+        {"disableProfileSaver0", "()Z", (void*) Pine_disableProfileSaver0},
         {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_updateDeclaringClass},
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},
         {"getAddress0", "(JLjava/lang/Object;)J", (void*) Pine_getAddress0},

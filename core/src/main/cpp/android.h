@@ -18,6 +18,8 @@ namespace pine {
 
         static void Init(JNIEnv* env, int sdk_version);
 
+        static bool DisableProfileSaver();
+
         static int version;
         static JavaVM* jvm;
 

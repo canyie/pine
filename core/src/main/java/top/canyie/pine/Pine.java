@@ -380,6 +380,12 @@ public final class Pine {
         return disableJitInline0();
     }
 
+    public static boolean disableProfileSaver() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
+        ensureInitialized();
+        return disableProfileSaver0();
+    }
+
     public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
         if (PineConfig.debug)
@@ -477,6 +483,8 @@ public final class Pine {
     private static native boolean decompile0(Member method, boolean disableJit);
 
     private static native boolean disableJitInline0();
+
+    private static native boolean disableProfileSaver0();
 
     private static native Object getObject0(long thread, long address);
 
