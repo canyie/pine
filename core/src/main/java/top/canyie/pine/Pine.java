@@ -49,6 +49,10 @@ public final class Pine {
         }
     }
 
+    public static boolean isInitialized() {
+        return initialized;
+    }
+
     @SuppressLint("ObsoleteSdkInt") private static void initialize() {
         int sdkLevel = Build.VERSION.SDK_INT;
         if (sdkLevel < Build.VERSION_CODES.KITKAT || sdkLevel > Build.VERSION_CODES.Q)
@@ -165,6 +169,8 @@ public final class Pine {
                 hookRecord = new HookRecord(method);
                 newMethod = true;
                 sHookRecords.put(artMethod, hookRecord);
+
+                Log.e(TAG, ">>> ArtMethod pointer of target is 0x" + Long.toHexString(artMethod) + " <<<");
             }
         }
 

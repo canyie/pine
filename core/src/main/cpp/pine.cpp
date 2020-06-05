@@ -158,7 +158,8 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
 }
 
 jlong Pine_getArtMethod(JNIEnv* env, jclass, jobject javaMethod) {
-    return reinterpret_cast<jlong>(art::ArtMethod::FromReflectedMethod(env, javaMethod));
+    return static_cast<jlong>(reinterpret_cast<intptr_t>(
+            art::ArtMethod::FromReflectedMethod(env, javaMethod)));
 }
 
 jboolean Pine_compile0(JNIEnv* env, jclass, jlong thread, jobject javaMethod) {
