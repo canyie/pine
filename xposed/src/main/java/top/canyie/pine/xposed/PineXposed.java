@@ -28,7 +28,7 @@ public final class PineXposed {
     private PineXposed() {
     }
 
-    public static void loadInstalledModule(File module) {
+    public static void loadModule(File module) {
         ZipFile zipFile = null;
         BufferedReader xposedInitReader;
         try {
@@ -95,10 +95,12 @@ public final class PineXposed {
                         Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
                         Log.e(TAG, "    This class doesn't implement any sub-interface of IXposedMod, skipping it");
                         continue;
-                    } else if (IXposedHookZygoteInit.class.isAssignableFrom(c) && disableZygoteInitCallbacks) {
-                        Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
-                        Log.e(TAG, "    This class requires zygote init callbacks (which are disabled), skipping it");
-                        continue;
+                    } else if (IXposedHookZygoteInit.class.isAssignableFrom(c)) {
+                        if (disableZygoteInitCallbacks) {
+                            Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
+                            Log.e(TAG, "    This class requires zygote init callbacks (which are disabled), skipping it");
+                            continue;
+                        }
                     } else if (!IXposedHookLoadPackage.class.isAssignableFrom(c)) {
                         Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
                         Log.e(TAG, "    This class requires unsupported feature (only supports " +

@@ -166,11 +166,9 @@ public final class Pine {
         synchronized (sHookLock) {
             hookRecord = sHookRecords.get(artMethod);
             if (hookRecord == null) {
-                hookRecord = new HookRecord(method);
                 newMethod = true;
+                hookRecord = new HookRecord(method);
                 sHookRecords.put(artMethod, hookRecord);
-
-                Log.e(TAG, ">>> ArtMethod pointer of target is 0x" + Long.toHexString(artMethod) + " <<<");
             }
         }
 

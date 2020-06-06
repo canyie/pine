@@ -103,7 +103,7 @@ XposedBridge.hookMethod(target, callback);
 也可以直接加载Xposed模块：
 ```java
 // 1. load modules
-PineXposed.loadInstalledModule(new File(moudlePath));
+PineXposed.loadModule(new File(moudlePath));
 
 // 2. call all 'IXposedHookLoadPackage' callback
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);

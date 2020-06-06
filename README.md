@@ -95,7 +95,7 @@ XposedBridge.hookMethod(target, callback);
 and you can load xposed modules (resources hook is not supported now):
 ```java
 // 1. load modules
-PineXposed.loadInstalledModule(new File(moudlePath));
+PineXposed.loadModule(new File(moudlePath));
 
 // 2. call all 'IXposedHookLoadPackage' callback
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
