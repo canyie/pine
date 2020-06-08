@@ -290,6 +290,7 @@ public final class XposedBridge {
 			if (extData == null) return;
 
 			Object[] callbacksSnapshot = extData.callbacks;
+			if (callbacksSnapshot == null) return;
 			MethodHookParam param = extData.param;
 			int afterIdx = extData.afterIdx;
 
