@@ -17,7 +17,7 @@ import java.util.Set;
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam;
 
 import top.canyie.pine.Pine;
-import top.canyie.pine.callback.MethodReplacement;
+import top.canyie.pine.callback.MethodHook;
 import top.canyie.pine.xposed.PineXposed;
 
 /**
@@ -222,36 +222,26 @@ public final class XposedBridge {
 
 	// Pine added: Handler class for help dispatch
 	/** @hide */
-	static final class Handler extends MethodReplacement {
+	static final class Handler extends MethodHook {
 		private final CopyOnWriteSortedSet<XC_MethodHook> callbacks;
+		private final ThreadLocal<ExtData> extDataHolder = new ThreadLocal<>();
 
 		Handler(CopyOnWriteSortedSet<XC_MethodHook> callbacks) {
 			this.callbacks = callbacks;
 		}
 
-		@Override protected Object replaceCall(Pine.CallFrame callFrame) throws Throwable {
-			// Pine changed: handleHookedMethod() in here
+		@Override public void beforeCall(Pine.CallFrame callFrame) {
 			// Pine changed: Member disableHooks in PineXposed and can modify by user
-			if (PineXposed.disableHooks) {
-				try {
-					return callFrame.invokeOriginalMethod();
-				} catch (InvocationTargetException e) {
-					// Pine changed: Use getTargetException()
-					// throw e.getCause();
-					throw e.getTargetException();
-				}
-			}
+			if (PineXposed.disableHooks) return;
 
 			Object[] callbacksSnapshot = callbacks.getSnapshot();
 			final int callbacksLength = callbacksSnapshot.length;
-			if (callbacksLength == 0) {
-				try {
-					return callFrame.invokeOriginalMethod();
-				} catch (InvocationTargetException e) {
-					// Pine changed: Use getTargetException()
-					// throw e.getCause();
-					throw e.getTargetException();
-				}
+			if (callbacksLength == 0) return;
+
+			ExtData extData = extDataHolder.get();
+			if (extData == null) {
+				extData = new ExtData();
+				extDataHolder.set(extData);
 			}
 
 			MethodHookParam param = new MethodHookParam();
@@ -280,21 +270,40 @@ public final class XposedBridge {
 				}
 			} while (++beforeIdx < callbacksLength);
 
-			// call original method if not requested otherwise
-			if (!param.returnEarly) {
-				try {
-					param.setResult(callFrame.invokeOriginalMethod(param.thisObject, param.args));
-				} catch (InvocationTargetException e) {
-					// Pine changed: Use getTargetException()
-					// param.setThrowable(e.getCause());
-					param.setThrowable(e.getTargetException());
-				}
+			// Pine added: Flush MethodHookParam changes to CallFrame
+			callFrame.thisObject = param.thisObject;
+			callFrame.args = param.args;
+			if (param.returnEarly) {
+				if (param.hasThrowable())
+					callFrame.setThrowable(param.getThrowable());
+				else
+					callFrame.setResult(param.getResult());
 			}
 
+			extData.callbacks = callbacksSnapshot;
+			extData.param = param;
+			extData.afterIdx = beforeIdx - 1;
+		}
+
+		@Override public void afterCall(Pine.CallFrame callFrame) {
+			ExtData extData = extDataHolder.get();
+			if (extData == null) return;
+
+			Object[] callbacksSnapshot = extData.callbacks;
+			MethodHookParam param = extData.param;
+			int afterIdx = extData.afterIdx;
+
+			// Flush CallFrame changes to MethodHookParam
+			param.thisObject = callFrame.thisObject;
+			param.args = callFrame.args;
+			if (callFrame.hasThrowable())
+				param.setThrowable(callFrame.getThrowable());
+			else
+				param.setResult(callFrame.getResult());
+
 			// call "after method" callbacks
-			int afterIdx = beforeIdx - 1;
 			do {
-				Object lastResult =  param.getResult();
+				Object lastResult = param.getResult();
 				Throwable lastThrowable = param.getThrowable();
 
 				try {
@@ -314,11 +323,23 @@ public final class XposedBridge {
 			callFrame.thisObject = param.thisObject;
 			callFrame.args = param.args;
 
-			// return
 			if (param.hasThrowable())
-				throw param.getThrowable();
+				callFrame.setThrowable(param.getThrowable());
 			else
-				return param.getResult();
+				callFrame.setResult(param.getResult());
+
+			// Clean up.
+			extData.callbacks = null;
+			extData.param = null;
+			extData.afterIdx = 0;
+		}
+
+		static final class ExtData {
+			Object[] callbacks;
+			MethodHookParam param;
+			int afterIdx;
+
+			ExtData() {}
 		}
 	}
 

@@ -199,8 +199,7 @@ public final class Pine {
             isInlineHook = hookMode == HookMode.INLINE;
         }
 
-        hookRecord.isStatic = Modifier.isStatic(modifiers);
-        if (hookRecord.isStatic) resolve((Method) method);
+        if (hookRecord.isStatic = Modifier.isStatic(modifiers)) resolve((Method) method);
 
         Class<?> declaring = method.getDeclaringClass();
 

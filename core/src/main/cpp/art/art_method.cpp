@@ -82,9 +82,7 @@ ArtMethod::Require(JNIEnv* env, jclass c, const char* name, const char* signatur
                             : env->GetMethodID(c, name, signature);
     if (Android::version >= Android::VERSION_R) {
         if (reinterpret_cast<uintptr_t>(m) & 1) {
-            ScopedLocalRef javaMethod(env,
-                                      env->ToReflectedMethod(c, m,
-                                                             static_cast<jboolean>(is_static)));
+            ScopedLocalRef javaMethod(env, env->ToReflectedMethod(c, m, static_cast<jboolean>(is_static)));
             return GetArtMethodForR(env, javaMethod.Get());
         }
     }
