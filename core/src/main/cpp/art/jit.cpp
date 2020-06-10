@@ -36,15 +36,13 @@ void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
     void* jit_compile_method = jit_lib_handle->GetSymbolAddress("jit_compile_method");
 
     if (Android::version >= Android::VERSION_Q) {
-        Jit::jit_compile_method_q = reinterpret_cast<bool (*)(void*, void*, void*, bool,
-                                                              bool)>(jit_compile_method);
+        Jit::jit_compile_method_q = reinterpret_cast<bool (*)(void*, void*, void*, bool, bool)>(jit_compile_method);
         // Android Q, ART may update CompilerOptions and the value we set will be overwritten.
         // the function pointer saved in art::jit::Jit::jit_update_options_ .
         Jit::jit_update_options_ptr = static_cast<void**>(art_lib_handle->GetSymbolAddress(
-                "_ZN3art3jit3Jit20jit_update_options_E"));
+                "_ZN3art3jit3Jit19jit_update_options_E"));
     } else {
-        Jit::jit_compile_method = reinterpret_cast<bool (*)(void*, void*, void*,
-                                                            bool)>(jit_compile_method);
+        Jit::jit_compile_method = reinterpret_cast<bool (*)(void*, void*, void*, bool)>(jit_compile_method);
     }
 
     // fields count from compiler_filter_ (not included) to inline_max_code_units_ (not included)
