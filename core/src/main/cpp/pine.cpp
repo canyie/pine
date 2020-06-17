@@ -272,7 +272,7 @@ void Pine_updateDeclaringClass(JNIEnv* env, jclass, jobject javaOrigin, jobject 
     auto backup = art::ArtMethod::FromReflectedMethod(env, javaBackup);
     uint32_t declaring_class = origin->GetDeclaringClass();
     if (declaring_class != backup->GetDeclaringClass()) {
-        LOGI("The declaring_class of method has moved by gc, update its reference in backup method now!");
+        LOGI("The declaring_class of method has moved by gc, update its reference in backup method.");
         backup->SetDeclaringClass(declaring_class);
     }
 }
@@ -303,8 +303,7 @@ static const struct {
 void Pine_enableFastNative(JNIEnv* env, jclass Pine) {
     LOGI("Experimental feature FastNative is enabled.");
     for (auto& method_info : gFastNativeMethods) {
-        auto method = art::ArtMethod::Require(env, Pine, method_info.name, method_info.signature,
-                                              true);
+        auto method = art::ArtMethod::Require(env, Pine, method_info.name, method_info.signature, true);
         assert(method != nullptr);
         method->SetFastNative();
     }

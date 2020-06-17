@@ -13,15 +13,14 @@
 #include "../utils/elf_img.h"
 
 namespace pine::art {
-    class JitCompiler {
+    class JitCompiler final {
     public:
         std::unique_ptr<void> compiler_options_;
-
     private:
         DISALLOW_IMPLICIT_CONSTRUCTORS(JitCompiler);
     };
 
-    class Jit {
+    class Jit final {
     public:
         static void Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle);
 
@@ -40,17 +39,16 @@ namespace pine::art {
     private:
         static JitCompiler* self_compiler;
 
-        static bool (*jit_compile_method)(void*, void*, void*,
-                                           bool);
+        static bool (*jit_compile_method)(void*, void*, void*, bool);
 
-        static bool (*jit_compile_method_q)(void*, void*, void*, bool,
-                                             bool);
+        static bool (*jit_compile_method_q)(void*, void*, void*, bool, bool);
 
         static JitCompiler** global_compiler_ptr;
 
         static void** jit_update_options_ptr;
 
         static Member<void, size_t>* CompilerOptions_inline_max_code_units;
+
         DISALLOW_IMPLICIT_CONSTRUCTORS(Jit);
     };
 

@@ -18,6 +18,7 @@ android {
                 cFlags '-Wall -Wextra -Werror'
                 cppFlags '-std=c++17'
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
+                targets 'pine'
             }
         }
     }
@@ -48,7 +49,7 @@ publish {
     repoName = rootProject.repoName
     groupId = rootProject.groupId
     artifactId = 'core'
-    publishVersion = '0.1.0'
+    publishVersion = '0.1.2'
     desc = 'pine hook core library'
     licences = rootProject.licences
     website = rootProject.website

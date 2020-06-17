@@ -46,6 +46,8 @@ void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
     }
 
     // fields count from compiler_filter_ (not included) to inline_max_code_units_ (not included)
+    // FIXME Offset for inline_max_code_units_ seems to be incorrect on my Pixel 3 (Android 10)...
+    // FIXME Structure of CompilerOptions has changed in Android R.
     unsigned thresholds_count = Android::version >= Android::VERSION_O ? 5 : 6;
 
     CompilerOptions_inline_max_code_units = new Member<void, size_t>(
@@ -55,7 +57,7 @@ void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
 bool Jit::CompileMethod(Thread* thread, void* method) {
     void* compiler = GetCompiler();
     if (UNLIKELY(!compiler)) {
-        LOGE("Cannot get art::jit::JitCompiler!");
+        LOGE("No JitCompiler available for JIT compilation!");
         return false;
     }
 
@@ -105,7 +107,7 @@ bool Jit::DisableInline() {
         return true;
     } else {
         // It is not a normal inline_max_code_units. It may be that the offset is changed
-        // due to the source code modified by the manufacturer of this device.
+        // due to the source code modified by the manufacturer of the device.
         LOGE("Unexpected inline_max_code_units value %u (offset %d).", inline_max_code_units,
              CompilerOptions_inline_max_code_units->GetOffset());
         return false;

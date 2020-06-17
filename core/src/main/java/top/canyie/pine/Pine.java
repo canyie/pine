@@ -274,7 +274,7 @@ public final class Pine {
     public static HookRecord getHookRecord(long artMethod) {
         HookRecord result = sHookRecords.get(artMethod);
         if (result == null) {
-            throw new AssertionError("Cannot find HookRecord for ArtMethod pointer 0x" + Long.toHexString(artMethod));
+            throw new AssertionError("Not found HookRecord for ArtMethod pointer 0x" + Long.toHexString(artMethod));
         }
         return result;
     }

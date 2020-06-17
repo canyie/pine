@@ -4,8 +4,8 @@
 
 #include <jni.h>
 #include "art_method.h"
-#include "../utils/elf_img.h"
 #include "../jni_bridge.h"
+#include "../utils/elf_img.h"
 #include "../utils/well_known_classes.h"
 #include "../utils/scoped_local_ref.h"
 #include "../utils/memory.h"
