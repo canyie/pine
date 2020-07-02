@@ -248,7 +248,6 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
 
 void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy) {
     uint32_t access_flags = GetAccessFlags();
-    access_flags &= ~(AccessFlags::kSynchronized | AccessFlags::kDeclaredSynchronized);
 
     if (Android::version >= Android::VERSION_N) {
         access_flags |= kAccCompileDontBother;
