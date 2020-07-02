@@ -13,55 +13,50 @@ public final class Entry64 {
 
     private static void voidBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
-        handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static int intBridge(long artMethod, long extras, long sp,
                                  long x4, long x5, long x6, long x7) throws Throwable {
-        return (int) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (int) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static long longBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
-        return (long) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (long) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static double doubleBridge(long artMethod, long extras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
-        return (double) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (double) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static float floatBridge(long artMethod, long extras, long sp,
                                      long x4, long x5, long x6, long x7) throws Throwable {
-        return (float) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (float) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static boolean booleanBridge(long artMethod, long extras, long sp,
                                          long x4, long x5, long x6, long x7) throws Throwable {
-        return (boolean) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (boolean) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static char charBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
-        return (char) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (char) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static byte byteBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
-        return (byte) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (byte) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static short shortBridge(long artMethod, long extras, long sp,
                                      long x4, long x5, long x6, long x7) throws Throwable {
-        return (short) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+        return (short) objectBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
     private static Object objectBridge(long artMethod, long extras, long sp,
-                                       long x4, long x5, long x6, long x7) throws Throwable {
-        return handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
-    }
-
-    private static Object handleBridge(long artMethod, long extras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);

@@ -594,7 +594,6 @@ public final class Pine {
 
     public interface HookListener {
         void beforeHook(Member method, MethodHook callback);
-
         void afterHook(Member method, MethodHook.Unhook unhook);
     }
 
