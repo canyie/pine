@@ -334,7 +334,22 @@ bool register_Pine(JNIEnv* env, jclass Pine) {
     return LIKELY(env->RegisterNatives(Pine, gMethods, NELEM(gMethods)) == JNI_OK);
 }
 
-extern "C" __attribute__ ((visibility ("default")))
-void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {
+EXPORT_C void* PineOpenElf(const char* elf) {
+    return new ElfImg(elf);
+}
+
+EXPORT_C void PineCloseElf(void* handle) {
+    delete static_cast<ElfImg*>(handle);
+}
+
+EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* symbol, void* replace) {
+    ElfImg handle(elf);
+    void* addr = handle.GetSymbolAddress(symbol);
+    if (UNLIKELY(!addr)) return false;
+    TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(addr, replace);
+    return true;
+}
+
+EXPORT_C void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {
     TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(target, replace);
 }

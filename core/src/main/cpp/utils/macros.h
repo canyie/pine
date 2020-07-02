@@ -10,6 +10,7 @@
 #define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 #define ALIGNED(x) __attribute__ ((__aligned__(x)))
 #define PACKED(x) __attribute__ ((__aligned__(x), __packed__))
+#define EXPORT_C extern "C" __attribute__ ((visibility ("default")))
 
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
 TypeName(const TypeName&) = delete;      \
