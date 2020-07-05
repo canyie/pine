@@ -20,32 +20,38 @@
 // Pine changed: namespace
 using namespace pine;
 
-inline bool CanRead(const char* file) {
-    return access(file, R_OK) == 0;
-}
-
 ElfImg::ElfImg(const char* elf, bool warn_if_symtab_not_found) {
     // Pine changed: Relative path support
+
+    constexpr int flags = O_RDONLY | O_CLOEXEC; // Pine changed: add O_CLOEXEC to flags
+
     this->elf = elf;
+    int fd;
     if (elf[0] == '/') {
-        Open(elf, warn_if_symtab_not_found);
+        fd = WrappedOpen(elf, flags);
+        if (UNLIKELY(fd == -1)) {
+            LOGE("failed to open %s", elf);
+            return;
+        }
+        Open(elf, fd, warn_if_symtab_not_found);
     } else {
         // Relative path
-        char buffer[64] = {0};
+        char buffer[64] = {0}; // We assume that the path length doesn't exceed 64 bytes.
         if (Android::version >= Android::VERSION_Q) {
+            // Android R: com.android.art
             strcpy(buffer, kApexArtLibDir);
             strcat(buffer, elf);
-            if (CanRead(buffer)) {
-                Open(buffer, warn_if_symtab_not_found);
+            if ((fd = TryOpen(buffer, flags)) != -1) {
+                Open(buffer, fd, warn_if_symtab_not_found);
                 return;
             }
-
             memset(buffer, 0, sizeof(buffer));
 
+            // Android Q: com.android.runtime
             strcpy(buffer, kApexRuntimeLibDir);
             strcat(buffer, elf);
-            if (CanRead(buffer)) {
-                Open(buffer, warn_if_symtab_not_found);
+            if ((fd = TryOpen(buffer, flags)) != -1) {
+                Open(buffer, fd, warn_if_symtab_not_found);
                 return;
             }
 
@@ -53,18 +59,17 @@ ElfImg::ElfImg(const char* elf, bool warn_if_symtab_not_found) {
         }
         strcpy(buffer, kSystemLibDir);
         strcat(buffer, elf);
-        Open(buffer, warn_if_symtab_not_found);
+        fd = WrappedOpen(buffer, flags);
+        if (UNLIKELY(fd == -1)) {
+            LOGE("failed to open %s", buffer);
+            return;
+        }
+        Open(buffer, fd, warn_if_symtab_not_found);
     }
 }
 
-void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
+void ElfImg::Open(const char* path, int fd, bool warn_if_symtab_not_found) {
     //load elf
-    int fd = WrappedOpen(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to flags
-    if (UNLIKELY(fd < 0)) {
-        LOGE("failed to open %s", path);
-        return;
-    }
-
     size = lseek(fd, 0, SEEK_END);
     if (UNLIKELY(size <= 0)) {
         LOGE("lseek() failed for %s: errno %d (%s)", path, errno, strerror(errno));
@@ -213,7 +218,7 @@ void* ElfImg::GetModuleBase(const char* name) {
     // Pine changed: add "e" to mode
     maps = WrappedFOpen("/proc/self/maps", "re");
     while (fgets(buff, sizeof(buff), maps)) {
-        if ((strstr(buff, "r-xp") || strstr(buff, "r--p")) && strstr(buff, name)) {
+        if (strstr(buff, name) && (strstr(buff, "r-xp") || strstr(buff, "r--p"))) {
             found = true;
             break;
         }
@@ -234,4 +239,3 @@ void* ElfImg::GetModuleBase(const char* name) {
 
     return reinterpret_cast<void*>(load_addr);
 }
-
