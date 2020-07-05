@@ -20,6 +20,7 @@ public abstract class Test extends MethodHook {
     public static final int SUCCESS = 1;
     public static final int FAILED = -1;
     private Member target;
+    private boolean hookEnabled = true;
     public boolean isCallbackInvoked;
     protected Test() {
     }
@@ -40,17 +41,25 @@ public abstract class Test extends MethodHook {
         }
     }
 
+    public void setHookEnabled(boolean enabled) {
+        this.hookEnabled = enabled;
+    }
+
     public int run() {
-        MethodHook.Unhook unhook;
+        if (hookEnabled) {
+            MethodHook.Unhook unhook;
 
-        if (target instanceof Method)
-            unhook = Pine.hook((Method) target, this);
-        else
-            unhook = Pine.hook((Constructor<?>) target, this);
+            if (target instanceof Method)
+                unhook = Pine.hook((Method) target, this);
+            else
+                unhook = Pine.hook((Constructor<?>) target, this);
 
-        int result = testImpl();
-        unhook.unhook();
-        return result;
+            int result = testImpl();
+            unhook.unhook();
+            return result;
+        } else {
+            return testImpl();
+        }
     }
 
     protected abstract int testImpl();
