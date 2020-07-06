@@ -12,7 +12,6 @@
 #include "log.h"
 
 namespace pine {
-
     static bool CanRetry(int error) {
         return error == EINTR || error == EIO;
     }
