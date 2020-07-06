@@ -59,7 +59,7 @@ public final class Entry32 {
      * the direct bridge method (intBridge, objectBridge, etc.),
      * otherwise, it will crash when executing a hooked proxy method (it's an unknown bug).
      * More info about the bug:
-     * App crash caused SIGSEGV, fault addr 0x0, pc=lr=0,
+     * App crash caused by SIGSEGV, fault addr 0x0, pc=lr=0,
      * but the lr register is not 0 at the entry/exit of the proxy method.
      * Is the lr register assigned to 0 after the proxy method returns?
      */

@@ -342,6 +342,10 @@ EXPORT_C void PineCloseElf(void* handle) {
     delete static_cast<ElfImg*>(handle);
 }
 
+EXPORT_C void* PineGetElfSymbolAddress(void* handle, const char* symbol) {
+    return static_cast<ElfImg*>(handle)->GetSymbolAddress(symbol);
+}
+
 EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* symbol, void* replace) {
     ElfImg handle(elf);
     void* addr = handle.GetSymbolAddress(symbol);
