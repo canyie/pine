@@ -14,42 +14,56 @@ public final class Entry32 {
     }
 
     private static void voidBridge(int artMethod, int extras, int sp) throws Throwable {
-        objectBridge(artMethod, extras, sp);
+        handleBridge(artMethod, extras, sp);
     }
 
     private static int intBridge(int artMethod, int extras, int sp) throws Throwable {
-        return (int) objectBridge(artMethod, extras, sp);
+        return (int) handleBridge(artMethod, extras, sp);
     }
 
     private static long longBridge(int artMethod,int extras, int sp) throws Throwable {
-        return (long) objectBridge(artMethod, extras, sp);
+        return (long) handleBridge(artMethod, extras, sp);
     }
 
     private static double doubleBridge(int artMethod,int extras, int sp) throws Throwable {
-        return (double) objectBridge(artMethod, extras, sp);
+        return (double) handleBridge(artMethod, extras, sp);
     }
 
     private static float floatBridge(int artMethod, int extras, int sp) throws Throwable {
-        return (float) objectBridge(artMethod, extras, sp);
+        return (float) handleBridge(artMethod, extras, sp);
     }
 
     private static boolean booleanBridge(int artMethod, int extras, int sp) throws Throwable {
-        return (boolean) objectBridge(artMethod, extras, sp);
+        return (boolean) handleBridge(artMethod, extras, sp);
     }
 
     private static byte byteBridge(int artMethod, int extras, int sp) throws Throwable {
-        return (byte) objectBridge(artMethod, extras, sp);
+        return (byte) handleBridge(artMethod, extras, sp);
     }
 
     private static char charBridge(int artMethod, int extras, int sp) throws Throwable {
-        return (char) objectBridge(artMethod, extras, sp);
+        return (char) handleBridge(artMethod, extras, sp);
     }
 
     private static short shortBridge(int artMethod, int extras, int sp) throws Throwable {
-        return (short) objectBridge(artMethod, extras, sp);
+        return (short) handleBridge(artMethod, extras, sp);
     }
 
     private static Object objectBridge(int artMethod, int extras, int sp) throws Throwable {
+        return handleBridge(artMethod, extras, sp);
+    }
+
+    /**
+     * Bridge handler for arm32.
+     * Note: This method should never be inlined to
+     * the direct bridge method (intBridge, objectBridge, etc.),
+     * otherwise, it will crash when executing a hooked proxy method (it's an unknown bug).
+     * More info about the bug:
+     * App crash caused SIGSEGV, fault addr 0x0, pc=lr=0,
+     * but the lr register is not 0 at the entry/exit of the proxy method.
+     * Is the lr register assigned to 0 after the proxy method returns?
+     */
+    private static Object handleBridge(int artMethod, int extras, int sp) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
         int[] argsAsInts = getArgsAsInts(hookRecord, extras, sp);
