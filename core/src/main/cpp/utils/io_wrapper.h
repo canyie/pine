@@ -16,21 +16,6 @@ namespace pine {
         return error == EINTR || error == EIO;
     }
 
-    int TryOpen(const char* pathname, int flags, int max_retries = 2) {
-        for (;;) {
-            int fd = open(pathname, flags);
-            if (fd != -1) {
-                return fd;
-            }
-
-            if (LIKELY(CanRetry(errno) && max_retries-- > 0)) {
-                continue;
-            } else {
-                return -1;
-            }
-        }
-    }
-
     int WrappedOpen(const char* pathname, int flags, int max_retries = 2) {
         for (;;) {
             int fd = open(pathname, flags);

@@ -20,56 +20,18 @@
 // Pine changed: namespace
 using namespace pine;
 
-ElfImg::ElfImg(const char* elf, bool warn_if_symtab_not_found) {
-    // Pine changed: Relative path support
-
-    constexpr int flags = O_RDONLY | O_CLOEXEC; // Pine changed: add O_CLOEXEC to flags
-
-    this->elf = elf;
-    int fd;
-    if (elf[0] == '/') {
-        fd = WrappedOpen(elf, flags);
-        if (UNLIKELY(fd == -1)) {
-            LOGE("failed to open %s", elf);
-            return;
-        }
-        Open(elf, fd, warn_if_symtab_not_found);
-    } else {
-        // Relative path
-        char buffer[64] = {0}; // We assume that the path length doesn't exceed 64 bytes.
-        if (Android::version >= Android::VERSION_Q) {
-            // Android R: com.android.art
-            strcpy(buffer, kApexArtLibDir);
-            strcat(buffer, elf);
-            if ((fd = TryOpen(buffer, flags)) != -1) {
-                Open(buffer, fd, warn_if_symtab_not_found);
-                return;
-            }
-            memset(buffer, 0, sizeof(buffer));
-
-            // Android Q: com.android.runtime
-            strcpy(buffer, kApexRuntimeLibDir);
-            strcat(buffer, elf);
-            if ((fd = TryOpen(buffer, flags)) != -1) {
-                Open(buffer, fd, warn_if_symtab_not_found);
-                return;
-            }
-
-            memset(buffer, 0, sizeof(buffer));
-        }
-        strcpy(buffer, kSystemLibDir);
-        strcat(buffer, elf);
-        fd = WrappedOpen(buffer, flags);
-        if (UNLIKELY(fd == -1)) {
-            LOGE("failed to open %s", buffer);
-            return;
-        }
-        Open(buffer, fd, warn_if_symtab_not_found);
-    }
+inline bool CanRead(const char* file) {
+    return access(file, R_OK) == 0;
 }
 
-void ElfImg::Open(const char* path, int fd, bool warn_if_symtab_not_found) {
+void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
     //load elf
+    int fd = WrappedOpen(path, O_RDONLY | O_CLOEXEC); // Pine changed: add O_CLOEXEC to flags
+    if (UNLIKELY(fd == -1)) {
+        LOGE("failed to open %s", path);
+        return;
+    }
+
     size = lseek(fd, 0, SEEK_END);
     if (UNLIKELY(size <= 0)) {
         LOGE("lseek() failed for %s: errno %d (%s)", path, errno, strerror(errno));
@@ -144,6 +106,35 @@ void ElfImg::Open(const char* path, int fd, bool warn_if_symtab_not_found) {
     //load module base
     base = GetModuleBase(path);
 }
+
+void ElfImg::RelativeOpen(const char* elf, bool warn_if_symtab_not_found) {
+    char buffer[64] = {0}; // We assume that the path length doesn't exceed 64 bytes.
+    if (Android::version >= Android::VERSION_Q) {
+        // Android R: com.android.art
+        strcpy(buffer, kApexArtLibDir);
+        strcat(buffer, elf);
+        if (CanRead(buffer)) {
+            Open(buffer, warn_if_symtab_not_found);
+            return;
+        }
+
+        memset(buffer, 0, sizeof(buffer));
+
+        // Android Q: com.android.runtime
+        strcpy(buffer, kApexRuntimeLibDir);
+        strcat(buffer, elf);
+        if (CanRead(buffer)) {
+            Open(buffer, warn_if_symtab_not_found);
+            return;
+        }
+
+        memset(buffer, 0, sizeof(buffer));
+    }
+    strcpy(buffer, kSystemLibDir);
+    strcat(buffer, elf);
+    Open(buffer, warn_if_symtab_not_found);
+}
+
 
 ElfImg::~ElfImg() {
     //open elf file local

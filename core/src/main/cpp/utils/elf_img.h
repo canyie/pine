@@ -39,7 +39,16 @@ typedef Elf32_Off Elf_Off;
 namespace pine {
     class ElfImg {
     public:
-        ElfImg(const char* elf, bool warn_if_symtab_not_found = true);
+        ElfImg(const char* elf, bool warn_if_symtab_not_found = true) {
+            // Pine changed: Relative path support
+            this->elf = elf;
+            if (elf[0] == '/') {
+                Open(elf, warn_if_symtab_not_found);
+            } else {
+                // Relative path
+                RelativeOpen(elf, warn_if_symtab_not_found);
+            }
+        }
         // Pine changed: Rename some function & make some function const.
         Elf_Addr GetSymbolOffset(const char* name) const;
         void* GetSymbolAddress(const char* name) const;
@@ -47,7 +56,8 @@ namespace pine {
         ~ElfImg();
 
     private:
-        void Open(const char* path, int fd, bool warn_if_symtab_not_found);
+        void Open(const char* path, bool warn_if_symtab_not_found);
+        void RelativeOpen(const char* elf, bool warn_if_symtab_not_found);
         // Pine changed: GetModuleBase is private
         void* GetModuleBase(const char* name);
 
