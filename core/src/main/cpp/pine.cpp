@@ -334,6 +334,10 @@ bool register_Pine(JNIEnv* env, jclass Pine) {
     return LIKELY(env->RegisterNatives(Pine, gMethods, NELEM(gMethods)) == JNI_OK);
 }
 
+EXPORT_C void PineSetAndroidVersion(int version) {
+    Android::version = version;
+}
+
 EXPORT_C void* PineOpenElf(const char* elf) {
     return new ElfImg(elf);
 }
