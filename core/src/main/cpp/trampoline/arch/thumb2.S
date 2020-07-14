@@ -16,6 +16,7 @@ VAR(pine_thumb_direct_jump_trampoline_jump_entry)
 .long 0
 
 FUNCTION(pine_thumb_bridge_jump_trampoline)
+nop // Alignment padding
 ldr ip, pine_thumb_bridge_jump_trampoline_target_method
 cmp r0, ip
 bne pine_thumb_bridge_jump_trampoline_call_origin_entry
