@@ -19,7 +19,10 @@ FUNCTION(pine_thumb_bridge_jump_trampoline)
 nop // Alignment padding
 ldr ip, pine_thumb_bridge_jump_trampoline_target_method
 cmp r0, ip
-bne pine_thumb_bridge_jump_trampoline_call_origin_entry
+
+IT NE
+ldrne pc, pine_thumb_bridge_jump_trampoline_call_origin_entry
+
 ldr ip, pine_thumb_bridge_jump_trampoline_extras
 
 acquire_lock:

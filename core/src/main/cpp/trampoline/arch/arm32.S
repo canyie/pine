@@ -16,7 +16,7 @@ VAR(pine_direct_jump_trampoline_jump_entry)
 FUNCTION(pine_bridge_jump_trampoline)
 ldr ip, pine_bridge_jump_trampoline_target_method
 cmp r0, ip
-bne pine_bridge_jump_trampoline_call_origin_entry
+ldrne pc, pine_bridge_jump_trampoline_call_origin_entry
 ldr ip, pine_bridge_jump_trampoline_extras
 
 acquire_lock:

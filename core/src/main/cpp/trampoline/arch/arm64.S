@@ -18,7 +18,7 @@ VAR(pine_direct_jump_trampoline_jump_entry)
 FUNCTION(pine_bridge_jump_trampoline)
 ldr x17, pine_bridge_jump_trampoline_target_method
 cmp x0, x17
-bne pine_bridge_jump_trampoline_call_origin_entry
+bne jump_to_original
 ldr x17, pine_bridge_jump_trampoline_extras
 b acquire_lock
 
@@ -40,6 +40,10 @@ mov x2, x17 // second param = extras (saved x1, x2, x3)
 mov x3, sp // third param = sp
 ldr x0, pine_bridge_jump_trampoline_bridge_method
 ldr x17, pine_bridge_jump_trampoline_bridge_entry
+br x17
+
+jump_to_original:
+ldr x17, pine_bridge_jump_trampoline_call_origin_entry
 br x17
 VAR(pine_bridge_jump_trampoline_target_method)
 .long 0
