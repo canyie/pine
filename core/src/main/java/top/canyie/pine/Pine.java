@@ -125,6 +125,11 @@ public final class Pine {
         return sHookListener;
     }
 
+    public static boolean is64Bit() {
+        ensureInitialized();
+        return is64Bit;
+    }
+
     public static MethodHook.Unhook hook(Method method, MethodHook callback) {
         if (method == null) throw new NullPointerException("method == null");
         if (callback == null) throw new NullPointerException("callback == null");
