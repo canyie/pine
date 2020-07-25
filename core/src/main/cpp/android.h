@@ -27,17 +27,17 @@ namespace pine {
 
         static void (*resume_vm)();
 
-        static constexpr int VERSION_K = 19;
-        static constexpr int VERSION_L = 21;
-        static constexpr int VERSION_L_MR1 = 22;
-        static constexpr int VERSION_M = 23;
-        static constexpr int VERSION_N = 24;
-        static constexpr int VERSION_N_MR1 = 25;
-        static constexpr int VERSION_O = 26;
-        static constexpr int VERSION_O_MR1 = 27;
-        static constexpr int VERSION_P = 28;
-        static constexpr int VERSION_Q = 29;
-        static constexpr int VERSION_R = 30;
+        static constexpr int kK = 19;
+        static constexpr int kL = 21;
+        static constexpr int kLMr1 = 22;
+        static constexpr int kM = 23;
+        static constexpr int kN = 24;
+        static constexpr int kNMr1 = 25;
+        static constexpr int kO = 26;
+        static constexpr int kOMr1 = 27;
+        static constexpr int kP = 28;
+        static constexpr int kQ = 29;
+        static constexpr int kR = 30;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle);
 

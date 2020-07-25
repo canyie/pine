@@ -35,12 +35,12 @@ void Android::Init(JNIEnv* env, int sdk_version) {
         resume_vm = reinterpret_cast<void (*)()>(
                 art_lib_handle.GetSymbolAddress("_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
 
-        if (Android::version >= Android::VERSION_P)
+        if (Android::version >= Android::kP)
             DisableHiddenApiPolicy(&art_lib_handle);
 
         art::Thread::Init(&art_lib_handle);
         art::ArtMethod::Init(&art_lib_handle);
-        if (sdk_version >= VERSION_N) {
+        if (sdk_version >= kN) {
             ElfImg jit_lib_handle("libart-compiler.so", false);
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
@@ -68,7 +68,7 @@ else  \
     LOGE("DisableHiddenApiPolicy: symbol %s not found", symbol); \
 } while(false)
 
-    if (Android::version >= Android::VERSION_Q) {
+    if (Android::version >= Android::kQ) {
         // Android Q, for Domain::kApplication
         HOOK("_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_8ArtFieldEEEbPT_NS0_7ApiListENS0_12AccessMethodE");
         HOOK("_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_9ArtMethodEEEbPT_NS0_7ApiListENS0_12AccessMethodE");
@@ -98,8 +98,8 @@ bool Android::DisableProfileSaver() {
     void* process_profiling_info;
     {
         ElfImg handle("libart.so");
-        const char* symbol = version < VERSION_O ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEPt"
-                                                 : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt";
+        const char* symbol = version < kO ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEPt"
+                                          : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt";
         process_profiling_info = handle.GetSymbolAddress(symbol);
     }
 

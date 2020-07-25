@@ -17,7 +17,7 @@ jweak (*Thread::add_weak_global_ref)(JavaVM*, Thread*, void*) = nullptr;
 void* (*Thread::decode_jobject)(Thread*, jobject) = nullptr;
 
 void Thread::Init(const ElfImg* handle) {
-    if (Android::version < Android::VERSION_N) {
+    if (Android::version < Android::kN) {
         current = reinterpret_cast<Thread* (*)()>(handle->GetSymbolAddress(
                 "_ZN3art6Thread7CurrentEv")); // art::Thread::Current()
         if (UNLIKELY(!current)) {
@@ -32,10 +32,10 @@ void Thread::Init(const ElfImg* handle) {
     if (UNLIKELY(!new_local_ref)) {
         LOGW("JNIEnvExt::NewLocalRef is unavailable, try JavaVMExt::AddWeakGlobalReference");
         const char* add_global_weak_ref_symbol;
-        if (Android::version < Android::VERSION_M) {
+        if (Android::version < Android::kM) {
             // art::JavaVMExt::AddWeakGlobalReference(art::Thread *, art::mirror::Object *)
             add_global_weak_ref_symbol = "_ZN3art9JavaVMExt22AddWeakGlobalReferenceEPNS_6ThreadEPNS_6mirror6ObjectE";
-        } else if (Android::version < Android::VERSION_O) {
+        } else if (Android::version < Android::kO) {
             // art::JavaVMExt::AddWeakGlobalRef(art::Thread *, art::mirror::Object *)
             add_global_weak_ref_symbol = "_ZN3art9JavaVMExt16AddWeakGlobalRefEPNS_6ThreadEPNS_6mirror6ObjectE";
         } else {

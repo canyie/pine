@@ -32,7 +32,7 @@ void ArtMethod::Init(const ElfImg* handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
 
-    if (Android::version < Android::VERSION_N) {
+    if (Android::version < Android::kN) {
         art_interpreter_to_compiled_code_bridge = handle->GetSymbolAddress(
                 "artInterpreterToCompiledCodeBridge");
         art_interpreter_to_interpreter_bridge = handle->GetSymbolAddress(
@@ -40,10 +40,10 @@ void ArtMethod::Init(const ElfImg* handle) {
     }
 
     const char* symbol_copy_from = nullptr;
-    if (Android::version >= Android::VERSION_O) {
+    if (Android::version >= Android::kO) {
         // art::ArtMethod::CopyFrom(art::ArtMethod *, art::PointerSize)
         symbol_copy_from = "_ZN3art9ArtMethod8CopyFromEPS0_NS_11PointerSizeE";
-    } else if (Android::version >= Android::VERSION_N) {
+    } else if (Android::version >= Android::kN) {
 #ifdef __LP64__
         // art::ArtMethod::CopyFrom(art::ArtMethod *, unsigned long)
         symbol_copy_from = "_ZN3art9ArtMethod8CopyFromEPS0_m";
@@ -51,7 +51,7 @@ void ArtMethod::Init(const ElfImg* handle) {
         // art::ArtMethod::CopyFrom(art::ArtMethod *, unsigned int)
         symbol_copy_from = "_ZN3art9ArtMethod8CopyFromEPS0_j";
 #endif
-    } else if (Android::version >= Android::VERSION_M) {
+    } else if (Android::version >= Android::kM) {
 #ifdef __LP64__
         // art::ArtMethod::CopyFrom(art::ArtMethod const *, unsigned long)
         symbol_copy_from = "_ZN3art9ArtMethod8CopyFromEPKS0_m";
@@ -68,7 +68,7 @@ void ArtMethod::Init(const ElfImg* handle) {
 
 ArtMethod* ArtMethod::FromReflectedMethod(JNIEnv* env, jobject javaMethod) {
     jmethodID m = env->FromReflectedMethod(javaMethod);
-    if (Android::version >= Android::VERSION_R) {
+    if (Android::version >= Android::kR) {
         if (reinterpret_cast<uintptr_t>(m) & 1) {
             return GetArtMethodForR(env, javaMethod);
         }
@@ -80,7 +80,7 @@ ArtMethod*
 ArtMethod::Require(JNIEnv* env, jclass c, const char* name, const char* signature, bool is_static) {
     jmethodID m = is_static ? env->GetStaticMethodID(c, name, signature)
                             : env->GetMethodID(c, name, signature);
-    if (Android::version >= Android::VERSION_R) {
+    if (Android::version >= Android::kR) {
         if (reinterpret_cast<uintptr_t>(m) & 1) {
             ScopedLocalRef javaMethod(env, env->ToReflectedMethod(c, m, static_cast<jboolean>(is_static)));
             return GetArtMethodForR(env, javaMethod.Get());
@@ -104,20 +104,20 @@ static inline uint32_t Align(uint32_t offset, uint32_t align_with) {
 }
 
 void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags) {
-    if (Android::version >= Android::VERSION_N) {
-        kAccCompileDontBother = (Android::version >= Android::VERSION_O_MR1)
+    if (Android::version >= Android::kN) {
+        kAccCompileDontBother = (Android::version >= Android::kOMr1)
                                 ? AccessFlags::kCompileDontBother_O_MR1
                                 : AccessFlags::kCompileDontBother_N;
     }
 
     size = Difference(reinterpret_cast<intptr_t>(m1), reinterpret_cast<intptr_t>(m2));
     int android_version = Android::version;
-    if (LIKELY(android_version >= Android::VERSION_L)) {
+    if (LIKELY(android_version >= Android::kL)) {
         for (uint32_t offset = 0; offset < size; offset += 2) {
             void* ptr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(m1) + offset);
             if ((*static_cast<uint32_t*>(ptr)) == access_flags) {
                 access_flags_.SetOffset(offset);
-            } else if (UNLIKELY(android_version == Android::VERSION_L)) {
+            } else if (UNLIKELY(android_version == Android::kL)) {
                 // On Android 5.0, type of entry_point_from_jni_ is uint64_t
                 if ((*static_cast<uint64_t*>(ptr)) == reinterpret_cast<uint64_t>(Ruler_m1))
                     entry_point_from_jni_.SetOffset(offset);
@@ -131,7 +131,7 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
 
         if (UNLIKELY(!access_flags_.IsValid())) {
             do {
-                if (LIKELY(Android::version >= Android::VERSION_N)) {
+                if (LIKELY(Android::version >= Android::kN)) {
                     // TODO: Is this really possible?
                     LOGW("failed to find access_flags_ with default access flags, try again with kAccCompileDontBother");
                     access_flags |= kAccCompileDontBother;
@@ -142,7 +142,7 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
                         break;
                     }
 
-                    if (LIKELY(Android::version >= Android::VERSION_R)) {
+                    if (LIKELY(Android::version >= Android::kR)) {
                         // Android R has a new access flags: kAccPreCompiled
                         // TODO: Is this really possible?
                         LOGW("failed to find access_flags_ with default access flags, try again with kAccPreCompiled");
@@ -161,14 +161,14 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
             } while (false);
         }
 
-        uint32_t entry_point_member_size = Android::version == Android::VERSION_L
+        uint32_t entry_point_member_size = Android::version == Android::kL
                                            ? sizeof(uint64_t) : sizeof(void*);
 
         if (LIKELY(entry_point_from_jni_.IsValid())) {
             uint32_t compiled_code_entry_offset = entry_point_from_jni_.GetOffset()
                                                   + entry_point_member_size;
 
-            if (Android::version >= Android::VERSION_O) {
+            if (Android::version >= Android::kO) {
                 // Only align offset on Android O+ (PtrSizedFields is PACKED(4) in Android N or lower.)
                 compiled_code_entry_offset = Align(compiled_code_entry_offset,
                                                    entry_point_member_size);
@@ -183,7 +183,7 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
                     GetDefaultEntryPointFromQuickCompiledCodeOffset());
         }
 
-        if (Android::version < Android::VERSION_N) {
+        if (Android::version < Android::kN) {
             // Not align: PtrSizedFields is PACKED(4) in the android version.
             entry_point_from_interpreter_ = new Member<ArtMethod, void*>(
                     entry_point_from_jni_.GetOffset() - entry_point_member_size);
@@ -212,7 +212,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
     }
 
     uint32_t access_flags = source->GetAccessFlags();
-    if (Android::version >= Android::VERSION_N) {
+    if (Android::version >= Android::kN) {
         access_flags |= kAccCompileDontBother;
     }
     if ((access_flags & AccessFlags::kStatic) == 0) {
@@ -223,7 +223,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
     access_flags &= ~AccessFlags::kConstructor;
     SetAccessFlags(access_flags);
 
-    if (UNLIKELY(Android::version >= Android::VERSION_N
+    if (UNLIKELY(Android::version >= Android::kN
                  && !is_inline_hook
                  && !is_native_or_proxy
                  && art_quick_to_interpreter_bridge)) {
@@ -241,7 +241,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
 
         // ArtMethod::CopyFrom() will clear data_ member, the member is used to save
         // the original interface method for proxy method. Restore it to avoid errors.
-        if (UNLIKELY(is_native_or_proxy && Android::version >= Android::VERSION_O))
+        if (UNLIKELY(is_native_or_proxy && Android::version >= Android::kO))
             SetEntryPointFromJni(source->GetEntryPointFromJni());
     }
 }
@@ -249,11 +249,11 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
 void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy) {
     uint32_t access_flags = GetAccessFlags();
 
-    if (Android::version >= Android::VERSION_N) {
+    if (Android::version >= Android::kN) {
         access_flags |= kAccCompileDontBother;
     }
 
-    if (Android::version >= Android::VERSION_O && !is_inline_hook) {
+    if (Android::version >= Android::kO && !is_inline_hook) {
         if (UNLIKELY(debuggable && !is_native_or_proxy)) {
             // Android 8.0+ and debug mode, ART may force the use of interpreter mode,
             // and entry_point_from_compiled_code_ will be ignored. Set kAccNative to avoid it.
@@ -262,7 +262,7 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_o
         }
     }
 
-    if (Android::version >= Android::VERSION_Q) {
+    if (Android::version >= Android::kQ) {
         // On Android 10+, a method can be execute with fast interpreter is cached in access flags,
         // and we may need to disable fast interpreter for a hooked method.
         // Clear the cached flag(kAccFastInterpreterToInterpreterInvoke) to refresh the state.
@@ -270,11 +270,11 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_o
     }
 
     bool is_native = (access_flags & AccessFlags::kNative) != 0;
-    if (UNLIKELY(is_native && Android::version >= Android::VERSION_L)) {
+    if (UNLIKELY(is_native && Android::version >= Android::kL)) {
         // GC is disabled when executing FastNative and CriticalNative methods
         // and may cause deadlocks. This is not applicable for hooked methods.
         access_flags &= ~AccessFlags::kFastNative;
-        if (Android::version >= Android::VERSION_P) {
+        if (Android::version >= Android::kP) {
             access_flags &= ~AccessFlags::kCriticalNative;
         }
     }

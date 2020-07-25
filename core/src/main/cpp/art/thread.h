@@ -26,7 +26,7 @@ namespace pine::art {
 
         static inline Thread* Current() {
             Thread* thread;
-            if (Android::version >= Android::VERSION_N) {
+            if (Android::version >= Android::kN) {
                 thread = reinterpret_cast<Thread*>(__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
             } else if (current) {
                 thread = current();

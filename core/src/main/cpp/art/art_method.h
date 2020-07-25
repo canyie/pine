@@ -70,7 +70,7 @@ namespace pine::art {
 
         bool Compile(Thread* thread) {
             if (LIKELY(IsCompiled())) return true;
-            if (UNLIKELY(Android::version < Android::VERSION_N)) return false;
+            if (UNLIKELY(Android::version < Android::kN)) return false;
             if (UNLIKELY(HasAccessFlags(kAccCompileDontBother))) return false;
             return Jit::CompileMethod(thread, this);
         }
@@ -96,7 +96,7 @@ namespace pine::art {
         }
 
         void SetNonCompilable() {
-            if (Android::version < Android::VERSION_N) return;
+            if (Android::version < Android::kN) return;
             AddAccessFlags(kAccCompileDontBother);
         }
 
@@ -134,7 +134,7 @@ namespace pine::art {
         }
 
         void* GetEntryPointFromCompiledCode() {
-            if (Android::version == Android::VERSION_L) {
+            if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
                 return reinterpret_cast<void*> (
                         entry_point_from_compiled_code_.GetAs<uint64_t>(this));
@@ -143,7 +143,7 @@ namespace pine::art {
         }
 
         void SetEntryPointFromCompiledCode(void* entry) {
-            if (Android::version == Android::VERSION_L) {
+            if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
                 entry_point_from_compiled_code_.SetAs<uint64_t>(
                         this, reinterpret_cast<uint64_t>(entry));
@@ -153,7 +153,7 @@ namespace pine::art {
         }
 
         void* GetEntryPointFromJni() {
-            if (Android::version == Android::VERSION_L) {
+            if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_jni_ is a uint64_t
                 return reinterpret_cast<void*>(
                         entry_point_from_jni_.GetAs<uint64_t>(this));
@@ -162,7 +162,7 @@ namespace pine::art {
         }
 
         void SetEntryPointFromJni(void* entry) {
-            if (Android::version == Android::VERSION_L) {
+            if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_jni_ is a uint64_t
                 entry_point_from_jni_.SetAs<uint64_t>(
                         this, reinterpret_cast<uint64_t>(entry));
@@ -172,7 +172,7 @@ namespace pine::art {
         }
 
         void* GetEntryPointFromInterpreter() {
-            if (Android::version == Android::VERSION_L) {
+            if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_interpreter_ is a uint64_t
                 return reinterpret_cast<void*>(
                         entry_point_from_interpreter_->GetAs<uint64_t>(this));
@@ -181,7 +181,7 @@ namespace pine::art {
         }
 
         void SetEntryPointFromInterpreter(void* entry) {
-            if (Android::version == Android::VERSION_L) {
+            if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_interpreter_ is a uint64_t
                 entry_point_from_interpreter_->SetAs<uint64_t>(
                         this, reinterpret_cast<uint64_t>(entry));
@@ -214,7 +214,7 @@ namespace pine::art {
             //  }
             uint32_t code_size = *reinterpret_cast<uint32_t*>(
                     reinterpret_cast<uintptr_t>(GetCompiledCodeAddr()) - sizeof(uint32_t));
-            if (Android::version >= Android::VERSION_O) {
+            if (Android::version >= Android::kO) {
                 // On Android 8+, The highest bit is used to signify if the compiled
                 // code with the method header has should_deoptimize flag.
                 uint32_t kShouldDeoptimizeMask = 0x80000000;
@@ -230,18 +230,18 @@ namespace pine::art {
     private:
         static int32_t GetDefaultAccessFlagsOffset() {
             switch (Android::version) {
-                case Android::VERSION_Q :
-                case Android::VERSION_P :
-                case Android::VERSION_O_MR1 :
-                case Android::VERSION_O :
-                case Android::VERSION_N_MR1 :
-                case Android::VERSION_N :
+                case Android::kQ :
+                case Android::kP :
+                case Android::kOMr1 :
+                case Android::kO :
+                case Android::kNMr1 :
+                case Android::kN :
                     return 4;
-                case Android::VERSION_M :
+                case Android::kM :
                     return 12;
-                case Android::VERSION_L_MR1 :
+                case Android::kLMr1 :
                     return 20;
-                case Android::VERSION_L :
+                case Android::kL :
                     return 56;
                 default:
                     // Android Kitkat doesn't use this function.
@@ -251,18 +251,18 @@ namespace pine::art {
 
         static int32_t GetDefaultEntryPointFromJniOffset() {
             switch (Android::version) {
-                case Android::VERSION_Q :
-                case Android::VERSION_P :
+                case Android::kQ :
+                case Android::kP :
                     return Android::Is64Bit() ? 24 : 20;
-                case Android::VERSION_O_MR1 :
-                case Android::VERSION_O :
+                case Android::kOMr1 :
+                case Android::kO :
                     return Android::Is64Bit() ? 32 : 24;
-                case Android::VERSION_N_MR1 :
-                case Android::VERSION_N :
+                case Android::kNMr1 :
+                case Android::kN :
                     return Android::Is64Bit() ? 40 : 28;
-                case Android::VERSION_L_MR1 :
+                case Android::kLMr1 :
                     return Android::Is64Bit() ? 44 : 40;
-                case Android::VERSION_L :
+                case Android::kL :
                     return 32;
                 default:
                     // Android Kitkat doesn't use this function.
@@ -272,20 +272,20 @@ namespace pine::art {
 
         static int32_t GetDefaultEntryPointFromQuickCompiledCodeOffset() {
             switch (Android::version) {
-                case Android::VERSION_Q :
-                case Android::VERSION_P :
+                case Android::kQ :
+                case Android::kP :
                     return Android::Is64Bit() ? 32 : 24;
-                case Android::VERSION_O_MR1 :
-                case Android::VERSION_O :
+                case Android::kOMr1 :
+                case Android::kO :
                     return Android::Is64Bit() ? 40 : 28;
-                case Android::VERSION_N_MR1 :
-                case Android::VERSION_N :
+                case Android::kNMr1 :
+                case Android::kN :
                     return Android::Is64Bit() ? 48 : 32;
-                case Android::VERSION_M :
+                case Android::kM :
                     return Android::Is64Bit() ? 48 : 36;
-                case Android::VERSION_L_MR1 :
+                case Android::kLMr1 :
                     return Android::Is64Bit() ? 52 : 44;
-                case Android::VERSION_L :
+                case Android::kL :
                     return 40;
                 default:
                     // Android Kitkat doesn't use this function.

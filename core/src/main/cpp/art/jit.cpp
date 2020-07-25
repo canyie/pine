@@ -35,7 +35,7 @@ void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
 
     void* jit_compile_method = jit_lib_handle->GetSymbolAddress("jit_compile_method");
 
-    if (Android::version >= Android::VERSION_Q) {
+    if (Android::version >= Android::kQ) {
         Jit::jit_compile_method_q = reinterpret_cast<bool (*)(void*, void*, void*, bool, bool)>(jit_compile_method);
         // Android Q, ART may update CompilerOptions and the value we set will be overwritten.
         // the function pointer saved in art::jit::Jit::jit_update_options_ .
@@ -48,7 +48,7 @@ void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
     // fields count from compiler_filter_ (not included) to inline_max_code_units_ (not included)
     // FIXME Offset for inline_max_code_units_ seems to be incorrect on my Pixel 3 (Android 10)...
     // FIXME Structure of CompilerOptions has changed in Android R.
-    unsigned thresholds_count = Android::version >= Android::VERSION_O ? 5 : 6;
+    unsigned thresholds_count = Android::version >= Android::kO ? 5 : 6;
 
     CompilerOptions_inline_max_code_units = new Member<void, size_t>(
             sizeof(void*) + thresholds_count * sizeof(size_t));

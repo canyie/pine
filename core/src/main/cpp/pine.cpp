@@ -48,7 +48,7 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean isDebugg
             expected_access_flags = AccessFlags::kPrivate | AccessFlags::kStatic | AccessFlags::kNative;
         } while (false);
 
-        if (androidVersion >= Android::VERSION_Q) {
+        if (androidVersion >= Android::kQ) {
             expected_access_flags |= AccessFlags::kPublicApi;
         }
         art::ArtMethod::InitMembers(m1, m2, expected_access_flags);

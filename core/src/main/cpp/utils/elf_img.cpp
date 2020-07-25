@@ -109,7 +109,7 @@ void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
 
 void ElfImg::RelativeOpen(const char* elf, bool warn_if_symtab_not_found) {
     char buffer[64] = {0}; // We assume that the path length doesn't exceed 64 bytes.
-    if (Android::version >= Android::VERSION_Q) {
+    if (Android::version >= Android::kQ) {
         // Android R: com.android.art
         strcpy(buffer, kApexArtLibDir);
         strcat(buffer, elf);
