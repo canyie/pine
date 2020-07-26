@@ -103,7 +103,6 @@ size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod* target) {
     return size;
 }
 
-
 void* Thumb2TrampolineInstaller::Backup(art::ArtMethod* target) {
     void* mem = Memory::AllocUnprotected(kBackupTrampolineSize);
     if (UNLIKELY(!mem)) {

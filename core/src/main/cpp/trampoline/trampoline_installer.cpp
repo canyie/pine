@@ -63,7 +63,7 @@ TrampolineInstaller::CreateBridgeJumpTrampoline(art::ArtMethod* target, art::Art
                                                          kBridgeJumpTrampolineTargetMethodOffset);
     *target_out = target;
 
-    auto extras_out = reinterpret_cast<Extras**> (addr + kBridgeJumpTrampolineExtrasOffset);
+    auto extras_out = reinterpret_cast<Extras**>(addr + kBridgeJumpTrampolineExtrasOffset);
     *extras_out = new Extras;
 
     auto bridge_out = reinterpret_cast<art::ArtMethod**>(addr +

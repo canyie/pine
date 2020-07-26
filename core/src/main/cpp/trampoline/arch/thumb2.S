@@ -16,7 +16,6 @@ VAR(pine_thumb_direct_jump_trampoline_jump_entry)
 .long 0
 
 FUNCTION(pine_thumb_bridge_jump_trampoline)
-nop // Alignment padding
 ldr ip, pine_thumb_bridge_jump_trampoline_target_method
 cmp r0, ip
 
@@ -53,6 +52,7 @@ mov r2, ip // second param = extras (saved r1, r2, r3)
 mov r3, sp // third param = sp
 ldr r0, pine_thumb_bridge_jump_trampoline_bridge_method
 ldr pc, pine_thumb_bridge_jump_trampoline_bridge_entry
+nop // Alignment padding (unreachable)
 VAR(pine_thumb_bridge_jump_trampoline_target_method)
 .long 0
 VAR(pine_thumb_bridge_jump_trampoline_extras)
