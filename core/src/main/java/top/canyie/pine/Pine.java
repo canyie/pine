@@ -193,13 +193,11 @@ public final class Pine {
         boolean isInlineHook;
         if (hookMode == HookMode.AUTO) {
             // On Android N or lower, entry_point_from_compiled_code_ may be hard-coded in the machine code
-            // (sharpening optimization), entry replacement will most likely not take effect, so we prefer
-            // to use inline hook; And on Android O+, this optimization is not performed,
-            // but in the entry replacement mode, we need to force the backup method to use interpreter
-            // to avoid use compiled code (may compiled by JIT, an unknown error occurs when the backup
-            // method is called), so we still prefer inline hook mode.
+            // (sharpening optimization), entry replacement will most likely not take effect,
+            // so we prefer to use inline hook; And on Android O+, this optimization is not performed,
+            // so we prefer a more stable entry replacement mode.
 
-            isInlineHook = true;
+            isInlineHook = Build.VERSION.SDK_INT < Build.VERSION_CODES.O;
         } else {
             isInlineHook = hookMode == HookMode.INLINE;
         }
