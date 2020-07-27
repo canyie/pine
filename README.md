@@ -101,6 +101,26 @@ PineXposed.loadModule(new File(moudlePath));
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
 
+## Known issues
+- May not be compatible with all devices/systems.
+
+- When two or more threads enter the same hooked method at the same time, one thread will acquire the lock and the other thread will wait; but when the thread holding the lock has not released the lock, if art needs to suspend all threads , The thread will suspend execution when it reaches the checkpoint, and the thread that does not hold the lock will wait indefinitely, unable to reach the checkpoint, and eventually cause the suspension to time out and trigger runtime abort.
+So we recommend hooking methods with less concurrency as much as possible, for example:
+```java
+public static void method() {
+    synchronized (sLock) {
+        methodLocked();
+    }
+}
+
+private static void methodLocked() {
+    // ...
+}
+```
+In the example, we recommend that the hook method is `methodLocked` instead of `method`.
+
+- For more, see [issues](https://github.com/canyie/pine/issues).
+
 ## Discussion
 [QQ Group：949888394](https://shang.qq.com/wpa/qunwpa?idkey=25549719b948d2aaeb9e579955e39d71768111844b370fcb824d43b9b20e1c04)
 

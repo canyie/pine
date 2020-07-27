@@ -109,6 +109,26 @@ PineXposed.loadModule(new File(moudlePath));
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
 
+## 已知问题：
+- 可能不兼容部分设备/系统。
+
+- 当两个或更多线程同时进入同一个被hook方法时，其中一个线程将获取到锁，另一个线程会等待；但当持有锁的线程还未释放锁时，如果art需要挂起所有线程，该线程执行到checkpoint时将暂停执行，而没有持有锁的线程将无限等待，无法到达checkpoint，并最终导致挂起超时，runtime abort。
+所以我们建议尽量hook并发较少的方法，举个例子：
+```java
+public static void method() {
+    synchronized (sLock) {
+        methodLocked();
+    }
+}
+
+private static void methodLocked() {
+    // ...
+}
+```
+在这个例子里，我们更建议hook `methodLocked` 而非 `method`。
+
+- 更多请参见[issues](https://github.com/canyie/pine/issues)。
+
 ## 交流讨论
 [QQ群：949888394](https://shang.qq.com/wpa/qunwpa?idkey=25549719b948d2aaeb9e579955e39d71768111844b370fcb824d43b9b20e1c04)
 
