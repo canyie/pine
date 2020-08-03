@@ -181,7 +181,7 @@ jboolean Pine_disableProfileSaver0(JNIEnv*, jclass) {
 }
 
 jobject Pine_getObject0(JNIEnv* env, jclass, jlong thread, jlong address) {
-    return reinterpret_cast<art::Thread*>(thread)->AddLocalRef(env, reinterpret_cast<void*>(address));
+    return reinterpret_cast<art::Thread*>(thread)->AddLocalRef(env, reinterpret_cast<Object*>(address));
 }
 
 jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {

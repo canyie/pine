@@ -6,6 +6,8 @@
 #define PINE_THREAD_H
 
 #include <pthread.h>
+#include <cstdlib>
+#include "object.h"
 #include "../android.h"
 #include "../utils/log.h"
 #include "../utils/macros.h"
@@ -48,11 +50,24 @@ namespace pine::art {
             *GetStateAndFlagsPtr() = state_and_flags;
         }
 
-        jobject AddLocalRef(JNIEnv* env, void* o) {
-            if (LIKELY(new_local_ref)) {
-                return new_local_ref(env, o);
+        jobject AddLocalRef(JNIEnv* env, Object* obj) {
+            if (UNLIKELY(obj->IsForwardingAddress())) {
+                // Bug #3: Invalid state during hashcode ForwardingAddress
+                // Caused by gc moved the object?
+                // The object has moved to new address, forwarding to it.
+                Object* forwarding = obj->GetForwardingAddress();
+                LOGW("Detected forwarding address object (origin %p, monitor %u, forwarding to %p)",
+                        obj, obj->GetMonitor(), forwarding);
+                CHECK(forwarding != nullptr, "Forwarding to nullptr");
+                // FIXME: Will this check fail under normal circumstances?
+                CHECK_EQ(obj->GetClass(), forwarding->GetClass(),
+                        "Forwarding object type mismatch (origin %p, forwarding %p)", obj->GetClass(), forwarding->GetClass());
+                obj = forwarding;
             }
-            jweak global_weak_ref = add_weak_global_ref(Android::jvm, this, o);
+            if (LIKELY(new_local_ref)) {
+                return new_local_ref(env, obj);
+            }
+            jweak global_weak_ref = add_weak_global_ref(Android::jvm, this, obj);
             jobject local_ref = env->NewLocalRef(global_weak_ref);
             env->DeleteWeakGlobalRef(global_weak_ref);
             return local_ref;

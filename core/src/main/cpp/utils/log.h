@@ -31,5 +31,7 @@ do { \
     }\
 } while(false)
 
+#define CHECK_EQ(a, b, ...) CHECK((a) == (b), __VA_ARGS__)
+
 
 #endif //PINE_LOG_H
