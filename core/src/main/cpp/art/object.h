@@ -19,7 +19,7 @@ public:
     }
 
     bool IsForwardingAddress() {
-        return (monitor_ & kForwardingAddress) == kForwardingAddress;
+        return (monitor_ & kStateMask) == kForwardingAddress;
     }
 
     Object* GetForwardingAddress() {
@@ -31,7 +31,8 @@ private:
     uint32_t monitor_;
 
     static constexpr uint32_t kStateUsed = 3u; // art objects are aligned with 8 bytes.
-    static constexpr uint32_t kForwardingAddress = 3u << 30;
+    static constexpr uint32_t kStateMask = 3u << 30; // Top 2 bits.
+    static constexpr uint32_t kForwardingAddress = 3u << 30; // Top 2 bits are value 3 (kStateForwardingAddress).
 
     DISALLOW_IMPLICIT_CONSTRUCTORS(Object);
     ~Object() = delete; // Disallow direct to delete a art object
