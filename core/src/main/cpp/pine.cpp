@@ -277,6 +277,10 @@ void Pine_updateDeclaringClass(JNIEnv* env, jclass, jobject javaOrigin, jobject 
     }
 }
 
+void Pine_setDebuggable(JNIEnv*, jclass, jboolean isDebuggable) {
+    debuggable = static_cast<bool>(isDebuggable);
+}
+
 jlong Pine_currentArtThread0(JNIEnv*, jclass) {
     return reinterpret_cast<jlong>(art::Thread::Current());
 }
@@ -292,6 +296,7 @@ static const struct {
         {"disableProfileSaver0", "()Z"},
         {"getObject0", "(JJ)Ljava/lang/Object;"},
         {"getAddress0", "(JLjava/lang/Object;)J"},
+        {"setDebuggable0", "(Z)V"},
         {"currentArtThread0", "()J"},
 #ifdef __LP64__
         {"getArgs64", "(J[JJ)V"}
@@ -321,6 +326,7 @@ static const JNINativeMethod gMethods[] = {
         {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_updateDeclaringClass},
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},
         {"getAddress0", "(JLjava/lang/Object;)J", (void*) Pine_getAddress0},
+        {"setDebuggable0", "(Z)V", (void*) Pine_setDebuggable},
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
 
 #ifdef __LP64__

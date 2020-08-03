@@ -392,6 +392,21 @@ public final class Pine {
         return disableProfileSaver0();
     }
 
+    public static void setDebuggable(boolean debuggable) {
+        if (!initialized) {
+            synchronized (Pine.class) {
+                if (!initialized) {
+                    PineConfig.debuggable = debuggable;
+                    initialize();
+                    initialized = true;
+                    return;
+                }
+            }
+        }
+        PineConfig.debuggable = debuggable;
+
+    }
+
     public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
         if (PineConfig.debug)
@@ -504,6 +519,7 @@ public final class Pine {
 
     public static native long currentArtThread0();
 
+    private static native void setDebuggable0(boolean debuggable);
 
     public static final class HookRecord {
         public final Member target;
