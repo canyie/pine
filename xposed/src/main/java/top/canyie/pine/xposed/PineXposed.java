@@ -22,6 +22,15 @@ public final class PineXposed {
     public static final String TAG = "PineXposed";
     public static boolean disableHooks = false;
     public static boolean disableZygoteInitCallbacks = false;
+    private static ExtHandler sExtHandler;
+
+    public static ExtHandler getExtHandler() {
+        return sExtHandler;
+    }
+
+    public static void setExtHandler(ExtHandler n) {
+        sExtHandler = n;
+    }
 
     private static final CopyOnWriteSortedSet<XC_LoadPackage> sLoadedPackageCallbacks = new CopyOnWriteSortedSet<>();
 
@@ -95,22 +104,11 @@ public final class PineXposed {
                         Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
                         Log.e(TAG, "    This class doesn't implement any sub-interface of IXposedMod, skipping it");
                         continue;
-                    } else if (IXposedHookZygoteInit.class.isAssignableFrom(c)) {
-                        if (disableZygoteInitCallbacks) {
-                            Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
-                            Log.e(TAG, "    This class requires zygote init callbacks (which are disabled), skipping it");
-                            continue;
-                        }
-                    } else if (!IXposedHookLoadPackage.class.isAssignableFrom(c)) {
-                        Log.e(TAG, "    Cannot load callback class " + className + " in module " + modulePath + " :");
-                        Log.e(TAG, "    This class requires unsupported feature (only supports " +
-                                "IXposedHookLoadPackage and IXposedHookZygoteInit now), skipping it");
-                        continue;
                     }
 
                     IXposedMod callback = (IXposedMod) c.newInstance();
 
-                    if (callback instanceof IXposedHookZygoteInit) {
+                    if (callback instanceof IXposedHookZygoteInit && !disableZygoteInitCallbacks) {
                         IXposedHookZygoteInit.StartupParam param = new IXposedHookZygoteInit.StartupParam();
                         param.modulePath = modulePath;
                         param.startsSystemServer = false;
@@ -119,6 +117,10 @@ public final class PineXposed {
 
                     if (callback instanceof IXposedHookLoadPackage)
                         hookLoadPackage((IXposedHookLoadPackage) callback);
+
+                    ExtHandler extHandler = sExtHandler;
+                    if (extHandler != null)
+                        extHandler.handle(callback);
                 } catch (Throwable e) {
                     Log.e(TAG, "    Failed to load class " + className + " in module " + modulePath + " :", e);
                 }
@@ -156,5 +158,9 @@ public final class PineXposed {
                 closeable.close();
             } catch (IOException ignored) {
             }
+    }
+
+    public interface ExtHandler {
+        void handle(IXposedMod callback);
     }
 }
