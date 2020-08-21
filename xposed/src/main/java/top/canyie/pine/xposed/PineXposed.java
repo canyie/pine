@@ -38,6 +38,10 @@ public final class PineXposed {
     }
 
     public static void loadModule(File module) {
+        loadModule(module, false);
+    }
+
+    public static void loadModule(File module, boolean startsSystemServer) {
         ZipFile zipFile = null;
         BufferedReader xposedInitReader;
         try {
@@ -58,13 +62,18 @@ public final class PineXposed {
 
         try {
             PathClassLoader moduleClassLoader = new PathClassLoader(module.getAbsolutePath(), PineXposed.class.getClassLoader());
-            loadModuleImpl(module.getAbsolutePath(), xposedInitReader, moduleClassLoader);
+            loadModuleImpl(module.getAbsolutePath(), xposedInitReader, moduleClassLoader, startsSystemServer);
         } finally {
             closeQuietly(zipFile);
         }
     }
 
     public static void loadOpenedModule(ZipFile zipFile, ClassLoader moduleClassLoader) {
+        loadOpenedModule(zipFile, moduleClassLoader, false);
+    }
+
+    public static void loadOpenedModule(ZipFile zipFile, ClassLoader moduleClassLoader,
+                                        boolean startsSystemServer) {
         String module = zipFile.getName();
         BufferedReader xposedInitReader;
         try {
@@ -82,14 +91,14 @@ public final class PineXposed {
         }
 
         try {
-            loadModuleImpl(module, xposedInitReader, moduleClassLoader);
+            loadModuleImpl(module, xposedInitReader, moduleClassLoader, startsSystemServer);
         } finally {
             closeQuietly(zipFile);
         }
     }
 
     private static void loadModuleImpl(String modulePath, BufferedReader xposedInitReader,
-                                       ClassLoader moduleClassLoader) {
+                                       ClassLoader moduleClassLoader, boolean startsSystemServer) {
         try {
             String className;
             while ((className = xposedInitReader.readLine()) != null) {
@@ -111,7 +120,7 @@ public final class PineXposed {
                     if (callback instanceof IXposedHookZygoteInit && !disableZygoteInitCallbacks) {
                         IXposedHookZygoteInit.StartupParam param = new IXposedHookZygoteInit.StartupParam();
                         param.modulePath = modulePath;
-                        param.startsSystemServer = false;
+                        param.startsSystemServer = startsSystemServer;
                         ((IXposedHookZygoteInit) callback).initZygote(param);
                     }
 
