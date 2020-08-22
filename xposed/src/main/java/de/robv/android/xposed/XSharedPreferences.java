@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Environment;
+import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.system.StructStat;
 import android.util.Log;
@@ -29,7 +30,7 @@ import java.util.Set;
 public final class XSharedPreferences implements SharedPreferences {
 	private static final String TAG = "XSharedPreferences";
 	private final File mFile;
-	private final String mFilename;
+//	private final String mFilename;
 	private Map<String, Object> mMap;
 	private boolean mLoaded = false;
 	private long mLastModified;
@@ -41,7 +42,7 @@ public final class XSharedPreferences implements SharedPreferences {
 	 */
 	public XSharedPreferences(File prefFile) {
 		mFile = prefFile;
-		mFilename = mFile.getAbsolutePath();
+//		mFilename = mFile.getAbsolutePath();
 		startLoadFromDisk();
 	}
 
@@ -62,7 +63,7 @@ public final class XSharedPreferences implements SharedPreferences {
 	 */
 	public XSharedPreferences(String packageName, String prefFileName) {
 		mFile = new File(Environment.getDataDirectory(), "data/" + packageName + "/shared_prefs/" + prefFileName + ".xml");
-		mFilename = mFile.getAbsolutePath();
+//		mFilename = mFile.getAbsolutePath();
 		startLoadFromDisk();
 	}
 
@@ -120,8 +121,8 @@ public final class XSharedPreferences implements SharedPreferences {
 
 		// Pine changed: Don't use SELinuxHelper.getAppDataFileService()
 		Map map = null;
-		// FileResult result = null;
-		StructStat stat = null;
+//		FileResult result = null;
+//		StructStat stat = null;
 		BufferedInputStream in = null;
 		long lastModified = mFile.lastModified();
 		try {
@@ -140,11 +141,9 @@ public final class XSharedPreferences implements SharedPreferences {
 				// The file is unchanged, keep the current values
 				map = mMap;
 			}
-		} catch (XmlPullParserException e) {
-			Log.w(TAG, "getSharedPreferences", e);
 		} catch (FileNotFoundException ignored) {
 			// SharedPreferencesImpl has a canRead() check, so it doesn't log anything in case the file doesn't exist
-		} catch (IOException e) {
+		} catch (XmlPullParserException | IOException e) {
 			Log.w(TAG, "getSharedPreferences", e);
 		} finally {
 			if (in != null) {
@@ -182,8 +181,13 @@ public final class XSharedPreferences implements SharedPreferences {
 	 * <p><strong>Warning:</strong> With enforcing SELinux, this call might be quite expensive.
 	 */
 	public synchronized boolean hasFileChanged() {
-		if (!mFile.exists()) return true; // If the file not exist, return true.
-		return mFile.lastModified() != mLastModified || mFile.length() != mFileSize;
+		final StrictMode.ThreadPolicy oldPolicy = StrictMode.allowThreadDiskReads();
+		try {
+			if (!mFile.exists()) return true; // If the file not exist, return true.
+			return mFile.lastModified() != mLastModified || mFile.length() != mFileSize;
+		} finally {
+			StrictMode.setThreadPolicy(oldPolicy);
+		}
 		/*try {
 			FileResult result = SELinuxHelper.getAppDataFileService().statFile(mFilename);
 			return mLastModified != result.mtime || mFileSize != result.size;
@@ -304,5 +308,4 @@ public final class XSharedPreferences implements SharedPreferences {
 	public void unregisterOnSharedPreferenceChangeListener(OnSharedPreferenceChangeListener listener) {
 		throw new UnsupportedOperationException("listeners are not supported in this implementation");
 	}
-
 }
