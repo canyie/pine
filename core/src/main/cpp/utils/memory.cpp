@@ -8,6 +8,7 @@
 #include <bits/sysconf.h>
 #include "memory.h"
 #include "lock.h"
+#include "../pine_config.h"
 
 using namespace pine;
 
@@ -41,7 +42,12 @@ void* Memory::AllocUnprotected(size_t size) {
         LOGE("Unable to allocate executable memory: %s (%d)", strerror(errno), errno);
         return nullptr;
     }
-    prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, mapped, size, "pine codes");
+    if (PineConfig::debug)
+        LOGD("Mapped new memory %p (size %u)", mapped, page_size);
+
+    if (!PineConfig::anti_checks)
+        prctl(PR_SET_VMA, PR_SET_VMA_ANON_NAME, mapped, size, "pine codes");
+
     memset(mapped, 0, page_size);
     address = reinterpret_cast<uintptr_t>(mapped);
     offset = size;

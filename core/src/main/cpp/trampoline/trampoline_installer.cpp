@@ -4,6 +4,7 @@
 
 #include "trampoline_installer.h"
 #include "extras.h"
+#include "../pine_config.h"
 #include "../utils/memory.h"
 #include "../utils/scoped_memory_access_protection.h"
 
@@ -149,8 +150,9 @@ TrampolineInstaller::InstallReplacementTrampoline(art::ArtMethod* target, art::A
     target->SetEntryPointFromCompiledCode(bridge_jump_trampoline);
     // return call_origin_trampoline;
 
-    LOGD("InstallReplacementTrampoline: origin_entry %p bridge_jump %p",
-         origin_code_entry, bridge_jump_trampoline);
+    if (PineConfig::debug)
+        LOGD("InstallReplacementTrampoline: origin_entry %p bridge_jump %p",
+                origin_code_entry, bridge_jump_trampoline);
 
     return origin_code_entry;
 }
@@ -174,8 +176,9 @@ void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::
         WriteDirectJumpTrampolineTo(target_code_addr, bridge_jump_trampoline);
     }
 
-    LOGD("InstallInlineTrampoline: target_code_addr %p backup %p bridge_jump %p",
-         target_code_addr, backup, bridge_jump_trampoline);
+    if (PineConfig::debug)
+        LOGD("InstallInlineTrampoline: target_code_addr %p backup %p bridge_jump %p",
+                target_code_addr, backup, bridge_jump_trampoline);
 
     return backup;
 }

@@ -55,11 +55,12 @@ public final class Pine {
 
     @SuppressLint("ObsoleteSdkInt") private static void initialize() {
         int sdkLevel = Build.VERSION.SDK_INT;
-        if (sdkLevel < Build.VERSION_CODES.KITKAT || sdkLevel > Build.VERSION_CODES.Q)
+        if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + Build.VERSION.SDK_INT);
-        else if (sdkLevel == Build.VERSION_CODES.Q && Build.VERSION.PREVIEW_SDK_INT > 0) {
+        else if (sdkLevel > Build.VERSION_CODES.Q
+                || (sdkLevel == Build.VERSION_CODES.Q && Build.VERSION.PREVIEW_SDK_INT > 0)) {
             // Android R Preview, not test...
-            Log.w(TAG, "Android R preview, not test.");
+            Log.w(TAG, "Android R, not test.");
             sdkLevel = 30;
         }
 
@@ -71,7 +72,7 @@ public final class Pine {
             LibLoader libLoader = PineConfig.libLoader;
             if (libLoader != null) libLoader.loadLib();
 
-            init0(sdkLevel, PineConfig.debuggable);
+            init0(sdkLevel, PineConfig.debug, PineConfig.debuggable, PineConfig.antiChecks);
             initBridgeMethods();
 
             if (PineConfig.useFastNative && sdkLevel >= Build.VERSION_CODES.LOLLIPOP)
@@ -490,7 +491,7 @@ public final class Pine {
         }
     }
 
-    private static native void init0(int androidVersion, boolean debuggable);
+    private static native void init0(int androidVersion, boolean debug, boolean debuggable, boolean antiChecks);
 
     private static native void enableFastNative();
 

@@ -3,6 +3,7 @@
 //
 
 #include <elf.h>
+#include "pine_config.h"
 #include "jni_bridge.h"
 #include "art/art_method.h"
 #include "utils/macros.h"
@@ -16,10 +17,16 @@
 
 using namespace pine;
 
-bool debuggable = false;
+bool PineConfig::debug = false;
+bool PineConfig::debuggable = false;
+bool PineConfig::anti_checks = false;
 
-void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean isDebuggable) {
+void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, jboolean debuggable,
+        jboolean antiChecks) {
     LOGI("Pine native init...");
+    PineConfig::debug = static_cast<bool>(debug);
+    PineConfig::debuggable = static_cast<bool>(debuggable);
+    PineConfig::anti_checks = static_cast<bool>(antiChecks);
     TrampolineInstaller::GetOrInitDefault(); // trigger TrampolineInstaller::default_ initialize
     Android::Init(env, androidVersion);
     {
@@ -71,8 +78,6 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean isDebugg
         LOGE("New art_quick_to_interpreter_bridge %p", entry);
         art::ArtMethod::SetQuickToInterpreterBridge(entry);
     }
-
-    debuggable = static_cast<bool>(isDebuggable);
 
     env->SetStaticBooleanField(Pine, env->GetStaticFieldID(Pine, "is64Bit", "Z"),
                                static_cast<jboolean>(Android::Is64Bit()));
@@ -139,7 +144,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
 
         if (LIKELY(call_origin)) {
             backup->BackupFrom(target, call_origin, is_inline_hook, is_native_or_proxy);
-            target->AfterHook(is_inline_hook, debuggable, is_native_or_proxy);
+            target->AfterHook(is_inline_hook, PineConfig::debuggable, is_native_or_proxy);
             success = true;
         } else {
             LOGE("Failed to hook the method!");
@@ -277,8 +282,8 @@ void Pine_updateDeclaringClass(JNIEnv* env, jclass, jobject javaOrigin, jobject 
     }
 }
 
-void Pine_setDebuggable(JNIEnv*, jclass, jboolean isDebuggable) {
-    debuggable = static_cast<bool>(isDebuggable);
+void Pine_setDebuggable(JNIEnv*, jclass, jboolean debuggable) {
+    PineConfig::debuggable = static_cast<bool>(debuggable);
 }
 
 jlong Pine_currentArtThread0(JNIEnv*, jclass) {
@@ -315,7 +320,7 @@ void Pine_enableFastNative(JNIEnv* env, jclass Pine) {
 }
 
 static const JNINativeMethod gMethods[] = {
-        {"init0", "(IZ)V", (void*) Pine_init0},
+        {"init0", "(IZZZ)V", (void*) Pine_init0},
         {"enableFastNative", "()V", (void*) Pine_enableFastNative},
         {"getArtMethod", "(Ljava/lang/reflect/Member;)J", (void*) Pine_getArtMethod},
         {"hook0", "(JLjava/lang/Class;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;ZZ)Ljava/lang/reflect/Method;", (void*) Pine_hook0},
