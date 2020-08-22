@@ -61,7 +61,6 @@ public class ExampleApp extends Application {
 
         PineConfig.debug = true;
         PineConfig.debuggable = BuildConfig.DEBUG;
-        PineConfig.antiChecks = true;
 
         Pine.disableJitInline();
     }
