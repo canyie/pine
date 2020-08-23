@@ -49,7 +49,7 @@ publish {
     repoName = rootProject.repoName
     groupId = rootProject.groupId
     artifactId = 'core'
-    publishVersion = '0.1.8'
+    publishVersion = '0.1.9'
     desc = 'pine hook core library'
     licences = rootProject.licences
     website = rootProject.website
