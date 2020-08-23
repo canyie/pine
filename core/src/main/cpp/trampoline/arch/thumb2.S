@@ -77,6 +77,8 @@ ldr r0, pine_thumb_backup_trampoline_origin_method
 VAR(pine_thumb_backup_trampoline_override_space)
 .long 0 // 4 bytes (will be overwritten)
 .long 0 // 4 bytes (will be overwritten)
+nop // 2 bytes, may be overwritten for anti checks
+nop // 2 bytes, may be overwritten for anti checks
 nop // 2 bytes (may be overwritten)
 ldr pc, pine_thumb_backup_trampoline_remaining_code_entry
 VAR(pine_thumb_backup_trampoline_origin_method)

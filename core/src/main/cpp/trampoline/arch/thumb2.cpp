@@ -69,10 +69,10 @@ bool Thumb2TrampolineInstaller::IsThumb16PCRelatedInst(uint16_t inst) {
     return false;
 }
 
-bool Thumb2TrampolineInstaller::CannotBackup(art::ArtMethod* target) {
+bool Thumb2TrampolineInstaller::CannotBackup(art::ArtMethod* target, size_t size) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target->GetCompiledCodeAddr());
     uint32_t index = 0;
-    while (index < kDirectJumpTrampolineSize) {
+    while (index < size) {
         uint16_t* ptr16 = reinterpret_cast<uint16_t*>(entry + index);
         uint32_t* ptr32 = reinterpret_cast<uint32_t*>(entry + index);
         if (LIKELY(IsThumb32(*ptr16))) {
@@ -90,10 +90,10 @@ bool Thumb2TrampolineInstaller::CannotBackup(art::ArtMethod* target) {
     return false;
 }
 
-size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod* target) {
+size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod* target, size_t min_size) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target->GetCompiledCodeAddr());
     size_t size = 0;
-    while (size < kDirectJumpTrampolineSize) {
+    while (size < min_size) {
         if (LIKELY(IsThumb32(*reinterpret_cast<uint16_t*>(entry + size)))) {
             size += 4;
         } else {
@@ -103,13 +103,13 @@ size_t Thumb2TrampolineInstaller::GetBackupCodeSize(art::ArtMethod* target) {
     return size;
 }
 
-void* Thumb2TrampolineInstaller::Backup(art::ArtMethod* target) {
+void* Thumb2TrampolineInstaller::Backup(art::ArtMethod* target, size_t size) {
     void* mem = Memory::AllocUnprotected(kBackupTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate executable memory for backup!");
         return nullptr;
     }
-    size_t backup_size = GetBackupCodeSize(target);
+    size_t backup_size = GetBackupCodeSize(target, size);
     memcpy(mem, kBackupTrampoline, kBackupTrampolineSize);
 
     uintptr_t addr = reinterpret_cast<uintptr_t>(mem);
@@ -128,4 +128,12 @@ void* Thumb2TrampolineInstaller::Backup(art::ArtMethod* target) {
 
     Memory::FlushCache(mem, kBackupTrampolineSize);
     return ToPC(mem);
+}
+
+void Thumb2TrampolineInstaller::FillWithNop(void* target, size_t size) {
+    uintptr_t entry = reinterpret_cast<uintptr_t>(target);
+    for (uint index = 0;index < size;index += sizeof(uint16_t)) {
+        uint16_t* p = reinterpret_cast<uint16_t*>(entry + index);
+        *p = 0xbf00; // nop, android only use little-endian
+    }
 }

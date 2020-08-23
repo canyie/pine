@@ -37,22 +37,38 @@ namespace pine {
 
         bool CannotSafeInlineHook(art::ArtMethod* target) {
             size_t target_code_size = target->GetCompiledCodeSize();
-            size_t direct_jump_size = kDirectJumpTrampolineSize;
-            if (UNLIKELY(target_code_size < direct_jump_size)) {
+            if (UNLIKELY(target_code_size < kDirectJumpTrampolineSize)) {
                 LOGW("Cannot safe inline hook method: code size of target method too small (size %u)!",
                      target_code_size);
                 return true;
             }
-            if (UNLIKELY(CannotBackup(target))) {
+            if (UNLIKELY(CannotBackup(target, kDirectJumpTrampolineSize))) {
                 LOGW("Cannot safe inline hook method: code of target method has pc register related instruction!");
                 return true;
             }
             return false;
         }
 
+        bool CanSkipFirstFewBytes(art::ArtMethod* target) {
+            size_t target_code_size = target->GetCompiledCodeSize();
+            size_t size = kDirectJumpTrampolineSize + kSkipBytes;
+            if (UNLIKELY(target_code_size < size)) {
+                LOGW("Cannot safe inline hook method and skip first few bytes: "
+                     "code size of target method too small (size %u)!",
+                     target_code_size);
+                return false;
+            }
+            if (UNLIKELY(CannotBackup(target, size))) {
+                LOGW("Cannot safe inline hook method and skip first few bytes: "
+                     "code of target method has pc register related instruction!");
+                return false;
+            }
+            return true;
+        }
+
         void* InstallReplacementTrampoline(art::ArtMethod* target, art::ArtMethod* bridge);
 
-        void* InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge);
+        void* InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge, bool skip_first_few_bytes);
 
         virtual bool NativeHookNoBackup(void* target, void* to);
 
@@ -88,9 +104,11 @@ namespace pine {
 
         virtual void* CreateCallOriginTrampoline(art::ArtMethod* origin, void* original_code_entry);
 
-        virtual bool CannotBackup(art::ArtMethod* target) = 0;
+        virtual bool CannotBackup(art::ArtMethod* target, size_t size) = 0;
 
-        virtual void* Backup(art::ArtMethod* target);
+        virtual void* Backup(art::ArtMethod* target, size_t size);
+
+        virtual void FillWithNop(void* target, size_t size) = 0;
 
         static TrampolineInstaller* default_;
 
@@ -118,6 +136,8 @@ namespace pine {
         size_t kBackupTrampolineSize;
 
         void* kTrampolinesEnd;
+
+        size_t kSkipBytes;
     private:
         DISALLOW_COPY_AND_ASSIGN(TrampolineInstaller);
     };

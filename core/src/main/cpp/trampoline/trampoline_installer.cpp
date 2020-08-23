@@ -104,8 +104,7 @@ TrampolineInstaller::CreateCallOriginTrampoline(art::ArtMethod* origin, void* or
     return mem;
 }
 
-void* TrampolineInstaller::Backup(art::ArtMethod* target) {
-    const size_t backup_size = kDirectJumpTrampolineSize;
+void* TrampolineInstaller::Backup(art::ArtMethod* target, size_t size) {
     void* mem = Memory::AllocUnprotected(kBackupTrampolineSize);
     if (UNLIKELY(!mem)) {
         LOGE("Failed to allocate executable memory for backup!");
@@ -119,13 +118,13 @@ void* TrampolineInstaller::Backup(art::ArtMethod* target) {
     *origin_out = target;
 
     void* target_addr = target->GetEntryPointFromCompiledCode();
-    memcpy(AS_VOID_PTR(addr + kBackupTrampolineOverrideSpaceOffset), target_addr, backup_size);
+    memcpy(AS_VOID_PTR(addr + kBackupTrampolineOverrideSpaceOffset), target_addr, size);
 
-    if (LIKELY(target->GetCompiledCodeSize() != backup_size)) {
+    if (LIKELY(target->GetCompiledCodeSize() != size)) {
         // has remaining code
         void** remaining_out = reinterpret_cast<void**>(addr +
                                                         kBackupTrampolineRemainingCodeEntryOffset);
-        *remaining_out = AS_VOID_PTR(reinterpret_cast<uintptr_t>(target_addr) + backup_size);
+        *remaining_out = AS_VOID_PTR(reinterpret_cast<uintptr_t>(target_addr) + size);
     }
 
     Memory::FlushCache(mem, kBackupTrampolineSize);
@@ -157,7 +156,8 @@ TrampolineInstaller::InstallReplacementTrampoline(art::ArtMethod* target, art::A
     return origin_code_entry;
 }
 
-void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge) {
+void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge,
+                                                   bool skip_first_few_bytes) {
     void* target_code_addr = target->GetCompiledCodeAddr();
     bool target_code_writable = Memory::Unprotect(target_code_addr);
     if (UNLIKELY(!target_code_writable)) {
@@ -165,7 +165,10 @@ void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::
         return nullptr;
     }
 
-    void* backup = Backup(target);
+    size_t backup_size = kDirectJumpTrampolineSize;
+    if (skip_first_few_bytes) backup_size += kSkipBytes;
+
+    void* backup = Backup(target, backup_size);
     if (UNLIKELY(!backup)) return nullptr;
 
     void* bridge_jump_trampoline = CreateBridgeJumpTrampoline(target, bridge, backup);
@@ -173,7 +176,13 @@ void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::
 
     {
         ScopedMemoryAccessProtection protection(target_code_addr, kDirectJumpTrampolineSize);
-        WriteDirectJumpTrampolineTo(target_code_addr, bridge_jump_trampoline);
+        if (skip_first_few_bytes) {
+            FillWithNop(target_code_addr, kSkipBytes);
+            WriteDirectJumpTrampolineTo(AS_VOID_PTR(AS_PTR_NUM(target_code_addr) + kSkipBytes),
+                    bridge_jump_trampoline);
+        } else {
+            WriteDirectJumpTrampolineTo(target_code_addr, bridge_jump_trampoline);
+        }
     }
 
     if (PineConfig::debug)

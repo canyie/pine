@@ -11,10 +11,14 @@
 
 namespace pine {
     class Arm32TrampolineInstaller final : public TrampolineInstaller {
+    public:
+        Arm32TrampolineInstaller() {
+            kSkipBytes = 4;
+        }
     protected:
         virtual void InitTrampolines() override ;
-        virtual bool CannotBackup(art::ArtMethod* target) override ;
-
+        virtual bool CannotBackup(art::ArtMethod* target, size_t size) override ;
+        virtual void FillWithNop(void* target, size_t size) override ;
     private:
         static bool IsPCRelatedInst(uint32_t inst);
     };

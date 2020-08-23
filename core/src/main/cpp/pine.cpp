@@ -104,6 +104,9 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         is_inline_hook = false;
     }
 
+    bool skip_first_few_bytes = PineConfig::anti_checks
+            && is_inline_hook && trampoline_installer->CanSkipFirstFewBytes(target);
+
     ScopedLocalRef<jobject> java_new_art_method(env);
     art::ArtMethod* backup;
     if (WellKnownClasses::java_lang_reflect_ArtMethod) {
@@ -139,7 +142,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         art::ScopedSuspendVM suspend_vm;
 
         void* call_origin = is_inline_hook
-                            ? trampoline_installer->InstallInlineTrampoline(target, bridge)
+                            ? trampoline_installer->InstallInlineTrampoline(target, bridge, skip_first_few_bytes)
                             : trampoline_installer->InstallReplacementTrampoline(target, bridge);
 
         if (LIKELY(call_origin)) {

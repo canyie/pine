@@ -10,10 +10,14 @@
 
 namespace pine {
     class Thumb2TrampolineInstaller final : public TrampolineInstaller {
+    public:
+        Thumb2TrampolineInstaller() {
+            kSkipBytes = 4;
+        }
     protected:
         virtual void InitTrampolines() override;
 
-        virtual bool CannotBackup(art::ArtMethod* target) override;
+        virtual bool CannotBackup(art::ArtMethod* target, size_t size) override;
 
         virtual void* CreateDirectJumpTrampoline(void* to) override {
             return ToPC(TrampolineInstaller::CreateDirectJumpTrampoline(to));
@@ -27,7 +31,7 @@ namespace pine {
             return ToPC(TrampolineInstaller::CreateCallOriginTrampoline(origin, original_code_entry));
         }
 
-        virtual void* Backup(art::ArtMethod* target) override;
+        virtual void* Backup(art::ArtMethod* target, size_t size) override;
 
         virtual bool NativeHookNoBackup(void* target, void* to) override {
             return TrampolineInstaller::NativeHookNoBackup(ToAddress(target), to);
@@ -50,7 +54,9 @@ namespace pine {
 
         static bool IsThumb16PCRelatedInst(uint16_t inst);
 
-        size_t GetBackupCodeSize(art::ArtMethod* target);
+        size_t GetBackupCodeSize(art::ArtMethod* target, size_t min_size);
+
+        virtual void FillWithNop(void* target, size_t size) override;
     };
 }
 
