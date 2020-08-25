@@ -10,6 +10,7 @@
 #include <atomic>
 #include "access_flags.h"
 #include "../android.h"
+#include "../pine_config.h"
 #include "../utils/macros.h"
 #include "../utils/elf_img.h"
 #include "../utils/member.h"
@@ -54,12 +55,12 @@ namespace pine::art {
             return reinterpret_cast<jmethodID> (this);
         }
 
-        // Only work on android 7.0+
+        // Only works on android 7.0+
         uint32_t GetDeclaringClass() {
             return declaring_class->Get(this);
         }
 
-        // Only work on android 7.0+
+        // Only works on android 7.0+
         void SetDeclaringClass(uint32_t new_declaring_class) {
             declaring_class->Set(this, new_declaring_class);
         }
@@ -71,6 +72,7 @@ namespace pine::art {
         bool Compile(Thread* thread) {
             if (LIKELY(IsCompiled())) return true;
             if (UNLIKELY(Android::version < Android::kN)) return false;
+            if (UNLIKELY(!PineConfig::jit_compilation_allowed)) return false;
             if (UNLIKELY(HasAccessFlags(kAccCompileDontBother))) return false;
             return Jit::CompileMethod(thread, this);
         }
@@ -136,8 +138,7 @@ namespace pine::art {
         void* GetEntryPointFromCompiledCode() {
             if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
-                return reinterpret_cast<void*> (
-                        entry_point_from_compiled_code_.GetAs<uint64_t>(this));
+                return reinterpret_cast<void*>(entry_point_from_compiled_code_.GetAs<uint64_t>(this));
             }
             return entry_point_from_compiled_code_.Get(this);
         }
@@ -145,8 +146,7 @@ namespace pine::art {
         void SetEntryPointFromCompiledCode(void* entry) {
             if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_compiled_code_ is a uint64_t
-                entry_point_from_compiled_code_.SetAs<uint64_t>(
-                        this, reinterpret_cast<uint64_t>(entry));
+                entry_point_from_compiled_code_.SetAs<uint64_t>(this, reinterpret_cast<uint64_t>(entry));
                 return;
             }
             entry_point_from_compiled_code_.Set(this, entry);
@@ -155,8 +155,7 @@ namespace pine::art {
         void* GetEntryPointFromJni() {
             if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_jni_ is a uint64_t
-                return reinterpret_cast<void*>(
-                        entry_point_from_jni_.GetAs<uint64_t>(this));
+                return reinterpret_cast<void*>(entry_point_from_jni_.GetAs<uint64_t>(this));
             }
             return entry_point_from_jni_.Get(this);
         }
@@ -164,8 +163,7 @@ namespace pine::art {
         void SetEntryPointFromJni(void* entry) {
             if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_jni_ is a uint64_t
-                entry_point_from_jni_.SetAs<uint64_t>(
-                        this, reinterpret_cast<uint64_t>(entry));
+                entry_point_from_jni_.SetAs<uint64_t>(this, reinterpret_cast<uint64_t>(entry));
                 return;
             }
             entry_point_from_jni_.Set(this, entry);
@@ -174,8 +172,7 @@ namespace pine::art {
         void* GetEntryPointFromInterpreter() {
             if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_interpreter_ is a uint64_t
-                return reinterpret_cast<void*>(
-                        entry_point_from_interpreter_->GetAs<uint64_t>(this));
+                return reinterpret_cast<void*>(entry_point_from_interpreter_->GetAs<uint64_t>(this));
             }
             return entry_point_from_interpreter_->Get(this);
         }
@@ -183,18 +180,17 @@ namespace pine::art {
         void SetEntryPointFromInterpreter(void* entry) {
             if (Android::version == Android::kL) {
                 // Android 5.0, entry_point_from_interpreter_ is a uint64_t
-                entry_point_from_interpreter_->SetAs<uint64_t>(
-                        this, reinterpret_cast<uint64_t>(entry));
+                entry_point_from_interpreter_->SetAs<uint64_t>(this, reinterpret_cast<uint64_t>(entry));
                 return;
             }
             entry_point_from_interpreter_->Set(this, entry);
         }
 
         bool IsThumb() {
-#ifdef __aarch64__
-            return false;
-#else
+#ifdef __arm__
             return (reinterpret_cast<uintptr_t>(GetEntryPointFromCompiledCode()) & 1) == 1;
+#else
+            return false;
 #endif
         }
 
@@ -225,11 +221,12 @@ namespace pine::art {
 
         void BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy);
 
-        void AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy);
+        void AfterHook(bool is_inline_hook, bool is_native_or_proxy);
 
     private:
         static int32_t GetDefaultAccessFlagsOffset() {
             switch (Android::version) {
+                case Android::kR :
                 case Android::kQ :
                 case Android::kP :
                 case Android::kOMr1 :
@@ -251,6 +248,7 @@ namespace pine::art {
 
         static int32_t GetDefaultEntryPointFromJniOffset() {
             switch (Android::version) {
+                case Android::kR :
                 case Android::kQ :
                 case Android::kP :
                     return Android::Is64Bit() ? 24 : 20;
@@ -272,6 +270,7 @@ namespace pine::art {
 
         static int32_t GetDefaultEntryPointFromQuickCompiledCodeOffset() {
             switch (Android::version) {
+                case Android::kR :
                 case Android::kQ :
                 case Android::kP :
                     return Android::Is64Bit() ? 32 : 24;

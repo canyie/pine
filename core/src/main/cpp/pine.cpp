@@ -20,6 +20,7 @@ using namespace pine;
 bool PineConfig::debug = false;
 bool PineConfig::debuggable = false;
 bool PineConfig::anti_checks = false;
+bool PineConfig::jit_compilation_allowed = true;
 
 void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, jboolean debuggable,
         jboolean antiChecks) {
@@ -89,10 +90,12 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
 
-    // The bridge method entry will be hardcoded in the trampoline, subsequent optimization
-    // operations that require modification of the bridge method entry will not take effect.
-    // Try to do JIT compilation first to get the best performance.
-    bridge->Compile(thread);
+    if (PineConfig::jit_compilation_allowed) {
+        // The bridge method entry will be hardcoded in the trampoline, subsequent optimization
+        // operations that require modification of the bridge method entry will not take effect.
+        // Try to do JIT compilation first to get the best performance.
+        bridge->Compile(thread);
+    }
 
     bool is_inline_hook = static_cast<bool>(isInlineHook);
     bool is_native_or_proxy = static_cast<bool>(isNativeOrProxy);
@@ -147,7 +150,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
 
         if (LIKELY(call_origin)) {
             backup->BackupFrom(target, call_origin, is_inline_hook, is_native_or_proxy);
-            target->AfterHook(is_inline_hook, PineConfig::debuggable, is_native_or_proxy);
+            target->AfterHook(is_inline_hook, is_native_or_proxy);
             success = true;
         } else {
             LOGE("Failed to hook the method!");
@@ -182,6 +185,10 @@ jboolean Pine_decompile0(JNIEnv* env, jclass, jobject javaMethod, jboolean disab
 
 jboolean Pine_disableJitInline0(JNIEnv*, jclass) {
     return static_cast<jboolean>(art::Jit::DisableInline());
+}
+
+void Pine_setJitCompilationAllowed(JNIEnv*, jclass, jboolean allowed) {
+    PineConfig::jit_compilation_allowed = allowed;
 }
 
 jboolean Pine_disableProfileSaver0(JNIEnv*, jclass) {
@@ -301,6 +308,7 @@ static const struct {
         {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V"},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z"},
         {"disableJitInline0", "()Z"},
+        {"setJitCompilationAllowed0", "(Z)V"},
         {"disableProfileSaver0", "()Z"},
         {"getObject0", "(JJ)Ljava/lang/Object;"},
         {"getAddress0", "(JLjava/lang/Object;)J"},
@@ -330,6 +338,7 @@ static const JNINativeMethod gMethods[] = {
         {"compile0", "(JLjava/lang/reflect/Member;)Z", (void*) Pine_compile0},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z", (void*) Pine_decompile0},
         {"disableJitInline0", "()Z", (void*) Pine_disableJitInline0},
+        {"setJitCompilationAllowed0", "(Z)V", (void*) Pine_setJitCompilationAllowed},
         {"disableProfileSaver0", "()Z", (void*) Pine_disableProfileSaver0},
         {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_updateDeclaringClass},
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},

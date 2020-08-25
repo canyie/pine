@@ -13,6 +13,7 @@ namespace pine {
         static bool debug;
         static bool debuggable;
         static bool anti_checks;
+        static bool jit_compilation_allowed;
     private:
         DISALLOW_IMPLICIT_CONSTRUCTORS(PineConfig);
     };

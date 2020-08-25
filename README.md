@@ -21,7 +21,7 @@ dependencies {
 ```
 Basic configuration:
 ```java
-PineConfig.debug = true; // Need to print more detailed log?
+PineConfig.debug = true; // Do we need to print more detailed logs?
 PineConfig.debuggable = BuildConfig.DEBUG; // Is this process debuggable?
 ```
 

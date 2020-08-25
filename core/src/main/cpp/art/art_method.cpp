@@ -246,7 +246,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
     }
 }
 
-void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_or_proxy) {
+void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
     uint32_t access_flags = GetAccessFlags();
 
     if (Android::version >= Android::kN) {
@@ -254,7 +254,7 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool debuggable, bool is_native_o
     }
 
     if (Android::version >= Android::kO && !is_inline_hook) {
-        if (UNLIKELY(debuggable && !is_native_or_proxy)) {
+        if (UNLIKELY(PineConfig::debuggable && !is_native_or_proxy)) {
             // Android 8.0+ and debug mode, ART may force the use of interpreter mode,
             // and entry_point_from_compiled_code_ will be ignored. Set kAccNative to avoid it.
             // See ClassLinker::ShouldUseInterpreterEntrypoint(ArtMethod*, const void*)

@@ -217,7 +217,7 @@ public final class Pine {
             if (!isNativeOrProxy) {
                 boolean compiled = compile0(thread, method);
                 if (!compiled) {
-                    Log.e(TAG, "Failed to compile target method, force use replacement mode.");
+                    Log.w(TAG, "Cannot compile the target method, force use replacement mode.");
                     isInlineHook = false;
                 }
             } else {
@@ -387,6 +387,15 @@ public final class Pine {
         return disableJitInline0();
     }
 
+    public static void setJitCompilationAllowed(boolean allowed) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            // No JIT.
+            return;
+        }
+        ensureInitialized();
+        setJitCompilationAllowed0(allowed);
+    }
+
     public static boolean disableProfileSaver() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
         ensureInitialized();
@@ -405,7 +414,7 @@ public final class Pine {
             }
         }
         PineConfig.debuggable = debuggable;
-
+        setDebuggable0(debuggable);
     }
 
     public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
@@ -505,6 +514,8 @@ public final class Pine {
     private static native boolean decompile0(Member method, boolean disableJit);
 
     private static native boolean disableJitInline0();
+
+    private static native void setJitCompilationAllowed0(boolean allowed);
 
     private static native boolean disableProfileSaver0();
 
