@@ -32,7 +32,7 @@ elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "x86")
             ${PINE_SOURCES}
             trampoline/arch/x86.cpp)
 else()
-    message(FATAL_ERROR "Unsupported cpu abi ${CMAKE_ANDROID_ARCH_ABI} (Only armeabi-v7a, arm64-v8a and x86 are now supported)!")
+    message(FATAL_ERROR "Unsupported cpu abi ${CMAKE_ANDROID_ARCH_ABI} (Only armeabi-v7a and arm64-v8a are now supported)!")
 endif()
 
 add_library(pine SHARED ${PINE_SOURCES})
