@@ -84,11 +84,6 @@ TrampolineInstaller::CreateBridgeJumpTrampoline(art::ArtMethod* target, art::Art
 
     Memory::FlushCache(mem, kBridgeJumpTrampolineSize);
 
-    LOGE("Target method %p Bridge method %p bridge entry %p Extras %p", target, bridge, bridge->GetEntryPointFromCompiledCode(), *extras_out);
-    unsigned char* p = static_cast<unsigned char*>(mem);
-    for (int i = 0;i < 48;) {
-        LOGE("%#x %#x %#x %#x %#x %#x %#x %#x", p[i++], p[i++], p[i++], p[i++], p[i++], p[i++], p[i++], p[i++]);
-    }
     return mem;
 }
 
