@@ -426,8 +426,9 @@ public final class Pine {
     public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
         if (PineConfig.debug)
-            Log.d(TAG, "handleCall: target=" + hookRecord.target + " thisObject=" +
-                    thisObject + " args=" + Arrays.toString(args));
+            /*Log.d(TAG, "handleCall: target=" + hookRecord.target + " thisObject=" +
+                    thisObject + " args=" + Arrays.toString(args));*/
+            Log.d(TAG, "handleCall for method " + hookRecord.target);
 
         if (PineConfig.disableHooks || hookRecord.emptyCallbacks()) {
             try {
