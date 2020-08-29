@@ -13,9 +13,9 @@
 if (UNLIKELY(((inst) & (mask)) == op)) return true
 
 #define AS_SIZE_T(value) (reinterpret_cast<size_t>(value))
-#define AS_VOID_PTR(value) (reinterpret_cast<void *>(value))
+#define AS_VOID_PTR(value) (reinterpret_cast<void*>(value))
 #define AS_PTR_NUM(value) (reinterpret_cast<uintptr_t>(value))
-#define PTR_SIZE (sizeof(void *))
+#define PTR_SIZE (sizeof(void*))
 
 namespace pine {
     class TrampolineInstaller {
@@ -26,13 +26,21 @@ namespace pine {
             return default_;
         }
 
-        TrampolineInstaller() {};
+        TrampolineInstaller(size_t skip_bytes) : kSkipBytes(skip_bytes), kReplacementModeOnly(false) {
+        };
+
+        TrampolineInstaller(size_t skip_bytes, bool replacement_only) : kSkipBytes(skip_bytes), kReplacementModeOnly(replacement_only) {
+        }
 
         void Init() {
             InitTrampolines();
             kBridgeJumpTrampolineSize = SubAsSize(kCallOriginTrampoline, kBridgeJumpTrampoline);
             kCallOriginTrampolineSize = SubAsSize(kBackupTrampoline, kCallOriginTrampoline);
             kBackupTrampolineSize = SubAsSize(kTrampolinesEnd, kBackupTrampoline);
+        }
+
+        bool IsReplacementOnly() {
+            return kReplacementModeOnly;
         }
 
         bool CannotSafeInlineHook(art::ArtMethod* target) {
@@ -73,7 +81,7 @@ namespace pine {
         virtual bool NativeHookNoBackup(void* target, void* to);
 
     protected:
-        static inline size_t SubAsSize(void* a, void* b) {
+        static inline size_t SubAsSize(void const* a, void const* b) {
             return AS_SIZE_T(reinterpret_cast<uintptr_t>(a) - reinterpret_cast<uintptr_t>(b));
         }
 
@@ -112,11 +120,13 @@ namespace pine {
 
         static TrampolineInstaller* default_;
 
-        void* kDirectJumpTrampoline;
+        const bool kReplacementModeOnly;
+
+        void const* kDirectJumpTrampoline;
         size_t kDirectJumpTrampolineEntryOffset;
         size_t kDirectJumpTrampolineSize;
 
-        void* kBridgeJumpTrampoline;
+        void const* kBridgeJumpTrampoline;
         size_t kBridgeJumpTrampolineTargetMethodOffset;
         size_t kBridgeJumpTrampolineExtrasOffset;
         size_t kBridgeJumpTrampolineBridgeMethodOffset;
@@ -124,18 +134,18 @@ namespace pine {
         size_t kBridgeJumpTrampolineOriginCodeEntryOffset;
         size_t kBridgeJumpTrampolineSize;
 
-        void* kCallOriginTrampoline;
+        void const* kCallOriginTrampoline;
         size_t kCallOriginTrampolineOriginMethodOffset;
         size_t kCallOriginTrampolineOriginalEntryOffset;
         size_t kCallOriginTrampolineSize;
 
-        void* kBackupTrampoline;
+        void const* kBackupTrampoline;
         size_t kBackupTrampolineOverrideSpaceOffset;
         size_t kBackupTrampolineOriginMethodOffset;
         size_t kBackupTrampolineRemainingCodeEntryOffset;
         size_t kBackupTrampolineSize;
 
-        void* kTrampolinesEnd;
+        void const* kTrampolinesEnd;
 
         size_t kSkipBytes;
     private:

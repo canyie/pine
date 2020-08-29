@@ -1,10 +1,11 @@
 //
 // Created by canyie on 2020/5/26.
 //
-
 #include "scoped_memory_access_protection.h"
 
 using namespace pine;
+
+#if defined(__aarch64__) || defined(__arm__)
 
 thread_local ScopedMemoryAccessProtection* ScopedMemoryAccessProtection::current = nullptr;
 
@@ -32,3 +33,4 @@ void ScopedMemoryAccessProtection::HandleSignal(int signal, siginfo_t* info, voi
         current->def.sa_sigaction(signal, info, reserved);
     }
 }
+#endif

@@ -11,8 +11,7 @@
 namespace pine {
     class Thumb2TrampolineInstaller final : public TrampolineInstaller {
     public:
-        Thumb2TrampolineInstaller() {
-            kSkipBytes = 4;
+        Thumb2TrampolineInstaller() : TrampolineInstaller(4) {
         }
     protected:
         virtual void InitTrampolines() override;

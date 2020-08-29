@@ -8,9 +8,9 @@ import top.canyie.pine.utils.Primitives;
 /**
  * @author canyie
  */
-public final class Entry32 {
+public final class Arm32Entry {
     private static final int[] EMPTY_INT_ARRAY = new int[0];
-    private Entry32() {
+    private Arm32Entry() {
     }
 
     private static void voidBridge(int artMethod, int extras, int sp) throws Throwable {
@@ -135,7 +135,7 @@ public final class Entry32 {
                 && hookRecord.paramNumber > 0
                 && (paramTypes[0] == long.class || paramTypes[0] == double.class);
 
-        Pine.getArgs32(extras, array, sp, skipR1);
+        Pine.getArgsArm32(extras, array, sp, skipR1);
         return array;
     }
 }

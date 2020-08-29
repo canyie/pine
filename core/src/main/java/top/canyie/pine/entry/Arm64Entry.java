@@ -6,9 +6,9 @@ import top.canyie.pine.utils.Primitives;
 /**
  * @author canyie
  */
-public final class Entry64 {
+public final class Arm64Entry {
     private static final long[] EMPTY_LONG_ARRAY = new long[0];
-    private Entry64() {
+    private Arm64Entry() {
     }
 
     private static void voidBridge(long artMethod, long extras, long sp,
@@ -132,7 +132,7 @@ public final class Entry64 {
                                          long x4, long x5, long x6, long x7) {
         int length = (hookRecord.isStatic ? 0 : 1 /*this*/) + hookRecord.paramNumber;
         long[] array = length != 0 ? new long[length] : EMPTY_LONG_ARRAY;
-        Pine.getArgs64(extras, array, sp);
+        Pine.getArgsArm64(extras, array, sp);
 
         do {
             // x1-x3 are restored in Pine.getArgs64

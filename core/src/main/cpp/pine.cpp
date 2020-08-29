@@ -17,6 +17,19 @@
 
 using namespace pine;
 
+static constexpr jint kArchArm = 1;
+static constexpr jint kArchArm64 = 2;
+static constexpr jint kArchX86 = 3;
+static constexpr jint kCurrentArch =
+#ifdef __aarch64__
+        kArchArm64
+#elif defined(__arm__)
+        kArchArm
+#elif defined(__i386__)
+        kArchX86
+#endif
+        ;
+
 bool PineConfig::debug = false;
 bool PineConfig::debuggable = false;
 bool PineConfig::anti_checks = false;
@@ -80,8 +93,7 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, j
         art::ArtMethod::SetQuickToInterpreterBridge(entry);
     }
 
-    env->SetStaticBooleanField(Pine, env->GetStaticFieldID(Pine, "is64Bit", "Z"),
-                               static_cast<jboolean>(Android::Is64Bit()));
+    env->SetStaticIntField(Pine, env->GetStaticFieldID(Pine, "arch", "I"), kCurrentArch);
 }
 
 jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject javaTarget,
@@ -101,6 +113,10 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     bool is_native_or_proxy = static_cast<bool>(isNativeOrProxy);
 
     TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
+
+    if (UNLIKELY(is_inline_hook && trampoline_installer->IsReplacementOnly())) {
+        is_inline_hook = false;
+    }
 
     if (UNLIKELY(is_inline_hook && trampoline_installer->CannotSafeInlineHook(target))) {
         LOGW("Cannot safe inline hook the target method, force replacement mode.");
@@ -203,9 +219,9 @@ jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
     return reinterpret_cast<jlong>(reinterpret_cast<art::Thread*>(thread)->DecodeJObject(o));
 }
 
-#ifdef __LP64__
+#ifdef __aarch64__
 
-void Pine_getArgs64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp) {
+void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
@@ -236,8 +252,8 @@ void Pine_getArgs64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray,
     extras->ReleaseLock();
 }
 
-#else
-void Pine_getArgs32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp, jboolean skipR1) {
+#elif defined(__arm__)
+void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp, jboolean skipR1) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
@@ -258,7 +274,7 @@ void Pine_getArgs32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, j
                 if (length == 1) break;
                 array[1] = reinterpret_cast<jint>(extras->r3);
                 if (length == 2) break;
-                array[2] = *reinterpret_cast<jint *>(sp + 12);
+                array[2] = *reinterpret_cast<jint*>(sp + 12);
             } else {
                 // Normal: use r1, r2, r3.
                 array[0] = reinterpret_cast<jint>(extras->r1);
@@ -279,6 +295,41 @@ void Pine_getArgs32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, j
         env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
     }
     extras->ReleaseLock();
+}
+#elif defined(__i386__)
+void Pine_getArgsX86(JNIEnv* env, jclass, jint javaExtras, jintArray javaArray, jint ebx) {
+    auto extras = reinterpret_cast<Extras*>(javaExtras);
+    jint length = env->GetArrayLength(javaArray);
+    if (LIKELY(length > 0)) {
+        jint* array = static_cast<jint*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
+        if (UNLIKELY(!array)) {
+            constexpr const char *error_msg = "GetPrimitiveArrayCritical returned nullptr! javaArray is invalid?";
+            LOGF(error_msg);
+            env->FatalError(error_msg);
+            abort(); // Unreachable
+        }
+
+        do {
+            array[0] = reinterpret_cast<jint>(extras->ecx);
+            if (length == 1) break;
+            array[1] = reinterpret_cast<jint>(extras->edx);
+            if (length == 2) break;
+            if (length == 3) {
+                // sizeof(args) == 12: use ecx, edx and ebx.
+                array[2] = ebx;
+                break;
+            }
+            uintptr_t esp = reinterpret_cast<uintptr_t>(extras->esp) + 4/*edi*/;
+
+            // get args from stack
+            for (int i = 2; i < length; i++) {
+                array[i] = *reinterpret_cast<jint*> (esp + 4 /*callee*/ + 4 * i);
+            }
+        } while (false);
+
+        env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
+    }
+//  extras->ReleaseLock();
 }
 #endif
 
@@ -314,10 +365,12 @@ static const struct {
         {"getAddress0", "(JLjava/lang/Object;)J"},
         {"setDebuggable0", "(Z)V"},
         {"currentArtThread0", "()J"},
-#ifdef __LP64__
-        {"getArgs64", "(J[JJ)V"}
-#else
-        {"getArgs32", "(I[IIZ)V"}
+#ifdef __aarch64__
+        {"getArgsArm64", "(J[JJ)V"}
+#elif defined(__arm__)
+        {"getArgsArm32", "(I[IIZ)V"}
+#elif defined(__i386__)
+        {"getArgsX86", "(I[II)V"}
 #endif
 };
 
@@ -346,10 +399,12 @@ static const JNINativeMethod gMethods[] = {
         {"setDebuggable0", "(Z)V", (void*) Pine_setDebuggable},
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
 
-#ifdef __LP64__
-        {"getArgs64", "(J[JJ)V", (void*) Pine_getArgs64}
-#else
-        {"getArgs32", "(I[IIZ)V", (void*) Pine_getArgs32}
+#ifdef __aarch64__
+        {"getArgsArm64", "(J[JJ)V", (void*) Pine_getArgsArm64}
+#elif defined(__arm__)
+        {"getArgsArm32", "(I[IIZ)V", (void*) Pine_getArgsArm32}
+#elif defined(__i386__)
+        {"getArgsX86", "(I[II)V", (void*) Pine_getArgsX86}
 #endif
 };
 
@@ -377,8 +432,7 @@ EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* sy
     ElfImg handle(elf);
     void* addr = handle.GetSymbolAddress(symbol);
     if (UNLIKELY(!addr)) return false;
-    TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(addr, replace);
-    return true;
+    return TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(addr, replace);
 }
 
 EXPORT_C void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {

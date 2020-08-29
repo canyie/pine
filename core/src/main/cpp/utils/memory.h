@@ -39,6 +39,15 @@ namespace pine {
         static inline void FlushCache(void* addr, size_t size) {
             __builtin___clear_cache((char*) addr, (char*) ((uintptr_t) addr + size));
         }
+
+        template <typename T>
+        static inline T AlignUp(T value, T align_with) {
+            T alignment = value % align_with;
+            if (alignment) {
+                value += (align_with - alignment);
+            }
+            return value;
+        }
     private:
         static const size_t page_size;
         static uintptr_t address;

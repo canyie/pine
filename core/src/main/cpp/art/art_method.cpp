@@ -95,14 +95,6 @@ static inline size_t Difference(intptr_t a, intptr_t b) {
     return static_cast<size_t>(size);
 }
 
-static inline uint32_t Align(uint32_t offset, uint32_t align_with) {
-    uint32_t alignment = offset % align_with;
-    if (alignment) {
-        offset += (align_with - alignment);
-    }
-    return offset;
-}
-
 void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags) {
     if (Android::version >= Android::kN) {
         kAccCompileDontBother = (Android::version >= Android::kOMr1)
@@ -170,7 +162,7 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
 
             if (Android::version >= Android::kO) {
                 // Only align offset on Android O+ (PtrSizedFields is PACKED(4) in Android N or lower.)
-                compiled_code_entry_offset = Align(compiled_code_entry_offset,
+                compiled_code_entry_offset = Memory::AlignUp<uint32_t>(compiled_code_entry_offset,
                                                    entry_point_member_size);
             }
 

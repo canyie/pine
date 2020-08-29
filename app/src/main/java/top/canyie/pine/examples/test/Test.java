@@ -53,7 +53,7 @@ public abstract class Test extends MethodHook {
                 unhook = Pine.hook((Method) target, this);
             else
                 unhook = Pine.hook((Constructor<?>) target, this);
-
+            Log.i(ExampleApp.TAG, "Returning from hook");
             int result = testImpl();
             unhook.unhook();
             return result;

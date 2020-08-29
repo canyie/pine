@@ -12,6 +12,8 @@
 #include "arch/arm64.h"
 #elif defined(__arm__)
 #include "arch/thumb2.h"
+#elif defined(__i386__)
+#include "arch/x86.h"
 #else
 #error unsupported architecture
 #endif
@@ -24,8 +26,10 @@ TrampolineInstaller* TrampolineInstaller::GetOrInitDefault() {
     if (default_ == nullptr) {
 #ifdef __aarch64__
         default_ = new Arm64TrampolineInstaller;
-#else
+#elif defined(__arm__)
         default_ = new Thumb2TrampolineInstaller;
+#elif defined(__i386__)
+        default_ = new X86TrampolineInstaller;
 #endif
         default_->Init();
     }
@@ -79,6 +83,12 @@ TrampolineInstaller::CreateBridgeJumpTrampoline(art::ArtMethod* target, art::Art
     *origin_entry_out = origin_code_entry;
 
     Memory::FlushCache(mem, kBridgeJumpTrampolineSize);
+
+    LOGE("Target method %p Bridge method %p bridge entry %p Extras %p", target, bridge, bridge->GetEntryPointFromCompiledCode(), *extras_out);
+    unsigned char* p = static_cast<unsigned char*>(mem);
+    for (int i = 0;i < 48;) {
+        LOGE("%#x %#x %#x %#x %#x %#x %#x %#x", p[i++], p[i++], p[i++], p[i++], p[i++], p[i++], p[i++], p[i++]);
+    }
     return mem;
 }
 
@@ -150,8 +160,8 @@ TrampolineInstaller::InstallReplacementTrampoline(art::ArtMethod* target, art::A
     // return call_origin_trampoline;
 
     if (PineConfig::debug)
-        LOGD("InstallReplacementTrampoline: origin_entry %p bridge_jump %p",
-                origin_code_entry, bridge_jump_trampoline);
+        LOGD("InstallReplacementTrampoline: origin %p origin_entry %p bridge_jump %p",
+                target, origin_code_entry, bridge_jump_trampoline);
 
     return origin_code_entry;
 }

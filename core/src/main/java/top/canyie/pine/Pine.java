@@ -28,11 +28,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class Pine {
     private static final String TAG = "Pine";
     public static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
+    private static final int ARCH_ARM = 1;
+    private static final int ARCH_ARM64 = 2;
+    private static final int ARCH_X86 = 3;
     private static volatile boolean initialized;
     private static final Map<String, Method> sBridgeMethods = new HashMap<>(8, 2f);
     private static final Map<Long, HookRecord> sHookRecords = new ConcurrentHashMap<>();
     private static final Object sHookLock = new Object();
-    private static boolean is64Bit;
+    private static int arch;
     private static volatile int hookMode = HookMode.AUTO;
     private static HookListener sHookListener;
 
@@ -87,14 +90,17 @@ public final class Pine {
             String entryClassName;
             Class<?>[] paramTypes;
 
-            if (is64Bit) {
-                entryClassName = "top.canyie.pine.entry.Entry64";
+            if (arch == ARCH_ARM64) {
+                entryClassName = "top.canyie.pine.entry.Arm64Entry";
                 paramTypes = new Class<?>[] {long.class, long.class, long.class,
                         long.class, long.class, long.class, long.class};
-            } else {
-                entryClassName = "top.canyie.pine.entry.Entry32";
+            } else if (arch == ARCH_ARM) {
+                entryClassName = "top.canyie.pine.entry.Arm32Entry";
                 paramTypes = new Class<?>[] {int.class, int.class, int.class};
-            }
+            } else if (arch == ARCH_X86) {
+                entryClassName = "top.canyie.pine.entry.X86Entry";
+                paramTypes = new Class<?>[] {int.class, int.class, int.class};
+            } else throw new RuntimeException("Unexpected arch " + arch);
 
             // Use Class.forName() to ensure entry class is initialized.
             Class<?> entryClass = Class.forName(entryClassName, true, Pine.class.getClassLoader());
@@ -128,7 +134,7 @@ public final class Pine {
 
     public static boolean is64Bit() {
         ensureInitialized();
-        return is64Bit;
+        return arch == ARCH_ARM64;
     }
 
     public static MethodHook.Unhook hook(Method method, MethodHook callback) {
@@ -523,9 +529,11 @@ public final class Pine {
 
     private static native long getAddress0(long thread, Object o);
 
-    public static native void getArgs32(int extras, int[] out, int sp, boolean skipR1);
+    public static native void getArgsArm32(int extras, int[] out, int sp, boolean skipR1);
 
-    public static native void getArgs64(long extras, long[] out, long sp);
+    public static native void getArgsArm64(long extras, long[] out, long sp);
+
+    public static native void getArgsX86(int extras, int[] out, int ebx);
 
     private static native void updateDeclaringClass(Member origin, Method backup);
 

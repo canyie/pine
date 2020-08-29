@@ -12,8 +12,7 @@
 namespace pine {
     class Arm32TrampolineInstaller final : public TrampolineInstaller {
     public:
-        Arm32TrampolineInstaller() {
-            kSkipBytes = 4;
+        Arm32TrampolineInstaller() : TrampolineInstaller(4) {
         }
     protected:
         virtual void InitTrampolines() override ;
