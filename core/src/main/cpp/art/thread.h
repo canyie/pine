@@ -79,6 +79,14 @@ namespace pine::art {
             return decode_jobject(this, o);
         }
 
+        void* AllocNonMovable(jclass cls) {
+            if (LIKELY(alloc_non_movable)) {
+                void* real_cls = DecodeJObject(cls);
+                return alloc_non_movable(real_cls, this);
+            }
+            return nullptr;
+        }
+
     private:
         inline int32_t* GetStateAndFlagsPtr() {
             // class Thread {
@@ -100,6 +108,8 @@ namespace pine::art {
         static jweak (*add_weak_global_ref)(JavaVM*, Thread*, void*);
 
         static void* (*decode_jobject)(Thread*, jobject);
+
+        static void* (*alloc_non_movable)(void*, Thread*);
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Thread);
     };

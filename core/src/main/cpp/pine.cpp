@@ -126,17 +126,27 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     bool skip_first_few_bytes = PineConfig::anti_checks
             && is_inline_hook && trampoline_installer->CanSkipFirstFewBytes(target);
 
-    ScopedLocalRef<jobject> java_new_art_method(env);
     art::ArtMethod* backup;
     if (WellKnownClasses::java_lang_reflect_ArtMethod) {
         // If ArtMethod has mirror class in java, we cannot use malloc to direct
         // allocate a instance because it must has a record in Runtime.
-        java_new_art_method.Reset(env->AllocObject(WellKnownClasses::java_lang_reflect_ArtMethod));
-        if (UNLIKELY(env->ExceptionCheck())) {
-            LOGE("Cannot allocate backup ArtMethod object!");
-            return nullptr;
+
+        backup = static_cast<art::ArtMethod*>(thread->AllocNonMovable(
+                WellKnownClasses::java_lang_reflect_ArtMethod));
+        if (UNLIKELY(!backup)) {
+            // On Android kitkat, moving gc is not supported in art. All objects are immovable.
+            if (UNLIKELY(Android::version != Android::kK)) {
+                LOGE("Failed to allocate an immovable object for creating backup method.");
+                env->ExceptionClear();
+            }
+
+            jobject javaBackup = env->AllocObject(WellKnownClasses::java_lang_reflect_ArtMethod);
+            if (UNLIKELY(env->ExceptionCheck())) {
+                LOGE("Can't create the backup method!");
+                return nullptr;
+            }
+            backup = static_cast<art::ArtMethod*>(thread->DecodeJObject(javaBackup));
         }
-        backup = static_cast<art::ArtMethod*>(thread->DecodeJObject(java_new_art_method.Get()));
     } else {
         backup = art::ArtMethod::New();
         if (UNLIKELY(!backup)) {
