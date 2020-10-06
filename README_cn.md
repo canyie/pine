@@ -1,6 +1,4 @@
-# Pine
-[![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg)](https://bintray.com/canyie/pine/core/_latestVersion)
-[![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE_CN)
+# Pine [![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg)](https://bintray.com/canyie/pine/core/_latestVersion) [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE_CN)
 ## 简介
 Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook框架，它可以拦截本进程内几乎所有的java方法调用。
 
@@ -15,7 +13,7 @@ Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook�
 在 build.gradle 中添加如下依赖（jcenter仓库）：
 ```groovy
 dependencies {
-    implementation 'top.canyie.pine:core:0.0.3'
+    implementation 'top.canyie.pine:core:<version>'
 }
 ```
 配置一些基础信息：
