@@ -19,6 +19,13 @@ void (*Android::suspend_vm)() = nullptr;
 
 void (*Android::resume_vm)() = nullptr;
 
+static bool hook_ShouldUseInterpreterEntrypoint(art::ArtMethod* method, const void* quick_code) {
+    if (UNLIKELY(method->IsNative() || method->IsProxy())) return false;
+    if (!quick_code) return true;
+    // We cannot call the original function now, and current code will cause crash
+    return !method->IsHooked();
+}
+
 void Android::Init(JNIEnv* env, int sdk_version) {
     Android::version = sdk_version;
     if (UNLIKELY(env->GetJavaVM(&jvm) != JNI_OK)) {
@@ -43,6 +50,18 @@ void Android::Init(JNIEnv* env, int sdk_version) {
         if (sdk_version >= kN) {
             ElfImg jit_lib_handle("libart-compiler.so", false);
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
+        }
+
+        if (UNLIKELY(PineConfig::debuggable && sdk_version >= kR)) {
+            // We cannot set kAccNative for hooked methods because that will cause crash,
+            // TODO hook ClassLinker::ShouldUseInterpreterEntrypoint
+
+            /*void* should_use_interpreter = art_lib_handle.GetSymbolAddress(
+                    "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
+            if (LIKELY(should_use_interpreter)) {
+                TrampolineInstaller::GetDefault()->NativeHookNoBackup(should_use_interpreter,
+                        reinterpret_cast<void*>(hook_ShouldUseInterpreterEntrypoint));
+            }*/
         }
     }
 
@@ -110,4 +129,15 @@ bool Android::DisableProfileSaver() {
     TrampolineInstaller::GetDefault()->NativeHookNoBackup(process_profiling_info,
             reinterpret_cast<void*>(FakeProcessProfilingInfo));
     return true;
+}
+
+JNIEnv* Android::GetEnvOrAttach() {
+    JNIEnv* env;
+    int status = jvm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
+    if (UNLIKELY(status == JNI_EDETACHED)) {
+        LOGW("The current thread are not attached to the java vm. Attaching...");
+        status = jvm->AttachCurrentThread(&env, nullptr);
+    }
+    CHECK_EQ(status, JNI_OK, "JNI GetEnv returned error %d", status);
+    return env;
 }

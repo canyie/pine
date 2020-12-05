@@ -60,11 +60,13 @@ public final class Pine {
         int sdkLevel = Build.VERSION.SDK_INT;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + Build.VERSION.SDK_INT);
-        else if (sdkLevel > Build.VERSION_CODES.Q
-                || (sdkLevel == Build.VERSION_CODES.Q && Build.VERSION.PREVIEW_SDK_INT > 0)) {
-            // Android R Preview, not test...
-            Log.w(TAG, "Android R, not test.");
+        else if (sdkLevel == Build.VERSION_CODES.Q && Build.VERSION.PREVIEW_SDK_INT > 0) {
+            // Android R Preview
             sdkLevel = 30;
+        }
+
+        if (sdkLevel > Build.VERSION_CODES.Q) {
+            Log.w(TAG, "Android version too high, not tested now...");
         }
 
         String vmVersion = System.getProperty("java.vm.version");
@@ -506,6 +508,16 @@ public final class Pine {
             Log.i(TAG, String.format(fmt, args));
         }
     }
+
+    /*private static int getClassAccessFlagsOffset() {
+        try {
+            Field accessFlags = Class.class.getDeclaredField("accessFlags");
+            return Primitives.getFieldOffset(accessFlags);
+        } catch (Exception e) {
+            Log.e(TAG, "Can't dynamic find offset of Class accessFlags, use default.");
+
+        }
+    }*/
 
     private static native void init0(int androidVersion, boolean debug, boolean debuggable, boolean antiChecks);
 

@@ -1,5 +1,6 @@
 package top.canyie.pine.utils;
 
+import android.annotation.SuppressLint;
 import android.util.Log;
 
 import java.lang.reflect.Field;
@@ -11,7 +12,7 @@ import top.canyie.pine.Pine;
 /**
  * @author canyie
  */
-public final class Primitives {
+@SuppressWarnings("JavaReflectionMemberAccess") @SuppressLint("PrivateApi") public final class Primitives {
     private static final String TAG = "Primitives";
     private static Class<?> unsafeClass;
     private static Object unsafe;
@@ -66,6 +67,10 @@ public final class Primitives {
                 shadowKlassField.set(target, newClass);
             } else {
                 ensureUnsafeReady();
+                if (putObject == null) {
+                    putObject = unsafeClass.getDeclaredMethod("putObject", Object.class, long.class, Object.class);
+                    putObject.setAccessible(true);
+                }
                 putObject.invoke(unsafe, target, 0L, newClass); // offset 0 is first field
             }
         } catch (Exception e) {
@@ -89,6 +94,31 @@ public final class Primitives {
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static int getFieldOffset(Field field) throws Exception {
+        // 1. try Android-specific field
+        try {
+            Field offset = Field.class.getDeclaredField("offset");
+            offset.setAccessible(true);
+            return offset.getInt(field);
+        } catch (Exception ignored) {
+        }
+
+        // 2. try Android-specific method
+        try {
+            @SuppressLint("DiscouragedPrivateApi") Method getOffset = Field.class.getDeclaredMethod("getOffset");
+            getOffset.setAccessible(true);
+            return (int) getOffset.invoke(field);
+        } catch (Exception ignored) {
+        }
+
+        // 3. try Java traditional method
+        // We assume that the field is non-static.
+        ensureUnsafeReady();
+        Method objectFieldOffset = unsafeClass.getDeclaredMethod("objectFieldOffset", Field.class);
+        objectFieldOffset.setAccessible(true);
+        return (int) objectFieldOffset.invoke(unsafe, field);
     }
 
     public static void removeClassFinalFlag(Class<?> target) {
@@ -158,11 +188,10 @@ public final class Primitives {
     }
 
     private static void ensureUnsafeReady() {
+        if (unsafe != null) return;
         try {
             unsafeClass = Class.forName("sun.misc.Unsafe");
             unsafe = getUnsafe();
-            putObject = unsafeClass.getDeclaredMethod("putObject", Object.class, long.class, Object.class);
-            putObject.setAccessible(true);
         } catch (Exception e) {
             throw new RuntimeException("Unsafe API is unavailable", e);
         }

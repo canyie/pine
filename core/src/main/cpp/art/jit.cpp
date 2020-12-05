@@ -33,6 +33,7 @@ void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
         LOGW("Failed to create new JitCompiler: jit_load not found");
     }
 
+    // FIXME: jit_compile_method doesn't exist in Android R
     void* jit_compile_method = jit_lib_handle->GetSymbolAddress("jit_compile_method");
 
     if (Android::version >= Android::kQ) {

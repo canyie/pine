@@ -19,6 +19,7 @@ void* ArtMethod::art_quick_to_interpreter_bridge = nullptr;
 void* ArtMethod::art_quick_generic_jni_trampoline = nullptr;
 void* ArtMethod::art_interpreter_to_compiled_code_bridge = nullptr;
 void* ArtMethod::art_interpreter_to_interpreter_bridge = nullptr;
+void* ArtMethod::art_quick_proxy_invoke_handler = nullptr;
 
 void (*ArtMethod::copy_from)(ArtMethod*, ArtMethod*, size_t) = nullptr;
 
@@ -27,6 +28,9 @@ Member<ArtMethod, void*> ArtMethod::entry_point_from_jni_;
 Member<ArtMethod, void*> ArtMethod::entry_point_from_compiled_code_;
 Member<ArtMethod, void*>* ArtMethod::entry_point_from_interpreter_;
 Member<ArtMethod, uint32_t>* ArtMethod::declaring_class = nullptr;
+
+std::set<ArtMethod*> ArtMethod::hooked_methods;
+std::shared_mutex ArtMethod::hooked_methods_mutex;
 
 void ArtMethod::Init(const ElfImg* handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
@@ -64,6 +68,9 @@ void ArtMethod::Init(const ElfImg* handle) {
     if (symbol_copy_from)
         copy_from = reinterpret_cast<void (*)(ArtMethod*, ArtMethod*, size_t)>(
                 handle->GetSymbolAddress(symbol_copy_from));
+
+    if (Android::version >= Android::kR)
+        art_quick_proxy_invoke_handler = handle->GetSymbolAddress("art_quick_proxy_invoke_handler");
 }
 
 ArtMethod* ArtMethod::FromReflectedMethod(JNIEnv* env, jobject javaMethod) {
@@ -195,8 +202,17 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
     }
 }
 
-void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook,
-        bool is_native_or_proxy) {
+bool ArtMethod::IsProxy() {
+    // Quick check this is proxy method.
+    if (GetEntryPointFromCompiledCode() == art_quick_proxy_invoke_handler) {
+        return true;
+    }
+    // TODO: Check this is proxy constructor.
+    return false;
+}
+
+
+void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy) {
     if (LIKELY(copy_from)) {
         copy_from(this, source, sizeof(void*));
     } else {
@@ -250,7 +266,11 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
             // Android 8.0+ and debug mode, ART may force the use of interpreter mode,
             // and entry_point_from_compiled_code_ will be ignored. Set kAccNative to avoid it.
             // See ClassLinker::ShouldUseInterpreterEntrypoint(ArtMethod*, const void*)
-            access_flags |= AccessFlags::kNative;
+
+            // Android R: Set kAccNative will cause crash, just don't set
+            // We will hook ClassLinker::ShouldUseInterpreterEntrypoint to replace it.
+            if (LIKELY(Android::version < Android::kR))
+                access_flags |= AccessFlags::kNative;
         }
     }
 
@@ -275,5 +295,10 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
 
     if (art_interpreter_to_compiled_code_bridge)
         SetEntryPointFromInterpreter(art_interpreter_to_compiled_code_bridge);
+
+    {
+        std::unique_lock<std::shared_mutex> lock(hooked_methods_mutex);
+        hooked_methods.insert(this);
+    }
 }
 
