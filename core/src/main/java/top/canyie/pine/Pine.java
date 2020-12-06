@@ -8,6 +8,7 @@ import top.canyie.pine.callback.MethodHook;
 import top.canyie.pine.utils.Primitives;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -508,16 +509,6 @@ public final class Pine {
             Log.i(TAG, String.format(fmt, args));
         }
     }
-
-    /*private static int getClassAccessFlagsOffset() {
-        try {
-            Field accessFlags = Class.class.getDeclaredField("accessFlags");
-            return Primitives.getFieldOffset(accessFlags);
-        } catch (Exception e) {
-            Log.e(TAG, "Can't dynamic find offset of Class accessFlags, use default.");
-
-        }
-    }*/
 
     private static native void init0(int androidVersion, boolean debug, boolean debuggable, boolean antiChecks);
 

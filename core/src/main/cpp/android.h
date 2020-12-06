@@ -16,8 +16,6 @@ namespace pine {
             return sizeof(void*) == 8;
         }
 
-        static JNIEnv* GetEnvOrAttach();
-
         static void Init(JNIEnv* env, int sdk_version);
 
         static bool DisableProfileSaver();
@@ -42,6 +40,7 @@ namespace pine {
         static constexpr int kR = 30;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle);
+        static void DisableInterpreterForHookedMethods(const ElfImg* handle);
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);
     };

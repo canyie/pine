@@ -15,9 +15,7 @@ namespace pine {
     public:
         static void Init(JNIEnv* env);
         static jclass java_lang_reflect_ArtMethod;
-        static jclass java_lang_reflect_Proxy;
         static jfieldID java_lang_reflect_Executable_artMethod;
-        static jmethodID java_lang_reflect_Proxy_isProxyClass;
     private:
         static jclass RequireClass(JNIEnv* env, const char* name) {
             jclass local_ref = env->FindClass(name);

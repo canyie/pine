@@ -128,11 +128,14 @@ In the example, we recommend that the hook method is `methodLocked` instead of `
 - [AndroidELF](https://github.com/ganyao114/AndroidELF)
 - [FastHook](https://github.com/turing-technician/FastHook)
 - [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
+- [Dobby](https://github.com/jmpews/Dobby)
 
 ## License
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)
 
 [AndroidELF](https://github.com/ganyao114/AndroidELF)  Copyright (c) [Swift Gan](https://github.com/ganyao114)
+
+[Dobby](https://github.com/jmpews/Dobby)  Copyright (c) [jmpews](https://github.com/jmpews)
 
 Licensed under the Anti 996 License, Version 1.0 (the "License");
 

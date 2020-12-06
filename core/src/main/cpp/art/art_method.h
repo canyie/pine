@@ -221,8 +221,6 @@ namespace pine::art {
             return code_size;
         }
 
-        bool IsProxy();
-
         bool IsHooked() {
             std::shared_lock<std::shared_mutex> lock(hooked_methods_mutex);
             return hooked_methods.count(this) != 0;
@@ -313,7 +311,6 @@ namespace pine::art {
         static void* art_quick_generic_jni_trampoline;
         static void* art_interpreter_to_interpreter_bridge;
         static void* art_interpreter_to_compiled_code_bridge;
-        static void* art_quick_proxy_invoke_handler;
 
         static void (*copy_from)(ArtMethod*, ArtMethod*, size_t);
 

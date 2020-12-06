@@ -1,26 +1,21 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
+
     defaultConfig {
-        applicationId "top.canyie.pine.examples"
-        minSdkVersion 19
-        targetSdkVersion 27
+        minSdkVersion 15
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        consumerProguardFiles 'consumer-rules.pro'
 
         externalNativeBuild {
             cmake {
-                cFlags '-Wall -Wextra -Werror'
-                cppFlags '-std=c++17'
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
             }
-        }
-
-        ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a'
         }
     }
 
@@ -41,7 +36,8 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation project(':core')
-    implementation project(':dobby')
-    implementation 'com.iqiyi.xcrash:xcrash-android-lib:2.4.9'
+}
+
+tasks.withType(JavaCompile) {
+    enabled false
 }

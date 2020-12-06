@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <string>
+#include <dlfcn.h>
 #include "android.h"
 #include "utils/well_known_classes.h"
 #include "art/art_method.h"
@@ -16,14 +17,13 @@ int Android::version = -1;
 JavaVM* Android::jvm = nullptr;
 
 void (*Android::suspend_vm)() = nullptr;
-
 void (*Android::resume_vm)() = nullptr;
 
+static bool (*orig_ShouldUseInterpreterEntrypoint)(art::ArtMethod*, const void*);
+
 static bool hook_ShouldUseInterpreterEntrypoint(art::ArtMethod* method, const void* quick_code) {
-    if (UNLIKELY(method->IsNative() || method->IsProxy())) return false;
-    if (!quick_code) return true;
-    // We cannot call the original function now, and current code will cause crash
-    return !method->IsHooked();
+    if (UNLIKELY(method->IsHooked() && quick_code != nullptr)) return false;
+    return orig_ShouldUseInterpreterEntrypoint(method, quick_code);
 }
 
 void Android::Init(JNIEnv* env, int sdk_version) {
@@ -53,15 +53,8 @@ void Android::Init(JNIEnv* env, int sdk_version) {
         }
 
         if (UNLIKELY(PineConfig::debuggable && sdk_version >= kR)) {
-            // We cannot set kAccNative for hooked methods because that will cause crash,
-            // TODO hook ClassLinker::ShouldUseInterpreterEntrypoint
-
-            /*void* should_use_interpreter = art_lib_handle.GetSymbolAddress(
-                    "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
-            if (LIKELY(should_use_interpreter)) {
-                TrampolineInstaller::GetDefault()->NativeHookNoBackup(should_use_interpreter,
-                        reinterpret_cast<void*>(hook_ShouldUseInterpreterEntrypoint));
-            }*/
+            // We cannot set kAccNative for hooked methods because that will cause crash
+            DisableInterpreterForHookedMethods(&art_lib_handle);
         }
     }
 
@@ -131,13 +124,29 @@ bool Android::DisableProfileSaver() {
     return true;
 }
 
-JNIEnv* Android::GetEnvOrAttach() {
-    JNIEnv* env;
-    int status = jvm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6);
-    if (UNLIKELY(status == JNI_EDETACHED)) {
-        LOGW("The current thread are not attached to the java vm. Attaching...");
-        status = jvm->AttachCurrentThread(&env, nullptr);
+void Android::DisableInterpreterForHookedMethods(const ElfImg* handle) {
+    void* dobby = dlopen("libdobby.so", RTLD_NOW | RTLD_LOCAL);
+    if (UNLIKELY(!dobby)) {
+        LOGE("Dobby not found. On Android R+, Dobby is required for debuggable apps,");
+        LOGE("   otherwise the hook may not work. Please include Dobby to your app!");
+        return;
     }
-    CHECK_EQ(status, JNI_OK, "JNI GetEnv returned error %d", status);
-    return env;
+    void (*dobby_hook)(void*, void*, void**) = reinterpret_cast<void (*)(void*, void*, void**)>(
+            dlsym(dobby, "DobbyHook"));
+    if (UNLIKELY(!dobby_hook)) {
+        LOGE("Failed to find DobbyHook: %s", dlerror());
+        dlclose(dobby);
+        return;
+    }
+
+    void* target = handle->GetSymbolAddress(
+            "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
+    void* replace = reinterpret_cast<void*>(hook_ShouldUseInterpreterEntrypoint);
+    if (LIKELY(target)) {
+        dobby_hook(target, replace, reinterpret_cast<void**>(&orig_ShouldUseInterpreterEntrypoint));
+    } else {
+        LOGE("Can't find ClassLinker::ShouldUseInterpreterEntrypoint. Hook may not work.");
+    }
+
+    dlclose(dobby);
 }

@@ -19,7 +19,6 @@ void* ArtMethod::art_quick_to_interpreter_bridge = nullptr;
 void* ArtMethod::art_quick_generic_jni_trampoline = nullptr;
 void* ArtMethod::art_interpreter_to_compiled_code_bridge = nullptr;
 void* ArtMethod::art_interpreter_to_interpreter_bridge = nullptr;
-void* ArtMethod::art_quick_proxy_invoke_handler = nullptr;
 
 void (*ArtMethod::copy_from)(ArtMethod*, ArtMethod*, size_t) = nullptr;
 
@@ -68,9 +67,6 @@ void ArtMethod::Init(const ElfImg* handle) {
     if (symbol_copy_from)
         copy_from = reinterpret_cast<void (*)(ArtMethod*, ArtMethod*, size_t)>(
                 handle->GetSymbolAddress(symbol_copy_from));
-
-    if (Android::version >= Android::kR)
-        art_quick_proxy_invoke_handler = handle->GetSymbolAddress("art_quick_proxy_invoke_handler");
 }
 
 ArtMethod* ArtMethod::FromReflectedMethod(JNIEnv* env, jobject javaMethod) {
@@ -201,16 +197,6 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
         entry_point_from_interpreter_ = new Member<ArtMethod, void*>(36);
     }
 }
-
-bool ArtMethod::IsProxy() {
-    // Quick check this is proxy method.
-    if (GetEntryPointFromCompiledCode() == art_quick_proxy_invoke_handler) {
-        return true;
-    }
-    // TODO: Check this is proxy constructor.
-    return false;
-}
-
 
 void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy) {
     if (LIKELY(copy_from)) {
