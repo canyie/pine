@@ -39,8 +39,8 @@ namespace pine {
 
         static jfieldID RequireNonStaticFieldID(JNIEnv* env, const char* class_name, const char* name,
                                                 const char* signature) {
-            jclass c = env->FindClass(name);
-            CHECK(c != nullptr, "Required class %s not found", name);
+            jclass c = env->FindClass(class_name);
+            CHECK(c != nullptr, "Required class %s not found", class_name);
             jfieldID field = env->GetFieldID(c, name, signature);
             CHECK(field != nullptr, "Required field %s with signature %s in class %s is not found",
                     name, signature, class_name);
