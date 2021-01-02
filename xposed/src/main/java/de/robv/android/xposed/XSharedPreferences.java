@@ -26,7 +26,10 @@ import java.util.Set;
  * This class is basically the same as SharedPreferencesImpl from AOSP, but
  * read-only and without listeners support. Instead, it is made to be
  * compatible with all ROMs.
+ * @deprecated This class may cannot works in Android 9+,
+ * please use other api (e.g. ContentProvider) to share module configurations.
  */
+@Deprecated
 public final class XSharedPreferences implements SharedPreferences {
 	private static final String TAG = "XSharedPreferences";
 	private final File mFile;
