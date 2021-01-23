@@ -16,8 +16,11 @@ namespace pine {
             return sizeof(void*) == 8;
         }
 
-        static void Init(JNIEnv* env, int sdk_version);
-
+        static void Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, bool disable_hiddenapi_policy_for_platform);
+        static void DisableHiddenApiPolicy(bool application, bool platform) {
+            ElfImg handle("libart.so");
+            DisableHiddenApiPolicy(&handle, application, platform);
+        }
         static bool DisableProfileSaver();
 
         static int version;
@@ -39,7 +42,7 @@ namespace pine {
         static constexpr int kQ = 29;
         static constexpr int kR = 30;
     private:
-        static void DisableHiddenApiPolicy(const ElfImg* handle);
+        static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
         static void DisableInterpreterForHookedMethods(const ElfImg* handle);
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);

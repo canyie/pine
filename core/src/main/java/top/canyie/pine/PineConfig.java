@@ -10,6 +10,10 @@ package top.canyie.pine;
     public static boolean useFastNative;
     /** Set to true will try to hide certain features. Some information used for debugging may be erased.  */
     public static boolean antiChecks;
+    /** Set to true will disable the hidden api policy for application domain */
+    public static boolean disableHiddenApiPolicy = true;
+    /** Set to true will disable the hidden api policy for platform domain */
+    public static boolean disableHiddenApiPolicyForPlatformDomain = true;
     public static Pine.LibLoader libLoader = new Pine.LibLoader() {
         @Override public void loadLib() {
             System.loadLibrary("pine");

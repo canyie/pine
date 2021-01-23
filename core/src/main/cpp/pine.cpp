@@ -36,13 +36,13 @@ bool PineConfig::anti_checks = false;
 bool PineConfig::jit_compilation_allowed = true;
 
 void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, jboolean debuggable,
-        jboolean antiChecks) {
+        jboolean antiChecks, jboolean disableHiddenApiPolicy, jboolean disableHiddenApiPolicyForPlatformDomain) {
     LOGI("Pine native init...");
     PineConfig::debug = static_cast<bool>(debug);
     PineConfig::debuggable = static_cast<bool>(debuggable);
     PineConfig::anti_checks = static_cast<bool>(antiChecks);
-    TrampolineInstaller::GetOrInitDefault(); // trigger TrampolineInstaller::default_ initialize
-    Android::Init(env, androidVersion);
+    TrampolineInstaller::GetOrInitDefault(); // trigger TrampolineInstaller::default_ initialization
+    Android::Init(env, androidVersion, disableHiddenApiPolicy, disableHiddenApiPolicyForPlatformDomain);
     {
         ScopedLocalClassRef Ruler(env, "top/canyie/pine/Ruler");
         auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "()V", true);
@@ -357,6 +357,10 @@ void Pine_setDebuggable(JNIEnv*, jclass, jboolean debuggable) {
     PineConfig::debuggable = static_cast<bool>(debuggable);
 }
 
+void Pine_disableHiddenApiPolicy0(JNIEnv*, jclass, jboolean application, jboolean platform) {
+    Android::DisableHiddenApiPolicy(application, platform);
+}
+
 jlong Pine_currentArtThread0(JNIEnv*, jclass) {
     return reinterpret_cast<jlong>(art::Thread::Current());
 }
@@ -374,6 +378,7 @@ static const struct {
         {"getObject0", "(JJ)Ljava/lang/Object;"},
         {"getAddress0", "(JLjava/lang/Object;)J"},
         {"setDebuggable0", "(Z)V"},
+        {"disableHiddenApiPolicy0", "(ZZ)V"},
         {"currentArtThread0", "()J"},
 #ifdef __aarch64__
         {"getArgsArm64", "(J[JJ)V"}
@@ -394,7 +399,7 @@ void Pine_enableFastNative(JNIEnv* env, jclass Pine) {
 }
 
 static const JNINativeMethod gMethods[] = {
-        {"init0", "(IZZZ)V", (void*) Pine_init0},
+        {"init0", "(IZZZZZ)V", (void*) Pine_init0},
         {"enableFastNative", "()V", (void*) Pine_enableFastNative},
         {"getArtMethod", "(Ljava/lang/reflect/Member;)J", (void*) Pine_getArtMethod},
         {"hook0", "(JLjava/lang/Class;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;ZZ)Ljava/lang/reflect/Method;", (void*) Pine_hook0},
@@ -407,6 +412,7 @@ static const JNINativeMethod gMethods[] = {
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},
         {"getAddress0", "(JLjava/lang/Object;)J", (void*) Pine_getAddress0},
         {"setDebuggable0", "(Z)V", (void*) Pine_setDebuggable},
+        {"disableHiddenApiPolicy0", "(ZZ)V", (void*) Pine_disableHiddenApiPolicy0},
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
 
 #ifdef __aarch64__

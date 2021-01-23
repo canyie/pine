@@ -26,7 +26,7 @@ static bool hook_ShouldUseInterpreterEntrypoint(art::ArtMethod* method, const vo
     return orig_ShouldUseInterpreterEntrypoint(method, quick_code);
 }
 
-void Android::Init(JNIEnv* env, int sdk_version) {
+void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, bool disable_hiddenapi_policy_for_platform) {
     Android::version = sdk_version;
     if (UNLIKELY(env->GetJavaVM(&jvm) != JNI_OK)) {
         LOGF("Cannot get java vm");
@@ -43,7 +43,7 @@ void Android::Init(JNIEnv* env, int sdk_version) {
                 art_lib_handle.GetSymbolAddress("_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
 
         if (Android::version >= Android::kP)
-            DisableHiddenApiPolicy(&art_lib_handle);
+            DisableHiddenApiPolicy(&art_lib_handle, disable_hiddenapi_policy, disable_hiddenapi_policy_for_platform);
 
         art::Thread::Init(&art_lib_handle);
         art::ArtMethod::Init(&art_lib_handle);
@@ -68,7 +68,7 @@ static int FakeHandleHiddenApi() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cppcoreguidelines-macro-usage"
 
-void Android::DisableHiddenApiPolicy(const ElfImg* handle) {
+void Android::DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform) {
     TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
     void* replace = reinterpret_cast<void*>(FakeHandleHiddenApi);
 
@@ -81,17 +81,23 @@ else  \
 } while(false)
 
     if (Android::version >= Android::kQ) {
-        // Android Q, for Domain::kApplication
-        HOOK("_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_8ArtFieldEEEbPT_NS0_7ApiListENS0_12AccessMethodE");
-        HOOK("_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_9ArtMethodEEEbPT_NS0_7ApiListENS0_12AccessMethodE");
+        if (application) {
+            // Android Q, for Domain::kApplication
+            HOOK("_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_8ArtFieldEEEbPT_NS0_7ApiListENS0_12AccessMethodE");
+            HOOK("_ZN3art9hiddenapi6detail28ShouldDenyAccessToMemberImplINS_9ArtMethodEEEbPT_NS0_7ApiListENS0_12AccessMethodE");
+        }
 
-        // For Domain::kPlatform
-        HOOK("_ZN3art9hiddenapi6detail30HandleCorePlatformApiViolationINS_8ArtFieldEEEbPT_RKNS0_13AccessContextENS0_12AccessMethodENS0_17EnforcementPolicyE");
-        HOOK("_ZN3art9hiddenapi6detail30HandleCorePlatformApiViolationINS_9ArtMethodEEEbPT_RKNS0_13AccessContextENS0_12AccessMethodENS0_17EnforcementPolicyE");
+        if (platform) {
+            // For Domain::kPlatform
+            HOOK("_ZN3art9hiddenapi6detail30HandleCorePlatformApiViolationINS_8ArtFieldEEEbPT_RKNS0_13AccessContextENS0_12AccessMethodENS0_17EnforcementPolicyE");
+            HOOK("_ZN3art9hiddenapi6detail30HandleCorePlatformApiViolationINS_9ArtMethodEEEbPT_RKNS0_13AccessContextENS0_12AccessMethodENS0_17EnforcementPolicyE");
+        }
     } else {
-        // Android P
-        HOOK("_ZN3art9hiddenapi6detail19GetMemberActionImplINS_8ArtFieldEEENS0_6ActionEPT_NS_20HiddenApiAccessFlags7ApiListES4_NS0_12AccessMethodE");
-        HOOK("_ZN3art9hiddenapi6detail19GetMemberActionImplINS_9ArtMethodEEENS0_6ActionEPT_NS_20HiddenApiAccessFlags7ApiListES4_NS0_12AccessMethodE");
+        // Android P, all accesses from platform domain will be allowed
+        if (application) {
+            HOOK("_ZN3art9hiddenapi6detail19GetMemberActionImplINS_8ArtFieldEEENS0_6ActionEPT_NS_20HiddenApiAccessFlags7ApiListES4_NS0_12AccessMethodE");
+            HOOK("_ZN3art9hiddenapi6detail19GetMemberActionImplINS_9ArtMethodEEENS0_6ActionEPT_NS_20HiddenApiAccessFlags7ApiListES4_NS0_12AccessMethodE");
+        }
     }
 
 #undef HOOK

@@ -78,7 +78,8 @@ public final class Pine {
             LibLoader libLoader = PineConfig.libLoader;
             if (libLoader != null) libLoader.loadLib();
 
-            init0(sdkLevel, PineConfig.debug, PineConfig.debuggable, PineConfig.antiChecks);
+            init0(sdkLevel, PineConfig.debug, PineConfig.debuggable, PineConfig.antiChecks,
+                    PineConfig.disableHiddenApiPolicy, PineConfig.disableHiddenApiPolicyForPlatformDomain);
             initBridgeMethods();
 
             if (PineConfig.useFastNative && sdkLevel >= Build.VERSION_CODES.LOLLIPOP)
@@ -426,6 +427,16 @@ public final class Pine {
         setDebuggable0(debuggable);
     }
 
+    public static void disableHiddenApiPolicy(boolean application, boolean platform) {
+        if (initialized) {
+            disableHiddenApiPolicy0(application, platform);
+        } else {
+            PineConfig.disableHiddenApiPolicy = application;
+            PineConfig.disableHiddenApiPolicyForPlatformDomain = platform;
+            ensureInitialized();
+        }
+    }
+
     public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
         if (PineConfig.debug)
@@ -510,7 +521,9 @@ public final class Pine {
         }
     }
 
-    private static native void init0(int androidVersion, boolean debug, boolean debuggable, boolean antiChecks);
+    private static native void init0(int androidVersion, boolean debug, boolean debuggable,
+                                     boolean antiChecks, boolean disableHiddenApiPolicy,
+                                     boolean disableHiddenApiPolicyForPlatformDomain);
 
     private static native void enableFastNative();
 
@@ -544,6 +557,8 @@ public final class Pine {
     public static native long currentArtThread0();
 
     private static native void setDebuggable0(boolean debuggable);
+
+    private static native void disableHiddenApiPolicy0(boolean application, boolean platform);
 
     public static final class HookRecord {
         public final Member target;
