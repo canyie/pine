@@ -70,13 +70,10 @@ void ArtMethod::Init(const ElfImg* handle) {
 }
 
 ArtMethod* ArtMethod::FromReflectedMethod(JNIEnv* env, jobject javaMethod) {
-    jmethodID m = env->FromReflectedMethod(javaMethod);
     if (Android::version >= Android::kR) {
-        if (reinterpret_cast<uintptr_t>(m) & 1) {
-            return GetArtMethodForR(env, javaMethod);
-        }
+        return GetArtMethodForR(env, javaMethod);
     }
-    return reinterpret_cast<ArtMethod*>(m);
+    return reinterpret_cast<ArtMethod*>(env->FromReflectedMethod(javaMethod));
 }
 
 ArtMethod*
@@ -217,10 +214,8 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
     access_flags &= ~AccessFlags::kConstructor;
     SetAccessFlags(access_flags);
 
-    if (UNLIKELY(Android::version >= Android::kN
-                 && !is_inline_hook
-                 && !is_native_or_proxy
-                 && art_quick_to_interpreter_bridge)) {
+    if (Android::version >= Android::kN && !is_inline_hook && !is_native_or_proxy
+            && art_quick_to_interpreter_bridge) {
         // On Android N+, the method may compiled by JIT, and unknown problem occurs when calling
         // the backup method if we use entry replacement mode. Just use the interpreter to execute.
         // Possible reason: compiled code is recycled in JIT garbage collection.
