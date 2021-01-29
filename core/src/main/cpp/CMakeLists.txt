@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4.1)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 set(PINE_SOURCES
         pine.cpp
         ruler.cpp
