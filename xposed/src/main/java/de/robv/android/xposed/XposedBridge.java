@@ -40,7 +40,7 @@ public final class XposedBridge {
 
 	/** @deprecated Use {@link #getXposedVersion()} instead. */
 	@Deprecated
-	public static int XPOSED_BRIDGE_VERSION;
+	public static int XPOSED_BRIDGE_VERSION = 90;
 
 	// built-in handlers
 	private static final Map<Member, CopyOnWriteSortedSet<XC_MethodHook>> sHookedMethodCallbacks = new HashMap<>();
@@ -50,15 +50,18 @@ public final class XposedBridge {
 
 	private XposedBridge() {}
 
-	// Pine changed: getXposedVersion() always return 100
 	/**
 	 * Returns the currently installed version of the Xposed framework.
 	 */
 	public static int getXposedVersion() {
-		return 100;
+		return XPOSED_BRIDGE_VERSION;
 	}
 
-	// Pine changed: log(String)/log(Throwable) is non-synchronized.
+	// Pine added: Lets
+	public static void setXposedVersion(int version) {
+		XPOSED_BRIDGE_VERSION = version;
+	}
+
 	/**
 	 * Writes a message to the Xposed error log.
 	 *
@@ -67,7 +70,7 @@ public final class XposedBridge {
 	 *
 	 * @param text The log message.
 	 */
-	public static void log(String text) {
+	public static synchronized void log(String text) {
 		Log.i(TAG, text);
 	}
 
@@ -79,7 +82,7 @@ public final class XposedBridge {
 	 *
 	 * @param t The Throwable object for the stack trace.
 	 */
-	public static void log(Throwable t) {
+	public static synchronized void log(Throwable t) {
 		Log.e(TAG, Log.getStackTraceString(t));
 	}
 
@@ -187,7 +190,7 @@ public final class XposedBridge {
 		return unhooks;
 	}
 
-	// Pine changed: removed handleHookedMethod(), its implements in Handler.class
+	// Pine changed: removed handleHookedMethod(), it' implements in Handler.class
 	// Pine changed: removed hookXxx(), its implements in PineXposed.class
 
 	/**
