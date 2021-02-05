@@ -96,9 +96,8 @@ public final class Pine {
 
             if (arch == ARCH_ARM64) {
                 entryClassName = "top.canyie.pine.entry.Arm64Entry";
-                paramTypes = new Class<?>[] {long.class, long.class, long.class, long.class,
-                        long.class, long.class, long.class, double.class, double.class, double.class,
-                        double.class, double.class, double.class, double.class, double.class};
+                paramTypes = new Class<?>[] {long.class, long.class, long.class,
+                        long.class, long.class, long.class, long.class};
             } else if (arch == ARCH_ARM) {
                 entryClassName = "top.canyie.pine.entry.Arm32Entry";
                 paramTypes = new Class<?>[] {int.class, int.class, int.class};
