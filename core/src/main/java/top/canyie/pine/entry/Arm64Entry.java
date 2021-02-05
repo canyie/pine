@@ -12,54 +12,64 @@ public final class Arm64Entry {
     private Arm64Entry() {
     }
 
-    private static void voidBridge(long artMethod, long extras, long sp,
-                                   long x4, long x5, long x6, long x7) throws Throwable {
-        handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static void voidBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                   double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                   double d7) throws Throwable {
+        handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static int intBridge(long artMethod, long extras, long sp,
-                                 long x4, long x5, long x6, long x7) throws Throwable {
-        return (int) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static int intBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                 double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                 double d7) throws Throwable {
+        return (int) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static long longBridge(long artMethod, long extras, long sp,
-                                   long x4, long x5, long x6, long x7) throws Throwable {
-        return (long) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static long longBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                   double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                   double d7) throws Throwable {
+        return (long) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static double doubleBridge(long artMethod, long extras, long sp,
-                                       long x4, long x5, long x6, long x7) throws Throwable {
-        return (double) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static double doubleBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                       double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                       double d7) throws Throwable {
+        return (double) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static float floatBridge(long artMethod, long extras, long sp,
-                                     long x4, long x5, long x6, long x7) throws Throwable {
-        return (float) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static float floatBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                     double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                     double d7) throws Throwable {
+        return (float) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static boolean booleanBridge(long artMethod, long extras, long sp,
-                                         long x4, long x5, long x6, long x7) throws Throwable {
-        return (boolean) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static boolean booleanBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                         double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                         double d7) throws Throwable {
+        return (boolean) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static char charBridge(long artMethod, long extras, long sp,
-                                   long x4, long x5, long x6, long x7) throws Throwable {
-        return (char) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static char charBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                   double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                   double d7) throws Throwable {
+        return (char) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static byte byteBridge(long artMethod, long extras, long sp,
-                                   long x4, long x5, long x6, long x7) throws Throwable {
-        return (byte) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static byte byteBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                   double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                   double d7) throws Throwable {
+        return (byte) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static short shortBridge(long artMethod, long extras, long sp,
-                                     long x4, long x5, long x6, long x7) throws Throwable {
-        return (short) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static short shortBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                     double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                     double d7) throws Throwable {
+        return (short) handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
-    private static Object objectBridge(long artMethod, long extras, long sp,
-                                       long x4, long x5, long x6, long x7) throws Throwable {
-        return handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
+    private static Object objectBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                       double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                       double d7) throws Throwable {
+        return handleBridge(artMethod, extras, sp, x4, x5, x6, x7, d0, d1, d2, d3, d4, d5, d6, d7);
     }
 
     /**
@@ -72,17 +82,20 @@ public final class Arm64Entry {
      * but the lr register is not 0 at the entry/exit of the proxy method.
      * Is the lr register assigned to 0 after the proxy method returns?
      */
-    private static Object handleBridge(long artMethod, long extras, long sp,
-                                       long x4, long x5, long x6, long x7) throws Throwable {
+    private static Object handleBridge(long artMethod, long extras, long sp, long x4, long x5, long x6, long x7,
+                                       double d0, double d1, double d2, double d3, double d4, double d5, double d6,
+                                       double d7) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
         long[] argsAsLongs = getArgsAsLongs(hookRecord, extras, sp, x4, x5, x6, x7);
+        double[] doubles = new double[] {d0, d1, d2, d3, d4, d5, d6, d7};
         long thread = Primitives.currentArtThread();
 
         Object receiver;
         Object[] args;
 
         int index = 0;
+        int floatingIndex = 0;
 
         if (hookRecord.isStatic) {
             receiver = null;
@@ -98,21 +111,29 @@ public final class Arm64Entry {
                 Object value;
                 if (paramType.isPrimitive()) {
                     if (paramType == int.class) {
-                        value = (int) argsAsLongs[index];
+                        value = (int) (argsAsLongs[index] & 0xffffffffL);
                     } else if (paramType == long.class) {
                         value = argsAsLongs[index];
                     } else if (paramType == double.class) {
-                        value = Double.longBitsToDouble(argsAsLongs[index]);
+                        if (floatingIndex < doubles.length)
+                            value = doubles[floatingIndex++];
+                        else
+                            value = Double.longBitsToDouble(argsAsLongs[index]);
                     } else if (paramType == float.class) {
-                        value = Float.intBitsToFloat((int) argsAsLongs[index]);
+                        int asInt;
+                        if (floatingIndex < doubles.length)
+                            asInt = (int) (Double.doubleToLongBits(doubles[floatingIndex++]) & 0xffffffffL);
+                        else
+                            asInt = (int) (argsAsLongs[index] & 0xffffffffL);
+                        value = Float.intBitsToFloat(asInt);
                     } else if (paramType == boolean.class) {
                         value = argsAsLongs[index] != 0;
                     } else if (paramType == short.class) {
-                        value = (short) argsAsLongs[index];
+                        value = (short) (argsAsLongs[index] & 0xffffL);
                     } else if (paramType == char.class) {
-                        value = (char) argsAsLongs[index];
+                        value = (char) (argsAsLongs[index] & 0xffffL);
                     } else if (paramType == byte.class) {
-                        value = (byte) argsAsLongs[index];
+                        value = (byte) (argsAsLongs[index] & 0xffL);
                     } else {
                         throw new AssertionError("Unknown primitive type: " + paramType);
                     }
@@ -130,8 +151,8 @@ public final class Arm64Entry {
         return Pine.handleCall(hookRecord, receiver, args);
     }
 
-    private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp,
-                                         long x4, long x5, long x6, long x7) {
+    private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp, long x4,
+                                         long x5, long x6, long x7) {
         int length = (hookRecord.isStatic ? 0 : 1 /*this*/) + hookRecord.paramNumber;
         boolean[] typeWides;
         if (length != 0) {
