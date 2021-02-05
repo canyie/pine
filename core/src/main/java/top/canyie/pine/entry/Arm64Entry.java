@@ -9,6 +9,9 @@ import top.canyie.pine.utils.Primitives;
 public final class Arm64Entry {
     private static final boolean[] EMPTY_BOOLEAN_ARRAY = new boolean[0];
     private static final long[] EMPTY_LONG_ARRAY = new long[0];
+    private static final long INT_BITS = 0xffffffffL;
+    private static final long SHORT_BITS = 0xffffL;
+    private static final long BYTE_BITS = 0xffL;
     private Arm64Entry() {
     }
 
@@ -98,27 +101,27 @@ public final class Arm64Entry {
                 Object value;
                 if (paramType.isPrimitive()) {
                     if (paramType == int.class) {
-                        value = (int) argsAsLongs[index];
+                        value = (int) (argsAsLongs[index] & INT_BITS);
                     } else if (paramType == long.class) {
                         value = argsAsLongs[index];
                     } else if (paramType == double.class) {
                         value = Double.longBitsToDouble(argsAsLongs[index]);
                     } else if (paramType == float.class) {
-                        value = Float.intBitsToFloat((int) argsAsLongs[index]);
+                        value = Float.intBitsToFloat((int) (argsAsLongs[index] & INT_BITS));
                     } else if (paramType == boolean.class) {
                         value = argsAsLongs[index] != 0;
                     } else if (paramType == short.class) {
-                        value = (short) argsAsLongs[index];
+                        value = (short) (argsAsLongs[index] & SHORT_BITS);
                     } else if (paramType == char.class) {
-                        value = (char) argsAsLongs[index];
+                        value = (char) (argsAsLongs[index] & SHORT_BITS);
                     } else if (paramType == byte.class) {
-                        value = (byte) argsAsLongs[index];
+                        value = (byte) (argsAsLongs[index] & BYTE_BITS);
                     } else {
                         throw new AssertionError("Unknown primitive type: " + paramType);
                     }
                 } else {
                     // In art, object address is actually 32 bits
-                    value = Pine.getObject(thread, argsAsLongs[index] & 0xffffffffL);
+                    value = Pine.getObject(thread, argsAsLongs[index] & INT_BITS);
                 }
                 args[i] = value;
                 index++;
