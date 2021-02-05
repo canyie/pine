@@ -35,6 +35,14 @@ cbnz w16, lock_failed // failed, try again.
 str x1, [x17, #4]
 str x2, [x17, #12]
 str x3, [x17, #20]
+str d0, [x17, #28]
+str d1, [x17, #36]
+str d2, [x17, #44]
+str d3, [x17, #52]
+str d4, [x17, #60]
+str d5, [x17, #68]
+str d6, [x17, #76]
+str d7, [x17, #84]
 mov x1, x0 // first param = callee ArtMethod
 mov x2, x17 // second param = extras (saved x1, x2, x3)
 mov x3, sp // third param = sp

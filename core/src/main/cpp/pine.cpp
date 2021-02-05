@@ -231,7 +231,8 @@ jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
 
 #ifdef __aarch64__
 
-void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp, jbooleanArray typeWides) {
+void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp,
+        jbooleanArray typeWides, jdoubleArray floatingOut) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
@@ -259,6 +260,34 @@ void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArr
         } while (false);
         env->ReleasePrimitiveArrayCritical(typeWides, wides, 0);
         env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
+    }
+
+    // Restore floating point (double and float) arguments.
+    // Note: In fact, we don’t need to restore them here,
+    // but an unknown error will occur when receiving directly in the bridge method
+    // See https://github.com/canyie/pine/issues/9
+    jint floatingArrayLength = env->GetArrayLength(floatingOut);
+    if (UNLIKELY(floatingArrayLength > 0)) {
+        jdouble* array = static_cast<jdouble*>(env->GetPrimitiveArrayCritical(floatingOut, nullptr));
+        do {
+            array[0] = extras->d0;
+            if (floatingArrayLength == 1) break;
+            array[1] = extras->d1;
+            if (floatingArrayLength == 2) break;
+            array[2] = extras->d2;
+            if (floatingArrayLength == 3) break;
+            array[3] = extras->d3;
+            if (floatingArrayLength == 4) break;
+            array[4] = extras->d4;
+            if (floatingArrayLength == 5) break;
+            array[5] = extras->d5;
+            if (floatingArrayLength == 6) break;
+            array[6] = extras->d6;
+            if (floatingArrayLength == 7) break;
+            array[7] = extras->d7;
+            // other floating point arguments are stored in stack
+        } while (false);
+        env->ReleasePrimitiveArrayCritical(floatingOut, array, JNI_ABORT);
     }
     extras->ReleaseLock();
 }
@@ -382,7 +411,7 @@ static const struct {
         {"disableHiddenApiPolicy0", "(ZZ)V"},
         {"currentArtThread0", "()J"},
 #ifdef __aarch64__
-        {"getArgsArm64", "(J[JJ[Z)V"}
+        {"getArgsArm64", "(J[JJ[Z[D)V"}
 #elif defined(__arm__)
         {"getArgsArm32", "(I[IIZ)V"}
 #elif defined(__i386__)
@@ -417,7 +446,7 @@ static const JNINativeMethod gMethods[] = {
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
 
 #ifdef __aarch64__
-        {"getArgsArm64", "(J[JJ[Z)V", (void*) Pine_getArgsArm64}
+        {"getArgsArm64", "(J[JJ[Z[D)V", (void*) Pine_getArgsArm64}
 #elif defined(__arm__)
         {"getArgsArm32", "(I[IIZ)V", (void*) Pine_getArgsArm32}
 #elif defined(__i386__)

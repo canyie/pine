@@ -1,5 +1,7 @@
 package top.canyie.pine.entry;
 
+import android.util.Pair;
+
 import top.canyie.pine.Pine;
 import top.canyie.pine.utils.Primitives;
 
@@ -9,6 +11,7 @@ import top.canyie.pine.utils.Primitives;
 public final class Arm64Entry {
     private static final boolean[] EMPTY_BOOLEAN_ARRAY = new boolean[0];
     private static final long[] EMPTY_LONG_ARRAY = new long[0];
+    private static final double[] EMPTY_DOUBLE_ARRAY = new double[0];
     private static final long INT_BITS = 0xffffffffL;
     private static final long SHORT_BITS = 0xffffL;
     private static final long BYTE_BITS = 0xffL;
@@ -79,13 +82,17 @@ public final class Arm64Entry {
                                        long x4, long x5, long x6, long x7) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
-        long[] argsAsLongs = getArgsAsLongs(hookRecord, extras, sp, x4, x5, x6, x7);
+        Pair<long[], double[]> pair = getArgs(hookRecord, extras, sp, x4, x5, x6, x7);
+
+        long[] argsAsLongs = pair.first;
+        double[] floatingArgs = pair.second;
         long thread = Primitives.currentArtThread();
 
         Object receiver;
         Object[] args;
 
         int index = 0;
+        int floatingIndex = 0;
 
         if (hookRecord.isStatic) {
             receiver = null;
@@ -105,9 +112,17 @@ public final class Arm64Entry {
                     } else if (paramType == long.class) {
                         value = argsAsLongs[index];
                     } else if (paramType == double.class) {
-                        value = Double.longBitsToDouble(argsAsLongs[index]);
+                        if (floatingIndex < floatingArgs.length) // From floating point registers
+                            value = floatingArgs[floatingIndex++];
+                        else // From stack
+                            value = Double.longBitsToDouble(argsAsLongs[index]);
                     } else if (paramType == float.class) {
-                        value = Float.intBitsToFloat((int) (argsAsLongs[index] & INT_BITS));
+                        long asLong;
+                        if (floatingIndex < floatingArgs.length) // From floating point registers
+                            asLong = Double.doubleToLongBits(floatingArgs[floatingIndex++]);
+                        else // From stack
+                            asLong = argsAsLongs[index];
+                        value = Float.intBitsToFloat((int) (asLong & INT_BITS));
                     } else if (paramType == boolean.class) {
                         value = argsAsLongs[index] != 0;
                     } else if (paramType == short.class) {
@@ -133,22 +148,37 @@ public final class Arm64Entry {
         return Pine.handleCall(hookRecord, receiver, args);
     }
 
-    private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp,
-                                         long x4, long x5, long x6, long x7) {
+    private static Pair<long[], double[]> getArgs(Pine.HookRecord hookRecord, long extras, long sp,
+                                                  long x4, long x5, long x6, long x7) {
         int length = (hookRecord.isStatic ? 0 : 1 /*this*/) + hookRecord.paramNumber;
+        int floatingArrayLength = 0;
         boolean[] typeWides;
         if (length != 0) {
             typeWides = new boolean[length];
             if (hookRecord.isStatic) {
                 for (int i = 0; i < length;i++) {
                     Class<?> type = hookRecord.paramTypes[i];
-                    typeWides[i] = type == long.class || type == double.class;
+                    if (type == long.class) {
+                        typeWides[i] = true;
+                    } else if (type == double.class) {
+                        typeWides[i] = true;
+                        floatingArrayLength++;
+                    } else {
+                        typeWides[i] = false;
+                    }
                 }
             } else {
                 typeWides[0] = false; // this object is a reference, always 32-bit
                 for (int i = 1; i < length;i++) {
                     Class<?> type = hookRecord.paramTypes[i - 1];
-                    typeWides[i] = type == long.class || type == double.class;
+                    if (type == long.class) {
+                        typeWides[i] = true;
+                    } else if (type == double.class) {
+                        typeWides[i] = true;
+                        floatingArrayLength++;
+                    } else {
+                        typeWides[i] = false;
+                    }
                 }
             }
         } else {
@@ -156,7 +186,10 @@ public final class Arm64Entry {
         }
 
         long[] array = length != 0 ? new long[length] : EMPTY_LONG_ARRAY;
-        Pine.getArgsArm64(extras, array, sp, typeWides);
+        if (floatingArrayLength > 8)
+            floatingArrayLength = 8; // Remaining arguments are stored in stack
+        double[] floatingArray = floatingArrayLength != 0 ? new double[floatingArrayLength] : EMPTY_DOUBLE_ARRAY;
+        Pine.getArgsArm64(extras, array, sp, typeWides, floatingArray);
 
         do {
             // x1-x3 are restored in Pine.getArgs64
@@ -171,6 +204,6 @@ public final class Arm64Entry {
             // remaining args are saved in stack and restored in Pine.getArgs64
         } while(false);
 
-        return array;
+        return Pair.create(array, floatingArray);
     }
 }
