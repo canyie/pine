@@ -231,17 +231,12 @@ jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
 
 #ifdef __aarch64__
 
-void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp) {
+void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp, jbooleanArray typeWides) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
         jlong* array = static_cast<jlong*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
-        if (UNLIKELY(!array)) {
-            constexpr const char* error_msg = "GetPrimitiveArrayCritical returned nullptr! javaArray is invalid?";
-            LOGF(error_msg);
-            env->FatalError(error_msg);
-            abort(); // Unreachable
-        }
+        jboolean* wides = static_cast<jboolean*>(env->GetPrimitiveArrayCritical(typeWides, nullptr));
 
         do {
             array[0] = reinterpret_cast<jlong>(extras->r1);
@@ -252,11 +247,17 @@ void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArr
             if (length < 8) break; // x4-x7 will be restored in java
 
             // get args from stack
+            uintptr_t current_on_stack = static_cast<uintptr_t>(sp + 8/*callee*/);
+            for (int i = 0;i < 7;i++) {
+                current_on_stack += wides[i] == JNI_TRUE ? 8 : 4;
+            }
+
             for (int i = 7; i < length; i++) {
-                array[i] = *reinterpret_cast<jlong*>(sp + 8 /*callee*/ + 8 * i);
+                array[i] = *reinterpret_cast<jlong*>(current_on_stack);
+                current_on_stack += wides[i] == JNI_TRUE ? 8 : 4;
             }
         } while (false);
-
+        env->ReleasePrimitiveArrayCritical(typeWides, wides, 0);
         env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
     }
     extras->ReleaseLock();
@@ -381,7 +382,7 @@ static const struct {
         {"disableHiddenApiPolicy0", "(ZZ)V"},
         {"currentArtThread0", "()J"},
 #ifdef __aarch64__
-        {"getArgsArm64", "(J[JJ)V"}
+        {"getArgsArm64", "(J[JJ[Z)V"}
 #elif defined(__arm__)
         {"getArgsArm32", "(I[IIZ)V"}
 #elif defined(__i386__)
@@ -416,7 +417,7 @@ static const JNINativeMethod gMethods[] = {
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
 
 #ifdef __aarch64__
-        {"getArgsArm64", "(J[JJ)V", (void*) Pine_getArgsArm64}
+        {"getArgsArm64", "(J[JJ[Z)V", (void*) Pine_getArgsArm64}
 #elif defined(__arm__)
         {"getArgsArm32", "(I[IIZ)V", (void*) Pine_getArgsArm32}
 #elif defined(__i386__)

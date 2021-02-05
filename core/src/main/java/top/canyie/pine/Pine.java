@@ -548,7 +548,7 @@ public final class Pine {
 
     public static native void getArgsArm32(int extras, int[] out, int sp, boolean skipR1);
 
-    public static native void getArgsArm64(long extras, long[] out, long sp);
+    public static native void getArgsArm64(long extras, long[] out, long sp, boolean[] typeWides);
 
     public static native void getArgsX86(int extras, int[] out, int ebx);
 

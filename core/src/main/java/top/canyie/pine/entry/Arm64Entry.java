@@ -7,6 +7,7 @@ import top.canyie.pine.utils.Primitives;
  * @author canyie
  */
 public final class Arm64Entry {
+    private static final boolean[] EMPTY_BOOLEAN_ARRAY = new boolean[0];
     private static final long[] EMPTY_LONG_ARRAY = new long[0];
     private Arm64Entry() {
     }
@@ -116,7 +117,8 @@ public final class Arm64Entry {
                         throw new AssertionError("Unknown primitive type: " + paramType);
                     }
                 } else {
-                    value = Pine.getObject(thread, argsAsLongs[index]);
+                    // In art, object address is actually 32 bits
+                    value = Pine.getObject(thread, argsAsLongs[index] & 0xffffffffL);
                 }
                 args[i] = value;
                 index++;
@@ -131,8 +133,27 @@ public final class Arm64Entry {
     private static long[] getArgsAsLongs(Pine.HookRecord hookRecord, long extras, long sp,
                                          long x4, long x5, long x6, long x7) {
         int length = (hookRecord.isStatic ? 0 : 1 /*this*/) + hookRecord.paramNumber;
+        boolean[] typeWides;
+        if (length != 0) {
+            typeWides = new boolean[length];
+            if (hookRecord.isStatic) {
+                for (int i = 0; i < length;i++) {
+                    Class<?> type = hookRecord.paramTypes[i];
+                    typeWides[i] = type == long.class || type == double.class;
+                }
+            } else {
+                typeWides[0] = false; // this object is a reference, always 32-bit
+                for (int i = 1; i < length;i++) {
+                    Class<?> type = hookRecord.paramTypes[i - 1];
+                    typeWides[i] = type == long.class || type == double.class;
+                }
+            }
+        } else {
+            typeWides = EMPTY_BOOLEAN_ARRAY;
+        }
+
         long[] array = length != 0 ? new long[length] : EMPTY_LONG_ARRAY;
-        Pine.getArgsArm64(extras, array, sp);
+        Pine.getArgsArm64(extras, array, sp, typeWides);
 
         do {
             // x1-x3 are restored in Pine.getArgs64
