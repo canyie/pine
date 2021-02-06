@@ -43,6 +43,7 @@ namespace pine {
         static constexpr int kR = 30;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
+        static void HookClassLinker(const ElfImg* handle);
         static void DisableInterpreterForHookedMethods(const ElfImg* handle);
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);

@@ -10,6 +10,7 @@
 #include "art/art_method.h"
 #include "art/jit.h"
 #include "trampoline/trampoline_installer.h"
+#include "external/dobby.h"
 
 using namespace pine;
 
@@ -36,11 +37,10 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
 
     {
         ElfImg art_lib_handle("libart.so");
-        suspend_vm = reinterpret_cast<void (*)()>(
-                art_lib_handle.GetSymbolAddress(
-                        "_ZN3art3Dbg9SuspendVMEv")); // art::Dbg::SuspendVM()
-        resume_vm = reinterpret_cast<void (*)()>(
-                art_lib_handle.GetSymbolAddress("_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
+        suspend_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
+                "_ZN3art3Dbg9SuspendVMEv")); // art::Dbg::SuspendVM()
+        resume_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
+                "_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
 
         if (Android::version >= Android::kP)
             DisableHiddenApiPolicy(&art_lib_handle, disable_hiddenapi_policy, disable_hiddenapi_policy_for_platform);
@@ -53,7 +53,7 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
         }
 
         if (UNLIKELY(PineConfig::debuggable && sdk_version >= kR)) {
-            // We cannot set kAccNative for hooked methods because that will cause crash
+            // We cannot set kAccNative for hooked methods because that may cause crash
             DisableInterpreterForHookedMethods(&art_lib_handle);
         }
     }
@@ -130,29 +130,17 @@ bool Android::DisableProfileSaver() {
     return true;
 }
 
-void Android::DisableInterpreterForHookedMethods(const ElfImg* handle) {
-    void* dobby = dlopen("libdobby.so", RTLD_NOW | RTLD_LOCAL);
-    if (UNLIKELY(!dobby)) {
-        LOGE("Dobby not found. On Android R+, Dobby is required for debuggable apps,");
-        LOGE("   otherwise the hook may not work. Please include Dobby to your app!");
-        return;
-    }
-    void (*dobby_hook)(void*, void*, void**) = reinterpret_cast<void (*)(void*, void*, void**)>(
-            dlsym(dobby, "DobbyHook"));
-    if (UNLIKELY(!dobby_hook)) {
-        LOGE("Failed to find DobbyHook: %s", dlerror());
-        dlclose(dobby);
-        return;
-    }
+void Android::HookClassLinker(const ElfImg* handle) {
 
+}
+
+void Android::DisableInterpreterForHookedMethods(const ElfImg* handle) {
     void* target = handle->GetSymbolAddress(
             "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
     void* replace = reinterpret_cast<void*>(hook_ShouldUseInterpreterEntrypoint);
     if (LIKELY(target)) {
-        dobby_hook(target, replace, reinterpret_cast<void**>(&orig_ShouldUseInterpreterEntrypoint));
+        DobbyHook(target, replace, reinterpret_cast<void**>(&orig_ShouldUseInterpreterEntrypoint));
     } else {
         LOGE("Can't find ClassLinker::ShouldUseInterpreterEntrypoint. Hook may not work.");
     }
-
-    dlclose(dobby);
 }

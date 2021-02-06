@@ -42,6 +42,5 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':core')
-    implementation project(':dobby')
     implementation 'com.iqiyi.xcrash:xcrash-android-lib:2.4.9'
 }
