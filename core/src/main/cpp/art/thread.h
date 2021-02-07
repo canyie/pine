@@ -117,17 +117,11 @@ namespace pine::art {
     class ScopedSuspendVM {
     public:
         ScopedSuspendVM() {
-            if (Android::suspend_vm && Android::resume_vm) {
-                Android::suspend_vm();
-            } else {
-                LOGW("Skip suspend VM: Suspend VM API is unavailable.");
-            }
+            Android::SuspendVM(this, "pine hook method");
         }
 
         ~ScopedSuspendVM() {
-            if (Android::suspend_vm && Android::resume_vm) {
-                Android::resume_vm();
-            }
+            Android::ResumeVM(this);
         }
 
     private:

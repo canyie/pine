@@ -21,6 +21,9 @@ JavaVM* Android::jvm = nullptr;
 void (*Android::suspend_vm)() = nullptr;
 void (*Android::resume_vm)() = nullptr;
 
+void (*Android::suspend_all)(void*, const char*, bool);
+void (*Android::resume_all)(void*);
+
 void* Android::class_linker_ = nullptr;
 void (*Android::make_visibly_initialized_)(void*, void*, bool) = nullptr;
 
@@ -45,10 +48,27 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
 
     {
         ElfImg art_lib_handle("libart.so");
-        suspend_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
-                "_ZN3art3Dbg9SuspendVMEv")); // art::Dbg::SuspendVM()
-        resume_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
-                "_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
+        if (Android::version >= Android::kR) {
+            suspend_all = reinterpret_cast<void (*)(void*, const char*, bool)>(art_lib_handle.GetSymbolAddress(
+                    "_ZN3art16ScopedSuspendAllC1EPKcb"));
+            resume_all = reinterpret_cast<void (*)(void*)>(art_lib_handle.GetSymbolAddress(
+                    "_ZN3art16ScopedSuspendAllD1Ev"));
+            if (UNLIKELY(!suspend_all || !resume_all)) {
+                LOGE("SuspendAll API is unavailable.");
+                suspend_all = nullptr;
+                resume_all = nullptr;
+            }
+        } else {
+            suspend_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
+                    "_ZN3art3Dbg9SuspendVMEv")); // art::Dbg::SuspendVM()
+            resume_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
+                    "_ZN3art3Dbg8ResumeVMEv")); // art::Dbg::ResumeVM()
+            if (UNLIKELY(!suspend_vm || !resume_vm)) {
+                LOGE("Suspend VM API is unavailable.");
+                suspend_vm = nullptr;
+                resume_vm = nullptr;
+            }
+        }
 
         if (Android::version >= Android::kP)
             DisableHiddenApiPolicy(&art_lib_handle, disable_hiddenapi_policy, disable_hiddenapi_policy_for_platform);

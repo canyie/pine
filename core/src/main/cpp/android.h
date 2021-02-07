@@ -44,9 +44,21 @@ namespace pine {
         static int version;
         static JavaVM* jvm;
 
-        static void (*suspend_vm)();
+        static void SuspendVM(void* cookie, const char* cause) {
+            if (suspend_vm) {
+                suspend_vm();
+            } else if (suspend_all) {
+                suspend_all(cookie, cause, false);
+            }
+        }
 
-        static void (*resume_vm)();
+        static void ResumeVM(void* cookie) {
+            if (resume_vm) {
+                resume_vm();
+            } else if (resume_all) {
+                resume_all(cookie);
+            }
+        }
 
         static constexpr int kK = 19;
         static constexpr int kL = 21;
@@ -63,6 +75,11 @@ namespace pine {
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
         static void HookClassLinkerForR(const ElfImg* handle);
         static void DisableInterpreterForHookedMethods(const ElfImg* handle);
+
+        static void (*suspend_vm)();
+        static void (*resume_vm)();
+        static void (*suspend_all)(void*, const char*, bool);
+        static void (*resume_all)(void*);
 
         static void* class_linker_;
         static void (*make_visibly_initialized_)(void*, void*, bool);
