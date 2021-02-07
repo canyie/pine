@@ -247,11 +247,7 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
             // Android 8.0+ and debug mode, ART may force the use of interpreter mode,
             // and entry_point_from_compiled_code_ will be ignored. Set kAccNative to avoid it.
             // See ClassLinker::ShouldUseInterpreterEntrypoint(ArtMethod*, const void*)
-
-            // Android R: Set kAccNative will cause crash, just don't set
-            // We will hook ClassLinker::ShouldUseInterpreterEntrypoint to replace it.
-            if (LIKELY(Android::version < Android::kR))
-                access_flags |= AccessFlags::kNative;
+            access_flags |= AccessFlags::kNative;
         }
     }
 

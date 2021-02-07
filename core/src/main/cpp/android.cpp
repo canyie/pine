@@ -11,7 +11,7 @@
 #include "art/art_method.h"
 #include "art/jit.h"
 #include "trampoline/trampoline_installer.h"
-#include "external/dobby.h"
+#include "utils/memory.h"
 
 using namespace pine;
 
@@ -26,17 +26,6 @@ void (*Android::resume_all)(void*);
 
 void* Android::class_linker_ = nullptr;
 void (*Android::make_visibly_initialized_)(void*, void*, bool) = nullptr;
-
-static void* class_linker_target_ = nullptr;
-static volatile void(*class_linker_backup_)(void*, void*) = nullptr;
-static std::mutex class_linker_hook_mutex_;
-
-static bool (*orig_ShouldUseInterpreterEntrypoint)(art::ArtMethod*, const void*);
-
-static bool hook_ShouldUseInterpreterEntrypoint(art::ArtMethod* method, const void* quick_code) {
-    if (UNLIKELY(method->IsHooked() && quick_code != nullptr)) return false;
-    return orig_ShouldUseInterpreterEntrypoint(method, quick_code);
-}
 
 void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, bool disable_hiddenapi_policy_for_platform) {
     Android::version = sdk_version;
@@ -81,11 +70,7 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
         }
 
         if (UNLIKELY(sdk_version >= kR)) {
-            HookClassLinkerForR(&art_lib_handle);
-            if (UNLIKELY(PineConfig::debuggable)) {
-                // We cannot set kAccNative for hooked methods because that may cause crash
-                DisableInterpreterForHookedMethods(&art_lib_handle);
-            }
+            InitClassLinker(jvm, &art_lib_handle);
         }
     }
 
@@ -161,22 +146,7 @@ bool Android::DisableProfileSaver() {
     return true;
 }
 
-static void replace_FixupStaticTrampolines(void* class_linker, void* clz) {
-    {
-        ScopedLock lock(class_linker_hook_mutex_);
-        if (LIKELY(class_linker_backup_)) {
-            Android::SetClassLinker(class_linker);
-            class_linker_backup_(class_linker, clz);
-            DobbyDestroy(class_linker_target_);
-            class_linker_backup_ = nullptr;
-            return;
-        }
-    }
-    void(*origin)(void*, void*) = reinterpret_cast<void (*)(void*, void*)>(class_linker_target_);
-    origin(class_linker, clz);
-}
-
-void Android::HookClassLinkerForR(const ElfImg* handle) {
+void Android::InitClassLinker(JavaVM* jvm, const ElfImg* handle) {
     make_visibly_initialized_ = reinterpret_cast<void (*)(void*, void*, bool)>(handle->GetSymbolAddress(
             "_ZN3art11ClassLinker40MakeInitializedClassesVisiblyInitializedEPNS_6ThreadEb"));
     if (UNLIKELY(!make_visibly_initialized_)) {
@@ -184,25 +154,36 @@ void Android::HookClassLinkerForR(const ElfImg* handle) {
         return;
     }
 
-    // Hook class linker to get its instance
-    class_linker_target_ = handle->GetSymbolAddress(
-            "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
-    if (UNLIKELY(!class_linker_target_)) {
-        LOGE("ClassLinker::FixupStaticTrampolines not found.");
+    void** instance_ptr = static_cast<void**>(handle->GetSymbolAddress("_ZN3art7Runtime9instance_E"));
+    void* runtime;
+    if (UNLIKELY(!instance_ptr || !(runtime = *instance_ptr))) {
+        LOGE("Unable to get Runtime.");
         return;
     }
-    void* replace = reinterpret_cast<void*>(replace_FixupStaticTrampolines);
-    void** backup = reinterpret_cast<void**>(&class_linker_backup_);
-    DobbyHook(class_linker_target_, replace, backup);
-}
 
-void Android::DisableInterpreterForHookedMethods(const ElfImg* handle) {
-    void* target = handle->GetSymbolAddress(
-            "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
-    void* replace = reinterpret_cast<void*>(hook_ShouldUseInterpreterEntrypoint);
-    if (LIKELY(target)) {
-        DobbyHook(target, replace, reinterpret_cast<void**>(&orig_ShouldUseInterpreterEntrypoint));
+    constexpr size_t kDifference = sizeof(std::unique_ptr<void>) + sizeof(void*) + sizeof(void*);
+#ifdef __LP64__
+    constexpr size_t kDefaultClassLinkerOffset = 472;
+#else
+    constexpr size_t kDefaultClassLinkerOffset = 276;
+#endif
+    constexpr size_t kDefaultJavaVMOffset = kDefaultClassLinkerOffset + kDifference;
+
+    auto jvm_ptr = reinterpret_cast<std::unique_ptr<JavaVM>*>(reinterpret_cast<uintptr_t>(runtime) + kDefaultJavaVMOffset);
+    size_t class_linker_offset;
+    if (LIKELY(jvm_ptr->get() == jvm)) {
+        LOGD("JavaVM offset matches the default offset");
+        class_linker_offset = kDefaultClassLinkerOffset;
     } else {
-        LOGE("Can't find ClassLinker::ShouldUseInterpreterEntrypoint. Hook may not work.");
+        LOGW("JavaVM offset mismatches the default offset, try search the memory of Runtime");
+        int jvm_offset = Memory::FindOffset(runtime, jvm, 1024, 4);
+        if (UNLIKELY(jvm_offset == -1)) {
+            LOGE("Failed to find java vm from Runtime");
+            return;
+        }
+        class_linker_offset = jvm_offset - kDifference;
+        LOGW("New java_vm_offset: %d, class_linker_offset: %u", jvm_offset, class_linker_offset);
     }
+    void* class_linker = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(runtime) + class_linker_offset);
+    SetClassLinker(class_linker);
 }

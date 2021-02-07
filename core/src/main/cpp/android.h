@@ -73,8 +73,7 @@ namespace pine {
         static constexpr int kR = 30;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
-        static void HookClassLinkerForR(const ElfImg* handle);
-        static void DisableInterpreterForHookedMethods(const ElfImg* handle);
+        static void InitClassLinker(JavaVM* jvm, const ElfImg* handle);
 
         static void (*suspend_vm)();
         static void (*resume_vm)();
