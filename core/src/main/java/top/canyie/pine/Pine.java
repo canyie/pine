@@ -66,7 +66,7 @@ public final class Pine {
             sdkLevel = 30;
         }
 
-        if (sdkLevel > Build.VERSION_CODES.Q) {
+        if (sdkLevel > 30) {
             Log.w(TAG, "Android version too high, not tested now...");
         }
 
