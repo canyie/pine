@@ -213,11 +213,19 @@ public final class Pine {
             isInlineHook = hookMode == HookMode.INLINE;
         }
 
-        if (hookRecord.isStatic = Modifier.isStatic(modifiers)) resolve((Method) method);
+        long thread = Primitives.currentArtThread();
+        if (hookRecord.isStatic = Modifier.isStatic(modifiers)) {
+            resolve((Method) method);
+            if (Build.VERSION.SDK_INT >= 30) {
+                // Android R has a new class state "visibly initialized",
+                // and FixupStaticTrampolines will be called after class was initialized.
+                // The entry point will be reset. Make this class be visibly initialized before hook
+                makeClassesVisiblyInitialized(thread);
+            }
+        }
 
         Class<?> declaring = method.getDeclaringClass();
 
-        long thread = Primitives.currentArtThread();
 
         boolean isNativeOrProxy = Modifier.isNative(modifiers) || Proxy.isProxyClass(declaring);
 
@@ -559,6 +567,8 @@ public final class Pine {
     private static native void setDebuggable0(boolean debuggable);
 
     private static native void disableHiddenApiPolicy0(boolean application, boolean platform);
+
+    private static native void makeClassesVisiblyInitialized(long thread);
 
     public static final class HookRecord {
         public final Member target;

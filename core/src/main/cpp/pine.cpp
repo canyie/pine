@@ -395,6 +395,10 @@ jlong Pine_currentArtThread0(JNIEnv*, jclass) {
     return reinterpret_cast<jlong>(art::Thread::Current());
 }
 
+void Pine_makeClassesVisiblyInitialized(JNIEnv*, jclass, jlong thread) {
+    Android::MakeInitializedClassesVisiblyInitialized(reinterpret_cast<void*>(thread), true);
+}
+
 static const struct {
     const char* name;
     const char* signature;
@@ -444,6 +448,7 @@ static const JNINativeMethod gMethods[] = {
         {"setDebuggable0", "(Z)V", (void*) Pine_setDebuggable},
         {"disableHiddenApiPolicy0", "(ZZ)V", (void*) Pine_disableHiddenApiPolicy0},
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
+        {"makeClassesVisiblyInitialized", "(J)V", (void*) Pine_makeClassesVisiblyInitialized},
 
 #ifdef __aarch64__
         {"getArgsArm64", "(J[JJ[Z[D)V", (void*) Pine_getArgsArm64}

@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string>
 #include <dlfcn.h>
+#include <mutex>
 #include "android.h"
 #include "utils/well_known_classes.h"
 #include "art/art_method.h"
@@ -19,6 +20,13 @@ JavaVM* Android::jvm = nullptr;
 
 void (*Android::suspend_vm)() = nullptr;
 void (*Android::resume_vm)() = nullptr;
+
+void* Android::class_linker_ = nullptr;
+void (*Android::make_visibly_initialized_)(void*, void*, bool) = nullptr;
+
+static void* class_linker_target_ = nullptr;
+static volatile void(*class_linker_backup_)(void*, void*) = nullptr;
+static std::mutex class_linker_hook_mutex_;
 
 static bool (*orig_ShouldUseInterpreterEntrypoint)(art::ArtMethod*, const void*);
 
@@ -52,9 +60,12 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
 
-        if (UNLIKELY(PineConfig::debuggable && sdk_version >= kR)) {
-            // We cannot set kAccNative for hooked methods because that may cause crash
-            DisableInterpreterForHookedMethods(&art_lib_handle);
+        if (UNLIKELY(sdk_version >= kR)) {
+            HookClassLinkerForR(&art_lib_handle);
+            if (UNLIKELY(PineConfig::debuggable)) {
+                // We cannot set kAccNative for hooked methods because that may cause crash
+                DisableInterpreterForHookedMethods(&art_lib_handle);
+            }
         }
     }
 
@@ -130,8 +141,39 @@ bool Android::DisableProfileSaver() {
     return true;
 }
 
-void Android::HookClassLinker(const ElfImg* handle) {
+static void replace_FixupStaticTrampolines(void* class_linker, void* clz) {
+    {
+        ScopedLock lock(class_linker_hook_mutex_);
+        if (LIKELY(class_linker_backup_)) {
+            Android::SetClassLinker(class_linker);
+            class_linker_backup_(class_linker, clz);
+            DobbyDestroy(class_linker_target_);
+            class_linker_backup_ = nullptr;
+            return;
+        }
+    }
+    void(*origin)(void*, void*) = reinterpret_cast<void (*)(void*, void*)>(class_linker_target_);
+    origin(class_linker, clz);
+}
 
+void Android::HookClassLinkerForR(const ElfImg* handle) {
+    make_visibly_initialized_ = reinterpret_cast<void (*)(void*, void*, bool)>(handle->GetSymbolAddress(
+            "_ZN3art11ClassLinker40MakeInitializedClassesVisiblyInitializedEPNS_6ThreadEb"));
+    if (UNLIKELY(!make_visibly_initialized_)) {
+        LOGE("ClassLinker::MakeInitializedClassesVisiblyInitialized not found");
+        return;
+    }
+
+    // Hook class linker to get its instance
+    class_linker_target_ = handle->GetSymbolAddress(
+            "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
+    if (UNLIKELY(!class_linker_target_)) {
+        LOGE("ClassLinker::FixupStaticTrampolines not found.");
+        return;
+    }
+    void* replace = reinterpret_cast<void*>(replace_FixupStaticTrampolines);
+    void** backup = reinterpret_cast<void**>(&class_linker_backup_);
+    DobbyHook(class_linker_target_, replace, backup);
 }
 
 void Android::DisableInterpreterForHookedMethods(const ElfImg* handle) {

@@ -6,6 +6,7 @@
 #define PINE_ANDROID_H
 
 #include <jni.h>
+#include "utils/log.h"
 #include "utils/macros.h"
 #include "utils/elf_img.h"
 
@@ -22,6 +23,23 @@ namespace pine {
             DisableHiddenApiPolicy(&handle, application, platform);
         }
         static bool DisableProfileSaver();
+        static void SetClassLinker(void* class_linker) {
+            LOGI("Got class linker %p", class_linker);
+            class_linker_ = class_linker;
+        }
+        static void* GetClassLinker() {
+            return class_linker_;
+        }
+
+        static void MakeInitializedClassesVisiblyInitialized(void* thread, bool wait) {
+            // If symbol MakeInitializedClassesVisiblyInitialized not found,
+            // class_linker_ won't be initialized.
+            if (UNLIKELY(!class_linker_)) {
+                LOGE("No ClassLinker, skip MakeInitializedClassesVisiblyInitialized.");
+                return;
+            }
+            make_visibly_initialized_(class_linker_, thread, wait);
+        }
 
         static int version;
         static JavaVM* jvm;
@@ -43,9 +61,11 @@ namespace pine {
         static constexpr int kR = 30;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
-        static void HookClassLinker(const ElfImg* handle);
+        static void HookClassLinkerForR(const ElfImg* handle);
         static void DisableInterpreterForHookedMethods(const ElfImg* handle);
 
+        static void* class_linker_;
+        static void (*make_visibly_initialized_)(void*, void*, bool);
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);
     };
 }
