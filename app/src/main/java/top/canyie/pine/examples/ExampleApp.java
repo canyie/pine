@@ -22,7 +22,7 @@ public class ExampleApp extends Application {
     @Override protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
         instance = this;
-        //initXCrash();
+        initXCrash();
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored") @SuppressLint("SetWorldReadable")

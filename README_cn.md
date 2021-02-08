@@ -136,7 +136,6 @@ private static void methodLocked() {
 - [AndroidELF](https://github.com/ganyao114/AndroidELF)：本项目使用了的ELF符号搜索库
 - [FastHook](https://github.com/turing-technician/FastHook)
 - [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
-- [Dobby](https://github.com/jmpews/Dobby)
 
 ## 许可证
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)
