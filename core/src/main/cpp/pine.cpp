@@ -232,7 +232,7 @@ jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
 #ifdef __aarch64__
 
 void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp,
-        jbooleanArray typeWides, jdoubleArray floatingOut) {
+        jbooleanArray typeWides, jdoubleArray fpOut) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
     if (LIKELY(length > 0)) {
@@ -266,30 +266,11 @@ void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArr
     // Note: In fact, we don’t need to restore them here,
     // but an unknown error will occur when receiving directly in the bridge method
     // See https://github.com/canyie/pine/issues/9
-    jint floatingArrayLength = env->GetArrayLength(floatingOut);
-    if (UNLIKELY(floatingArrayLength > 0)) {
-        jdouble* array = static_cast<jdouble*>(env->GetPrimitiveArrayCritical(floatingOut, nullptr));
-        do {
-            array[0] = extras->d0;
-            if (floatingArrayLength == 1) break;
-            array[1] = extras->d1;
-            if (floatingArrayLength == 2) break;
-            array[2] = extras->d2;
-            if (floatingArrayLength == 3) break;
-            array[3] = extras->d3;
-            if (floatingArrayLength == 4) break;
-            array[4] = extras->d4;
-            if (floatingArrayLength == 5) break;
-            array[5] = extras->d5;
-            if (floatingArrayLength == 6) break;
-            array[6] = extras->d6;
-            if (floatingArrayLength == 7) break;
-            array[7] = extras->d7;
-            // other floating point arguments are stored in stack
-        } while (false);
-        env->ReleasePrimitiveArrayCritical(floatingOut, array, JNI_ABORT);
+    jint fpArrayLength = env->GetArrayLength(fpOut);
+    if (UNLIKELY(fpArrayLength > 0)) {
+        env->SetDoubleArrayRegion(fpOut, 0, fpArrayLength, extras->fps);
     }
-    extras->ReleaseLock();
+    delete extras;
 }
 
 #elif defined(__arm__)
@@ -340,7 +321,7 @@ void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray
     if (UNLIKELY(fpLength > 0)) {
         env->SetFloatArrayRegion(fpOut, 0, fpLength, extras->fps);
     }
-    extras->ReleaseLock();
+    delete extras;
 }
 #elif defined(__i386__)
 void Pine_getArgsX86(JNIEnv* env, jclass, jint javaExtras, jintArray javaArray, jint ebx) {
@@ -405,6 +386,10 @@ void Pine_makeClassesVisiblyInitialized(JNIEnv*, jclass, jlong thread) {
     Android::MakeInitializedClassesVisiblyInitialized(reinterpret_cast<void*>(thread), true);
 }
 
+jlong Pine_cloneExtras(JNIEnv*, jclass, jlong extras) {
+    return reinterpret_cast<jlong>(reinterpret_cast<Extras*>(extras)->CloneAndUnlock());
+}
+
 static const struct {
     const char* name;
     const char* signature;
@@ -420,6 +405,7 @@ static const struct {
         {"setDebuggable0", "(Z)V"},
         {"disableHiddenApiPolicy0", "(ZZ)V"},
         {"currentArtThread0", "()J"},
+        {"cloneExtras", "(J)J"},
 #ifdef __aarch64__
         {"getArgsArm64", "(J[JJ[Z[D)V"}
 #elif defined(__arm__)
@@ -455,7 +441,7 @@ static const JNINativeMethod gMethods[] = {
         {"disableHiddenApiPolicy0", "(ZZ)V", (void*) Pine_disableHiddenApiPolicy0},
         {"currentArtThread0", "()J", (void*) Pine_currentArtThread0},
         {"makeClassesVisiblyInitialized", "(J)V", (void*) Pine_makeClassesVisiblyInitialized},
-
+        {"cloneExtras", "(J)J", (void*) Pine_cloneExtras},
 #ifdef __aarch64__
         {"getArgsArm64", "(J[JJ[Z[D)V", (void*) Pine_getArgsArm64}
 #elif defined(__arm__)

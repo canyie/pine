@@ -3,8 +3,6 @@ package top.canyie.pine.entry;
 import android.os.Build;
 import android.util.Pair;
 
-import java.util.Map;
-
 import top.canyie.pine.Pine;
 import top.canyie.pine.utils.Primitives;
 
@@ -71,8 +69,10 @@ public final class Arm32Entry {
      * but the lr register is not 0 at the entry/exit of the proxy method.
      * Is the lr register assigned to 0 after the proxy method returns?
      */
-    private static Object handleBridge(int artMethod, int extras, int sp) throws Throwable {
-        Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
+    private static Object handleBridge(int artMethod, int originExtras, int sp) throws Throwable {
+        // Clone the extras and unlock to minimize the time we hold the lock
+        int extras = (int) Pine.cloneExtras(originExtras);
+        Pine.log("handleBridge: artMethod=%#x originExtras=%#x extras=%#x sp=%#x", artMethod, originExtras, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
         Pair<int[], float[]> pair = getArgs(hookRecord, extras, sp);
         int[] argsAsInts = pair.first;
@@ -83,7 +83,7 @@ public final class Arm32Entry {
         Object[] args;
 
         int index = 0;
-        int floatIndex = 0;
+        int fpIndex = 0;
         int doubleIndex = 0;
 
         if (hookRecord.isStatic) {
@@ -100,54 +100,52 @@ public final class Arm32Entry {
                 Object value;
                 if (paramType.isPrimitive()) {
                     if (paramType == int.class) {
-                        value = argsAsInts[index];
+                        value = argsAsInts[index++];
                     } else if (paramType == long.class) {
-                        value = Primitives.ints2Long(argsAsInts[index++], argsAsInts[index]);
+                        value = Primitives.ints2Long(argsAsInts[index++], argsAsInts[index++]);
                     } else if (paramType == double.class) {
                         // These "double registers" overlap with "single registers".
                         // Double should not overlap with float.
-                        doubleIndex = Math.max(doubleIndex, Primitives.nearestEven(floatIndex));
+                        doubleIndex = Math.max(doubleIndex, Primitives.nearestEven(fpIndex));
                         // If we don't use hardfp, the fpArgs.length is always 0.
                         if (doubleIndex < fpArgs.length) {
                             float l = fpArgs[doubleIndex++];
                             float h = fpArgs[doubleIndex++];
                             value = Primitives.floats2Double(l, h);
-                            index++;
                         } else {
                             int l = argsAsInts[index++];
-                            int h = argsAsInts[index];
+                            int h = argsAsInts[index++];
                             value = Primitives.ints2Double(l, h);
                         }
                     } else if (paramType == float.class) {
                         // These "single registers" overlap with "double registers".
                         // If we use an odd number of single registers, then we can continue to use the next
                         // but if we don’t, the next single register may be occupied by a double
-                        if (floatIndex % 2 == 0) {
-                            floatIndex = Math.max(doubleIndex, floatIndex);
+                        if (fpIndex % 2 == 0) {
+                            fpIndex = Math.max(doubleIndex, fpIndex);
                         }
 
                         // If we don't use hardfp, the fpArgs.length is always 0.
-                        if (floatIndex < fpArgs.length) {
-                            value = fpArgs[floatIndex++];
+                        if (fpIndex < fpArgs.length) {
+                            value = fpArgs[fpIndex++];
                         } else {
-                            value = Float.intBitsToFloat(argsAsInts[index]);
+                            value = Float.intBitsToFloat(argsAsInts[index++]);
                         }
                     } else if (paramType == boolean.class) {
-                        value = argsAsInts[index] != 0;
+                        value = argsAsInts[index++] != 0;
                     } else if (paramType == short.class) {
-                        value = (short) argsAsInts[index];
+                        value = (short) argsAsInts[index++];
                     } else if (paramType == char.class) {
-                        value = (char) argsAsInts[index];
+                        value = (char) argsAsInts[index++];
                     } else if (paramType == byte.class) {
-                        value = (byte) argsAsInts[index];
+                        value = (byte) argsAsInts[index++];
                     } else {
                         throw new AssertionError("Unknown primitive type: " + paramType);
                     }
                 } else {
-                    value = Pine.getObject(thread, argsAsInts[index]);
+                    value = Pine.getObject(thread, argsAsInts[index++]);
                 }
                 args[i] = value;
-                index++;
             }
         } else {
             args = Pine.EMPTY_OBJECT_ARRAY;

@@ -16,6 +16,16 @@ namespace pine {
         Extras() {
         }
 
+        Extras* CloneAndUnlock() {
+            Extras* cloned = static_cast<Extras*>(malloc(sizeof(Extras)));
+            memcpy(cloned, this, sizeof(Extras));
+            ReleaseLock();
+            return cloned;
+        }
+
+        ~Extras() {
+        }
+
 #if defined(__aarch64__) || defined(__arm__) // Not supported spinlock on x86 platform
         void ReleaseLock() {
             CHECK(lock_flag == 0, "Unexpected lock_flag %d", lock_flag);
@@ -43,7 +53,7 @@ namespace pine {
          *  but an unknown error will occur when receiving directly in the bridge method
          *  See https://github.com/canyie/pine/issues/9
          */
-        jdouble d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0, d5 = 0, d6 = 0, d7 = 0;
+        jdouble fps[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 #elif defined(__arm__)
         // Floating point registers, s0~s15 = d0~d7
         jfloat fps[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

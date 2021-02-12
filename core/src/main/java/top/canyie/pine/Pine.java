@@ -570,6 +570,8 @@ public final class Pine {
 
     private static native void makeClassesVisiblyInitialized(long thread);
 
+    public static native long cloneExtras(long origin);
+
     public static final class HookRecord {
         public final Member target;
         public Method backup;

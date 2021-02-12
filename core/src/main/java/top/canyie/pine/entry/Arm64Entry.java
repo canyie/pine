@@ -80,7 +80,9 @@ public final class Arm64Entry {
      */
     private static Object handleBridge(long artMethod, long originExtras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
-        Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
+        // Clone the extras and unlock to minimize the time we hold the lock
+        long extras = Pine.cloneExtras(originExtras);
+        Pine.log("handleBridge: artMethod=%#x originExtras=%#x extras=%#x sp=%#x", artMethod, originExtras, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
         Pair<long[], double[]> pair = getArgs(hookRecord, extras, sp, x4, x5, x6, x7);
 
