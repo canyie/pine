@@ -78,21 +78,21 @@ public final class Arm64Entry {
      * but the lr register is not 0 at the entry/exit of the proxy method.
      * Is the lr register assigned to 0 after the proxy method returns?
      */
-    private static Object handleBridge(long artMethod, long extras, long sp,
+    private static Object handleBridge(long artMethod, long originExtras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
         Pair<long[], double[]> pair = getArgs(hookRecord, extras, sp, x4, x5, x6, x7);
 
         long[] argsAsLongs = pair.first;
-        double[] floatingArgs = pair.second;
+        double[] fpArgs = pair.second;
         long thread = Primitives.currentArtThread();
 
         Object receiver;
         Object[] args;
 
         int index = 0;
-        int floatingIndex = 0;
+        int fpIndex = 0;
 
         if (hookRecord.isStatic) {
             receiver = null;
@@ -105,41 +105,57 @@ public final class Arm64Entry {
             args = new Object[hookRecord.paramNumber];
             for (int i = 0; i < hookRecord.paramNumber; i++) {
                 Class<?> paramType = hookRecord.paramTypes[i];
+                // For floating points, if other arguments are stored in registers, we should not increase index for it
+                // But this will cause an index error, the value on the stack cannot be correctly retrieved
+                // So we manually correct the index
+                int validIndex = i <= 8 ? index : i;
                 Object value;
                 if (paramType.isPrimitive()) {
                     if (paramType == int.class) {
-                        value = (int) (argsAsLongs[index] & INT_BITS);
+                        value = (int) (argsAsLongs[validIndex] & INT_BITS);
+                        index++;
                     } else if (paramType == long.class) {
-                        value = argsAsLongs[index];
+                        value = argsAsLongs[validIndex];
+                        index++;
                     } else if (paramType == double.class) {
-                        if (floatingIndex < floatingArgs.length) // From floating point registers
-                            value = floatingArgs[floatingIndex++];
-                        else // From stack
-                            value = Double.longBitsToDouble(argsAsLongs[index]);
+                        if (fpIndex < fpArgs.length) {
+                            value = fpArgs[fpIndex++];
+                            // Don't increase index if the floating point is stored in the register
+                        } else {
+                            value = Double.longBitsToDouble(argsAsLongs[validIndex]);
+                            index++;
+                        }
                     } else if (paramType == float.class) {
                         long asLong;
-                        if (floatingIndex < floatingArgs.length) // From floating point registers
-                            asLong = Double.doubleToLongBits(floatingArgs[floatingIndex++]);
-                        else // From stack
-                            asLong = argsAsLongs[index];
+                        if (fpIndex < fpArgs.length) {
+                            asLong = Double.doubleToLongBits(fpArgs[fpIndex++]);
+                            // Don't increase index if the floating point is stored in the register
+                        } else {
+                            asLong = argsAsLongs[validIndex];
+                            index++;
+                        }
                         value = Float.intBitsToFloat((int) (asLong & INT_BITS));
                     } else if (paramType == boolean.class) {
-                        value = argsAsLongs[index] != 0;
+                        value = argsAsLongs[validIndex] != 0;
+                        index++;
                     } else if (paramType == short.class) {
-                        value = (short) (argsAsLongs[index] & SHORT_BITS);
+                        value = (short) (argsAsLongs[validIndex] & SHORT_BITS);
+                        index++;
                     } else if (paramType == char.class) {
-                        value = (char) (argsAsLongs[index] & SHORT_BITS);
+                        value = (char) (argsAsLongs[validIndex] & SHORT_BITS);
+                        index++;
                     } else if (paramType == byte.class) {
-                        value = (byte) (argsAsLongs[index] & BYTE_BITS);
+                        value = (byte) (argsAsLongs[validIndex] & BYTE_BITS);
+                        index++;
                     } else {
                         throw new AssertionError("Unknown primitive type: " + paramType);
                     }
                 } else {
                     // In art, object address is actually 32 bits
-                    value = Pine.getObject(thread, argsAsLongs[index] & INT_BITS);
+                    value = Pine.getObject(thread, argsAsLongs[validIndex] & INT_BITS);
+                    index++;
                 }
                 args[i] = value;
-                index++;
             }
         } else {
             args = Pine.EMPTY_OBJECT_ARRAY;
@@ -151,7 +167,7 @@ public final class Arm64Entry {
     private static Pair<long[], double[]> getArgs(Pine.HookRecord hookRecord, long extras, long sp,
                                                   long x4, long x5, long x6, long x7) {
         int length = (hookRecord.isStatic ? 0 : 1 /*this*/) + hookRecord.paramNumber;
-        int floatingArrayLength = 0;
+        int fpArrayLength = 0;
         boolean[] typeWides;
         if (length != 0) {
             typeWides = new boolean[length];
@@ -161,8 +177,11 @@ public final class Arm64Entry {
                     if (type == long.class) {
                         typeWides[i] = true;
                     } else if (type == double.class) {
+                        fpArrayLength++;
                         typeWides[i] = true;
-                        floatingArrayLength++;
+                    } else if (type == float.class) {
+                        fpArrayLength++;
+                        typeWides[i] = false;
                     } else {
                         typeWides[i] = false;
                     }
@@ -175,7 +194,10 @@ public final class Arm64Entry {
                         typeWides[i] = true;
                     } else if (type == double.class) {
                         typeWides[i] = true;
-                        floatingArrayLength++;
+                        fpArrayLength++;
+                    } else if (type == float.class) {
+                        typeWides[i] = false;
+                        fpArrayLength++;
                     } else {
                         typeWides[i] = false;
                     }
@@ -186,10 +208,8 @@ public final class Arm64Entry {
         }
 
         long[] array = length != 0 ? new long[length] : EMPTY_LONG_ARRAY;
-        if (floatingArrayLength > 8)
-            floatingArrayLength = 8; // Remaining arguments are stored in stack
-        double[] floatingArray = floatingArrayLength != 0 ? new double[floatingArrayLength] : EMPTY_DOUBLE_ARRAY;
-        Pine.getArgsArm64(extras, array, sp, typeWides, floatingArray);
+        double[] fpArray = fpArrayLength != 0 ? new double[Math.min(fpArrayLength, 8)] : EMPTY_DOUBLE_ARRAY;
+        Pine.getArgsArm64(extras, array, sp, typeWides, fpArray);
 
         do {
             // x1-x3 are restored in Pine.getArgs64
@@ -204,6 +224,6 @@ public final class Arm64Entry {
             // remaining args are saved in stack and restored in Pine.getArgs64
         } while(false);
 
-        return Pair.create(array, floatingArray);
+        return Pair.create(array, fpArray);
     }
 }
