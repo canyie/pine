@@ -293,9 +293,11 @@ void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArr
 }
 
 #elif defined(__arm__)
-void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp, jboolean skipR1) {
+void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp,
+        jboolean skipR1, jfloatArray fpOut) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
     jint length = env->GetArrayLength(javaArray);
+    jint fpLength = env->GetArrayLength(fpOut);
     if (LIKELY(length > 0)) {
         jint* array = static_cast<jint*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
         if (UNLIKELY(!array)) {
@@ -333,6 +335,10 @@ void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray
 #pragma clang diagnostic pop
 
         env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
+    }
+
+    if (UNLIKELY(fpLength > 0)) {
+        env->SetFloatArrayRegion(fpOut, 0, fpLength, extras->fps);
     }
     extras->ReleaseLock();
 }
@@ -417,7 +423,7 @@ static const struct {
 #ifdef __aarch64__
         {"getArgsArm64", "(J[JJ[Z[D)V"}
 #elif defined(__arm__)
-        {"getArgsArm32", "(I[IIZ)V"}
+        {"getArgsArm32", "(I[IIZ[F)V"}
 #elif defined(__i386__)
         {"getArgsX86", "(I[II)V"}
 #endif
@@ -453,7 +459,7 @@ static const JNINativeMethod gMethods[] = {
 #ifdef __aarch64__
         {"getArgsArm64", "(J[JJ[Z[D)V", (void*) Pine_getArgsArm64}
 #elif defined(__arm__)
-        {"getArgsArm32", "(I[IIZ)V", (void*) Pine_getArgsArm32}
+        {"getArgsArm32", "(I[IIZ[F)V", (void*) Pine_getArgsArm32}
 #elif defined(__i386__)
         {"getArgsX86", "(I[II)V", (void*) Pine_getArgsX86}
 #endif

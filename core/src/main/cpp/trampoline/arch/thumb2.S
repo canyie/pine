@@ -47,6 +47,14 @@ dmb
 str r1, [ip, #4]
 str r2, [ip, #8]
 str r3, [ip, #12]
+vstr.64 d0, [ip, #16]
+vstr.64 d1, [ip, #24]
+vstr.64 d2, [ip, #32]
+vstr.64 d3, [ip, #40]
+vstr.64 d4, [ip, #48]
+vstr.64 d5, [ip, #56]
+vstr.64 d6, [ip, #64]
+vstr.64 d7, [ip, #72]
 ldr r1, pine_thumb_bridge_jump_trampoline_target_method // first param = callee ArtMethod
 mov r2, ip // second param = extras (saved r1, r2, r3)
 mov r3, sp // third param = sp

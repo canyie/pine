@@ -1,6 +1,9 @@
 package top.canyie.pine.entry;
 
 import android.os.Build;
+import android.util.Pair;
+
+import java.util.Map;
 
 import top.canyie.pine.Pine;
 import top.canyie.pine.utils.Primitives;
@@ -10,6 +13,11 @@ import top.canyie.pine.utils.Primitives;
  */
 public final class Arm32Entry {
     private static final int[] EMPTY_INT_ARRAY = new int[0];
+    private static final float[] EMPTY_FLOAT_ARRAY = new float[0];
+    // hardfp is enabled by default in Android 6.0+.
+    // https://android-review.googlesource.com/c/platform/art/+/109033
+    // TODO: Use different entries for hardfp and softfp
+    private static final boolean USE_HARDFP = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
     private Arm32Entry() {
     }
 
@@ -66,13 +74,17 @@ public final class Arm32Entry {
     private static Object handleBridge(int artMethod, int extras, int sp) throws Throwable {
         Pine.log("handleBridge: artMethod=%#x extras=%#x sp=%#x", artMethod, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
-        int[] argsAsInts = getArgsAsInts(hookRecord, extras, sp);
+        Pair<int[], float[]> pair = getArgs(hookRecord, extras, sp);
+        int[] argsAsInts = pair.first;
+        float[] fpArgs = pair.second;
         long thread = Primitives.currentArtThread();
 
         Object receiver;
         Object[] args;
 
         int index = 0;
+        int floatIndex = 0;
+        int doubleIndex = 0;
 
         if (hookRecord.isStatic) {
             receiver = null;
@@ -92,9 +104,34 @@ public final class Arm32Entry {
                     } else if (paramType == long.class) {
                         value = Primitives.ints2Long(argsAsInts[index++], argsAsInts[index]);
                     } else if (paramType == double.class) {
-                        value = Primitives.ints2Double(argsAsInts[index++], argsAsInts[index]);
+                        // These "double registers" overlap with "single registers".
+                        // Double should not overlap with float.
+                        doubleIndex = Math.max(doubleIndex, Primitives.nearestEven(floatIndex));
+                        // If we don't use hardfp, the fpArgs.length is always 0.
+                        if (doubleIndex < fpArgs.length) {
+                            float l = fpArgs[doubleIndex++];
+                            float h = fpArgs[doubleIndex++];
+                            value = Primitives.floats2Double(l, h);
+                            index++;
+                        } else {
+                            int l = argsAsInts[index++];
+                            int h = argsAsInts[index];
+                            value = Primitives.ints2Double(l, h);
+                        }
                     } else if (paramType == float.class) {
-                        value = Float.intBitsToFloat(argsAsInts[index]);
+                        // These "single registers" overlap with "double registers".
+                        // If we use an odd number of single registers, then we can continue to use the next
+                        // but if we don’t, the next single register may be occupied by a double
+                        if (floatIndex % 2 == 0) {
+                            floatIndex = Math.max(doubleIndex, floatIndex);
+                        }
+
+                        // If we don't use hardfp, the fpArgs.length is always 0.
+                        if (floatIndex < fpArgs.length) {
+                            value = fpArgs[floatIndex++];
+                        } else {
+                            value = Float.intBitsToFloat(argsAsInts[index]);
+                        }
                     } else if (paramType == boolean.class) {
                         value = argsAsInts[index] != 0;
                     } else if (paramType == short.class) {
@@ -119,23 +156,39 @@ public final class Arm32Entry {
         return Pine.handleCall(hookRecord, receiver, args);
     }
 
-    private static int[] getArgsAsInts(Pine.HookRecord hookRecord, int extras, int sp) {
+    private static Pair<int[], float[]> getArgs(Pine.HookRecord hookRecord, int extras, int sp) {
         int len = hookRecord.isStatic ? 0 : 1/*this*/;
+        int fpLen = 0;
         Class<?>[] paramTypes = hookRecord.paramTypes;
         for (Class<?> paramType : paramTypes) {
-            len += paramType == long.class || paramType == double.class ? 2 : 1;
+            len++;
+            if (paramType == long.class) {
+                len++;
+            } else if (paramType == double.class) {
+                len++;
+                fpLen += 2;
+            } else if (paramType == float.class) {
+                fpLen++;
+            }
         }
         int[] array = len != 0 ? new int[len] : EMPTY_INT_ARRAY;
+        float[] fpArray = EMPTY_FLOAT_ARRAY;
 
-        // For Android 6.0+, if first argument is 8 bytes (long or double), then the r1 register
-        // will be skipped, move to r2-r3 instead. Use r2, r3, sp + 12.
-        // See art::quick_invoke_reg_setup (in quick_entrypoints_cc_arm.cc)
-        boolean skipR1 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && hookRecord.isStatic
-                && hookRecord.paramNumber > 0
-                && (paramTypes[0] == long.class || paramTypes[0] == double.class);
+        boolean skipR1 = false;
+        if (USE_HARDFP) {
+            // For hardfp, if first argument is long, then the r1 register
+            // will be skipped, move to r2-r3 instead. Use r2, r3, sp + 12.
+            // See art::quick_invoke_reg_setup (in quick_entrypoints_cc_arm.cc)
+            skipR1 = hookRecord.isStatic // For non-static method, r1 is this object
+                    && hookRecord.paramNumber > 0
+                    && paramTypes[0] == long.class;
 
-        Pine.getArgsArm32(extras, array, sp, skipR1);
-        return array;
+            if (fpLen > 0) {
+                // Floating point arguments are stored in floating point registers.
+                fpArray = new float[Math.min(Primitives.nearestEven(fpLen), 16)];
+            }
+        }
+        Pine.getArgsArm32(extras, array, sp, skipR1, fpArray);
+        return Pair.create(array, fpArray);
     }
 }

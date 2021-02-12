@@ -166,6 +166,17 @@ import top.canyie.pine.Pine;
         return Double.longBitsToDouble(ints2Long(a, b));
     }
 
+    public static double floats2Double(float l, float h) {
+        return Double.longBitsToDouble(ints2Long(Float.floatToIntBits(l), Float.floatToIntBits(h)));
+    }
+
+    public static int nearestEven(int n) {
+        if ((n & 1) == 1) {
+            n++;
+        }
+        return n;
+    }
+
     private static Object getUnsafe() throws Exception {
         try {
             // try Unsafe.getUnsafe()

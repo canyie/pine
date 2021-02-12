@@ -554,7 +554,7 @@ public final class Pine {
 
     private static native long getAddress0(long thread, Object o);
 
-    public static native void getArgsArm32(int extras, int[] out, int sp, boolean skipR1);
+    public static native void getArgsArm32(int extras, int[] out, int sp, boolean skipR1, float[] fpOut);
 
     public static native void getArgsArm64(long extras, long[] out, long sp, boolean[] typeWides, double[] floatingOut);
 

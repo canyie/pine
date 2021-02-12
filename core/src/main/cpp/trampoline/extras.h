@@ -37,7 +37,6 @@ namespace pine {
         void* r2 = nullptr;
         /** r3(32 bit) or x3(64 bit) register */
         void* r3 = nullptr;
-
 #ifdef __aarch64__
         /** Floating point registers
          *  Note: In fact, we don’t need to save them,
@@ -45,6 +44,9 @@ namespace pine {
          *  See https://github.com/canyie/pine/issues/9
          */
         jdouble d0 = 0, d1 = 0, d2 = 0, d3 = 0, d4 = 0, d5 = 0, d6 = 0, d7 = 0;
+#elif defined(__arm__)
+        // Floating point registers, s0~s15 = d0~d7
+        jfloat fps[16] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 #endif
 #elif defined(__i386__)
         void* ecx = nullptr;
