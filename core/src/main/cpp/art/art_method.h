@@ -25,7 +25,7 @@ namespace pine::art {
     public:
         static void Init(const ElfImg* handle);
 
-        static void InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags);
+        static void InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod* m3, uint32_t access_flags);
 
         static ArtMethod* FromReflectedMethod(JNIEnv* env, jobject javaMethod);
 
@@ -54,7 +54,7 @@ namespace pine::art {
         }
 
         jmethodID ToMethodID() {
-            return reinterpret_cast<jmethodID> (this);
+            return reinterpret_cast<jmethodID>(this);
         }
 
         // Only works on android 7.0+
@@ -299,6 +299,8 @@ namespace pine::art {
             }
         }
 
+        bool TestDontCompile(JNIEnv* env);
+
         void* GetInterpreterBridge() {
             return UNLIKELY(IsNative()) ? art_quick_generic_jni_trampoline
                                         : art_quick_to_interpreter_bridge;
@@ -313,6 +315,7 @@ namespace pine::art {
         static void* art_interpreter_to_compiled_code_bridge;
 
         static void (*copy_from)(ArtMethod*, ArtMethod*, size_t);
+        static void (*throw_invocation_time_error)(ArtMethod*);
 
         static Member<ArtMethod, uint32_t> access_flags_;
         static Member<ArtMethod, void*> entry_point_from_compiled_code_;

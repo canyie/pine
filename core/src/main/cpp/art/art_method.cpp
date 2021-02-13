@@ -21,6 +21,7 @@ void* ArtMethod::art_interpreter_to_compiled_code_bridge = nullptr;
 void* ArtMethod::art_interpreter_to_interpreter_bridge = nullptr;
 
 void (*ArtMethod::copy_from)(ArtMethod*, ArtMethod*, size_t) = nullptr;
+void (*ArtMethod::throw_invocation_time_error)(ArtMethod*) = nullptr;
 
 Member<ArtMethod, uint32_t> ArtMethod::access_flags_;
 Member<ArtMethod, void*> ArtMethod::entry_point_from_jni_;
@@ -67,6 +68,10 @@ void ArtMethod::Init(const ElfImg* handle) {
     if (symbol_copy_from)
         copy_from = reinterpret_cast<void (*)(ArtMethod*, ArtMethod*, size_t)>(
                 handle->GetSymbolAddress(symbol_copy_from));
+
+    if (Android::version == Android::kO)
+        throw_invocation_time_error = reinterpret_cast<void (*)(ArtMethod*)>(handle->GetSymbolAddress(
+                "_ZN3art9ArtMethod24ThrowInvocationTimeErrorEv"));
 }
 
 ArtMethod* ArtMethod::FromReflectedMethod(JNIEnv* env, jobject javaMethod) {
@@ -95,7 +100,7 @@ static inline size_t Difference(intptr_t a, intptr_t b) {
     return static_cast<size_t>(size);
 }
 
-void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags) {
+void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod* m3, uint32_t access_flags) {
     if (Android::version >= Android::kN) {
         kAccCompileDontBother = (Android::version >= Android::kOMr1)
                                 ? AccessFlags::kCompileDontBother_O_MR1
@@ -193,6 +198,15 @@ void ArtMethod::InitMembers(ArtMethod* m1, ArtMethod* m2, uint32_t access_flags)
         // FIXME This offset has not been verified, so it may be wrong
         entry_point_from_interpreter_ = new Member<ArtMethod, void*>(36);
     }
+
+    if (UNLIKELY(Android::version == Android::kO)) {
+        // See https://github.com/canyie/pine/issues/8
+        if (UNLIKELY(m3->TestDontCompile(env))) {
+            LOGW("Detected android 8.1 runtime on android 8.0 device");
+            LOGW("For more info, see https://github.com/canyie/pine/issues/8");
+            kAccCompileDontBother = AccessFlags::kCompileDontBother_O_MR1;
+        }
+    }
 }
 
 void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy) {
@@ -277,5 +291,21 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
         std::unique_lock<std::shared_mutex> lock(hooked_methods_mutex);
         hooked_methods.insert(this);
     }
+}
+
+bool ArtMethod::TestDontCompile(JNIEnv* env) {
+    // ThrowInvocationTimeError() has a DCHECK(IsAbstract()), so we should use abstract method to test it.
+    // assert(IsAbstract());
+    jclass AbstractMethodError = env->FindClass("java/lang/AbstractMethodError");
+    uint32_t access_flags = GetAccessFlags();
+    SetAccessFlags(access_flags | AccessFlags::kCompileDontBother_N);
+    throw_invocation_time_error(this);
+    SetAccessFlags(access_flags);
+    jthrowable exception = env->ExceptionOccurred();
+    env->ExceptionClear();
+    bool special = exception != nullptr && !env->IsInstanceOf(exception, AbstractMethodError);
+    env->DeleteLocalRef(AbstractMethodError);
+    env->DeleteLocalRef(exception);
+    return special;
 }
 

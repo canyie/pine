@@ -72,25 +72,26 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, j
         if (androidVersion >= Android::kQ) {
             expected_access_flags |= AccessFlags::kPublicApi;
         }
-        art::ArtMethod::InitMembers(m1, m2, expected_access_flags);
-    }
-
-    if (UNLIKELY(!art::ArtMethod::GetQuickToInterpreterBridge())) {
-        // This is a workaround for art_quick_to_interpreter_bridge not found.
-        // This case is almost impossible to enter
-        // because its symbols are found almost always on all devices.
-        // But if it happened... Try to get it with an abstract method (it is not compilable
-        // and its entry is art_quick_to_interpreter_bridge)
-        // Note: We DO NOT use platform's abstract methods
-        // because their entry may not be interpreter entry.
-
-        LOGE("art_quick_to_interpreter_bridge not found, try workaround");
 
         ScopedLocalClassRef I(env, "top/canyie/pine/Ruler$I");
-        auto m = art::ArtMethod::Require(env, I.Get(), "m", "()V", false);
-        void* entry = m->GetEntryPointFromCompiledCode();
-        LOGE("New art_quick_to_interpreter_bridge %p", entry);
-        art::ArtMethod::SetQuickToInterpreterBridge(entry);
+        auto abstract_method = art::ArtMethod::Require(env, I.Get(), "m", "()V", false);
+        art::ArtMethod::InitMembers(env, m1, m2, abstract_method, expected_access_flags);
+
+        if (UNLIKELY(!art::ArtMethod::GetQuickToInterpreterBridge())) {
+            // This is a workaround for art_quick_to_interpreter_bridge not found.
+            // This case is almost impossible to enter
+            // because its symbols are found almost always on all devices.
+            // But if it happened... Try to get it with an abstract method (it is not compilable
+            // and its entry is art_quick_to_interpreter_bridge)
+            // Note: We DO NOT use platform's abstract methods
+            // because their entry may not be interpreter entry.
+
+            LOGE("art_quick_to_interpreter_bridge not found, try workaround");
+
+            void* entry = abstract_method->GetEntryPointFromCompiledCode();
+            LOGE("New art_quick_to_interpreter_bridge %p", entry);
+            art::ArtMethod::SetQuickToInterpreterBridge(entry);
+        }
     }
 
     env->SetStaticIntField(Pine, env->GetStaticFieldID(Pine, "arch", "I"), kCurrentArch);
