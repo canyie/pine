@@ -69,7 +69,7 @@ void ArtMethod::Init(const ElfImg* handle) {
         copy_from = reinterpret_cast<void (*)(ArtMethod*, ArtMethod*, size_t)>(
                 handle->GetSymbolAddress(symbol_copy_from));
 
-    if (Android::version == Android::kO)
+    if (UNLIKELY(Android::version == Android::kO))
         throw_invocation_time_error = reinterpret_cast<void (*)(ArtMethod*)>(handle->GetSymbolAddress(
                 "_ZN3art9ArtMethod24ThrowInvocationTimeErrorEv"));
 }
@@ -199,7 +199,7 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
         entry_point_from_interpreter_ = new Member<ArtMethod, void*>(36);
     }
 
-    if (UNLIKELY(Android::version == Android::kO)) {
+    if (UNLIKELY(throw_invocation_time_error)) {
         // See https://github.com/canyie/pine/issues/8
         if (UNLIKELY(m3->TestDontCompile(env))) {
             LOGW("Detected android 8.1 runtime on android 8.0 device");
