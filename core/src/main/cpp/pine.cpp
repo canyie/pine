@@ -231,49 +231,53 @@ jlong Pine_getAddress0(JNIEnv*, jclass, jlong thread, jobject o) {
 }
 
 #ifdef __aarch64__
-
-void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlongArray javaArray, jlong sp,
-        jbooleanArray typeWides, jdoubleArray fpOut) {
+void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlong sp, jbooleanArray typeWides,
+        jlongArray coreRegisters, jlongArray stack, jdoubleArray fpRegisters) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
-    jint length = env->GetArrayLength(javaArray);
-    if (LIKELY(length > 0)) {
-        jlong* array = static_cast<jlong*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
+    jint total = env->GetArrayLength(typeWides);
+    jint crLength = env->GetArrayLength(coreRegisters);
+    jint stackLength = env->GetArrayLength(stack);
+
+    if (LIKELY(total != 0)) {
         jboolean* wides = static_cast<jboolean*>(env->GetPrimitiveArrayCritical(typeWides, nullptr));
+        if (LIKELY(crLength > 0)) {
+            jlong* array = static_cast<jlong*>(env->GetPrimitiveArrayCritical(coreRegisters, nullptr));
 
-        do {
-            array[0] = reinterpret_cast<jlong>(extras->r1);
-            if (length == 1) break;
-            array[1] = reinterpret_cast<jlong>(extras->r2);
-            if (length == 2) break;
-            array[2] = reinterpret_cast<jlong>(extras->r3);
-            if (length < 8) break; // x4-x7 will be restored in java
+            do {
+                array[0] = reinterpret_cast<jlong>(extras->r1);
+                if (crLength == 1) break;
+                array[1] = reinterpret_cast<jlong>(extras->r2);
+                if (crLength == 2) break;
+                array[2] = reinterpret_cast<jlong>(extras->r3);
+                if (crLength < 8) break; // x4-x7 will be restored in java
+            } while (false);
+            env->ReleasePrimitiveArrayCritical(coreRegisters, array, JNI_ABORT);
+        }
 
+        {
             // get args from stack
             uintptr_t current_on_stack = static_cast<uintptr_t>(sp + 8/*callee*/);
-            for (int i = 0;i < 7;i++) {
-                current_on_stack += wides[i] == JNI_TRUE ? 8 : 4;
-            }
 
-            for (int i = 7; i < length; i++) {
+            jlong* array = static_cast<jlong*>(env->GetPrimitiveArrayCritical(stack, nullptr));
+            for (int i = 0; i < stackLength; ++i) {
                 array[i] = *reinterpret_cast<jlong*>(current_on_stack);
                 current_on_stack += wides[i] == JNI_TRUE ? 8 : 4;
             }
-        } while (false);
+            env->ReleasePrimitiveArrayCritical(stack, array, JNI_ABORT);
+        }
         env->ReleasePrimitiveArrayCritical(typeWides, wides, 0);
-        env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
     }
 
     // Restore floating point (double and float) arguments.
     // Note: In fact, we don’t need to restore them here,
     // but an unknown error will occur when receiving directly in the bridge method
     // See https://github.com/canyie/pine/issues/9
-    jint fpArrayLength = env->GetArrayLength(fpOut);
-    if (UNLIKELY(fpArrayLength > 0)) {
-        env->SetDoubleArrayRegion(fpOut, 0, fpArrayLength, extras->fps);
+    jint fpArrayLength = env->GetArrayLength(fpRegisters);
+    if (UNLIKELY(fpArrayLength != 0)) {
+        env->SetDoubleArrayRegion(fpRegisters, 0, fpArrayLength, extras->fps);
     }
     delete extras;
 }
-
 #elif defined(__arm__)
 void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp,
         jboolean skipR1, jfloatArray fpOut) {
@@ -408,7 +412,7 @@ static const struct {
         {"currentArtThread0", "()J"},
         {"cloneExtras", "(J)J"},
 #ifdef __aarch64__
-        {"getArgsArm64", "(J[JJ[Z[D)V"}
+        {"getArgsArm64", "(JJ[Z[J[J[D)V"}
 #elif defined(__arm__)
         {"getArgsArm32", "(I[IIZ[F)V"}
 #elif defined(__i386__)
@@ -444,7 +448,7 @@ static const JNINativeMethod gMethods[] = {
         {"makeClassesVisiblyInitialized", "(J)V", (void*) Pine_makeClassesVisiblyInitialized},
         {"cloneExtras", "(J)J", (void*) Pine_cloneExtras},
 #ifdef __aarch64__
-        {"getArgsArm64", "(J[JJ[Z[D)V", (void*) Pine_getArgsArm64}
+        {"getArgsArm64", "(JJ[Z[J[J[D)V", (void*) Pine_getArgsArm64}
 #elif defined(__arm__)
         {"getArgsArm32", "(I[IIZ[F)V", (void*) Pine_getArgsArm32}
 #elif defined(__i386__)
