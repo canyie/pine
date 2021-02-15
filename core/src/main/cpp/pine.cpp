@@ -279,51 +279,36 @@ void Pine_getArgsArm64(JNIEnv* env, jclass, jlong javaExtras, jlong sp, jboolean
     delete extras;
 }
 #elif defined(__arm__)
-void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jintArray javaArray, jint sp,
-        jboolean skipR1, jfloatArray fpOut) {
+void Pine_getArgsArm32(JNIEnv *env, jclass, jint javaExtras, jint sp,
+                       jintArray crOut, jintArray stack, jfloatArray fpOut) {
     auto extras = reinterpret_cast<Extras*>(javaExtras);
-    jint length = env->GetArrayLength(javaArray);
-    jint fpLength = env->GetArrayLength(fpOut);
-    if (LIKELY(length > 0)) {
-        jint* array = static_cast<jint*>(env->GetPrimitiveArrayCritical(javaArray, nullptr));
-        if (UNLIKELY(!array)) {
-            constexpr const char *error_msg = "GetPrimitiveArrayCritical returned nullptr! javaArray is invalid?";
-            LOGF(error_msg);
-            env->FatalError(error_msg);
-            abort(); // Unreachable
-        }
+    jint crLength = env->GetArrayLength(crOut);
+    jint stackLength = env->GetArrayLength(stack);
+    if (LIKELY(crLength != 0)) {
+        jint* array = static_cast<jint*>(env->GetPrimitiveArrayCritical(crOut, nullptr));
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCSimplifyInspection"
         do {
-            if (skipR1 == JNI_TRUE) {
-                // Skip r1 register: use r2, r3, sp + 12.
-                array[0] = reinterpret_cast<jint>(extras->r2);
-                if (length == 1) break;
-                array[1] = reinterpret_cast<jint>(extras->r3);
-                if (length == 2) break;
-                array[2] = *reinterpret_cast<jint*>(sp + 12);
-            } else {
-                // Normal: use r1, r2, r3.
-                array[0] = reinterpret_cast<jint>(extras->r1);
-                if (length == 1) break;
-                array[1] = reinterpret_cast<jint>(extras->r2);
-                if (length == 2) break;
-                array[2] = reinterpret_cast<jint>(extras->r3);
-            }
-            if (length == 3) break;
-
-            // get args from stack
-            for (int i = 3; i < length; i++) {
-                array[i] = *reinterpret_cast<jint*> (sp + 4 /*callee*/ + 4 * i);
-            }
+            // Normal: use r1, r2, r3.
+            array[0] = reinterpret_cast<jint>(extras->r1);
+            if (crLength == 1) break;
+            array[1] = reinterpret_cast<jint>(extras->r2);
+            if (crLength == 2) break;
+            array[2] = reinterpret_cast<jint>(extras->r3);
         } while (false);
 #pragma clang diagnostic pop
 
-        env->ReleasePrimitiveArrayCritical(javaArray, array, JNI_ABORT);
+        env->ReleasePrimitiveArrayCritical(crOut, array, JNI_ABORT);
     }
 
-    if (UNLIKELY(fpLength > 0)) {
+    if (LIKELY(stackLength != 0)) {
+        // get args from stack
+        env->SetIntArrayRegion(stack, 0, stackLength, reinterpret_cast<const jint*>(sp + 4 /*callee*/));
+    }
+
+    jint fpLength = env->GetArrayLength(fpOut);
+    if (UNLIKELY(fpLength != 0)) {
         env->SetFloatArrayRegion(fpOut, 0, fpLength, extras->fps);
     }
     delete extras;
@@ -414,7 +399,7 @@ static const struct {
 #ifdef __aarch64__
         {"getArgsArm64", "(JJ[Z[J[J[D)V"}
 #elif defined(__arm__)
-        {"getArgsArm32", "(I[IIZ[F)V"}
+        {"getArgsArm32", "(II[I[I[F)V"}
 #elif defined(__i386__)
         {"getArgsX86", "(I[II)V"}
 #endif
@@ -450,7 +435,7 @@ static const JNINativeMethod gMethods[] = {
 #ifdef __aarch64__
         {"getArgsArm64", "(JJ[Z[J[J[D)V", (void*) Pine_getArgsArm64}
 #elif defined(__arm__)
-        {"getArgsArm32", "(I[IIZ[F)V", (void*) Pine_getArgsArm32}
+        {"getArgsArm32", "(II[I[I[F)V", (void*) Pine_getArgsArm32}
 #elif defined(__i386__)
         {"getArgsX86", "(I[II)V", (void*) Pine_getArgsX86}
 #endif

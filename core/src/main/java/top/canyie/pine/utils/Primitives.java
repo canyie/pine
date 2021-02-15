@@ -170,7 +170,7 @@ import top.canyie.pine.Pine;
         return Double.longBitsToDouble(ints2Long(Float.floatToIntBits(l), Float.floatToIntBits(h)));
     }
 
-    public static int nearestEven(int n) {
+    public static int evenUp(int n) {
         if ((n & 1) == 1) {
             n++;
         }

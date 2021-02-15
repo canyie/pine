@@ -160,6 +160,7 @@ public final class Arm64Entry {
 
     private static Three<long[], long[], double[]> getArgs(Pine.HookRecord hookRecord, long extras, long sp,
                                                          long x4, long x5, long x6, long x7) {
+        // TODO: Cache these values
         int crLength = 0;
         int stackLength = 0;
         int fprLength = 0;

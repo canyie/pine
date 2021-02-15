@@ -15,12 +15,12 @@ android {
             cmake {
                 cFlags '-Wall -Wextra -Werror'
                 cppFlags '-std=c++17'
-                abiFilters 'armeabi-v7a', 'arm64-v8a'
+                abiFilters 'armeabi-v7a'
             }
         }
 
         ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a'
+            abiFilters 'armeabi-v7a'
         }
     }
 
