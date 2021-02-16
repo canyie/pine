@@ -101,6 +101,7 @@ public final class Arm64Entry {
         } else {
             receiver = Pine.getObject(thread, coreRegisters[0]);
             crIndex = 1;
+            stackIndex = 1;
         }
 
         if (hookRecord.paramNumber > 0) {
@@ -169,6 +170,7 @@ public final class Arm64Entry {
         int paramTotal = hookRecord.paramNumber;
         if (!hookRecord.isStatic) {
             crLength = 1;
+            stackLength = 1;
             paramTotal++;
         }
         if (paramTotal != 0) {

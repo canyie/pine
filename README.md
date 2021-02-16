@@ -100,9 +100,9 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ```
 
 ## Known issues
-- May not be compatible with all devices/systems.
+- May not be compatible with some devices/systems.
 
-- Due to [#11](https://github.com/canyie/pine/issues/11), we recommend hooking methods with less concurrency as much as possible due to #10, for example:
+- Due to [#11](https://github.com/canyie/pine/issues/11), we recommend hooking methods with less concurrency as much as possible, for example:
 ```java
 public static void method() {
     synchronized (sLock) {

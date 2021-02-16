@@ -96,6 +96,7 @@ public final class Arm32Entry {
         } else {
             receiver = Pine.getObject(thread, coreRegisters[0]);
             crIndex = 1;
+            stackIndex = 1;
         }
 
         if (hookRecord.paramNumber > 0) {
@@ -196,6 +197,7 @@ public final class Arm32Entry {
                 }
                 args[i] = value;
                 stackIndex++;
+
             }
         } else {
             args = Pine.EMPTY_OBJECT_ARRAY;
@@ -207,7 +209,7 @@ public final class Arm32Entry {
     private static Three<int[], int[], float[]> getArgs(Pine.HookRecord hookRecord, int extras, int sp) {
         // TODO: Cache these values
         int crLength = hookRecord.isStatic ? 0 : 1/*this*/;
-        int stackLength = 0;
+        int stackLength = crLength;
         int floatLength = 0, doubleLength = 0;
         Class<?>[] paramTypes = hookRecord.paramTypes;
         for (Class<?> paramType : paramTypes) {
