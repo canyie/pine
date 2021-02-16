@@ -8,13 +8,11 @@ import top.canyie.pine.callback.MethodHook;
 import top.canyie.pine.utils.Primitives;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -217,7 +215,7 @@ public final class Pine {
         if (hookRecord.isStatic = Modifier.isStatic(modifiers)) {
             resolve((Method) method);
             if (Build.VERSION.SDK_INT >= 30) {
-                // Android R has a new class state "visibly initialized",
+                // Android R has a new class state called "visibly initialized",
                 // and FixupStaticTrampolines will be called after class was initialized.
                 // The entry point will be reset. Make this class be visibly initialized before hook
                 makeClassesVisiblyInitialized(thread);
@@ -225,7 +223,6 @@ public final class Pine {
         }
 
         Class<?> declaring = method.getDeclaringClass();
-
 
         boolean isNativeOrProxy = Modifier.isNative(modifiers) || Proxy.isProxyClass(declaring);
 
@@ -572,6 +569,21 @@ public final class Pine {
 
     public static native long cloneExtras(long origin);
 
+    public interface HookListener {
+        void beforeHook(Member method, MethodHook callback);
+        void afterHook(Member method, MethodHook.Unhook unhook);
+    }
+
+    public interface LibLoader {
+        void loadLib();
+    }
+
+    public interface HookMode {
+        int AUTO = 0;
+        int INLINE = 1;
+        int REPLACEMENT = 2;
+    }
+
     public static final class HookRecord {
         public final Member target;
         public Method backup;
@@ -598,6 +610,10 @@ public final class Pine {
 
         public MethodHook[] getCallbacks() {
             return callbacks.toArray(new MethodHook[callbacks.size()]);
+        }
+
+        public void addCallbacksFrom(HookRecord hookRecord) {
+            callbacks.addAll(hookRecord.callbacks);
         }
     }
 
@@ -660,20 +676,5 @@ public final class Pine {
         public Object invokeOriginalMethod(Object thisObject, Object... args) throws InvocationTargetException, IllegalAccessException {
             return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
         }
-    }
-
-    public interface HookListener {
-        void beforeHook(Member method, MethodHook callback);
-        void afterHook(Member method, MethodHook.Unhook unhook);
-    }
-
-    public interface LibLoader {
-        void loadLib();
-    }
-
-    public interface HookMode {
-        int AUTO = 0;
-        int INLINE = 1;
-        int REPLACEMENT = 2;
     }
 }

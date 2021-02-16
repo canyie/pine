@@ -15,8 +15,8 @@ android {
 
         externalNativeBuild {
             cmake {
-                cFlags '-Wall -Wextra -Werror'
-                cppFlags '-std=c++17'
+                cFlags '-Wall -Wextra -Werror -fvisibility=hidden'
+                cppFlags '-std=c++17 -fno-exceptions -fno-rtti'
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
                 targets 'pine'
             }
