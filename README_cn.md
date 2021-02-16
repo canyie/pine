@@ -110,8 +110,7 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ## 已知问题：
 - 可能不兼容部分设备/系统。
 
-- 当两个或更多线程同时进入同一个被hook方法时，其中一个线程将获取到锁，另一个线程会等待；但当持有锁的线程还未释放锁时，如果art需要挂起所有线程，该线程执行到checkpoint时将暂停执行，而没有持有锁的线程将无限等待，无法到达checkpoint，并最终导致挂起超时，runtime abort。
-所以我们建议尽量hook并发较少的方法，举个例子：
+- 由于#10，我们建议尽量hook并发较少的方法，举个例子：
 ```java
 public static void method() {
     synchronized (sLock) {

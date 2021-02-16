@@ -102,8 +102,7 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ## Known issues
 - May not be compatible with all devices/systems.
 
-- When two or more threads enter the same hooked method at the same time, one thread will acquire the lock and the other thread will wait; but when the thread holding the lock has not released the lock, if art needs to suspend all threads , The thread will suspend execution when it reaches the checkpoint, and the thread that does not hold the lock will wait indefinitely, unable to reach the checkpoint, and eventually cause the suspension to time out and trigger runtime abort.
-So we recommend hooking methods with less concurrency as much as possible, for example:
+- Due to #10, we recommend hooking methods with less concurrency as much as possible due to #10, for example:
 ```java
 public static void method() {
     synchronized (sLock) {
