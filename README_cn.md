@@ -110,7 +110,7 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ## 已知问题：
 - 可能不兼容部分设备/系统。
 
-- 由于#10，我们建议尽量hook并发较少的方法，举个例子：
+- 由于[#11](https://github.com/canyie/pine/issues/11)，我们建议尽量hook并发较少的方法，举个例子：
 ```java
 public static void method() {
     synchronized (sLock) {
