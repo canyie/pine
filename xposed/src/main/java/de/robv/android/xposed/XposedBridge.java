@@ -27,6 +27,9 @@ import top.canyie.pine.xposed.PineXposed;
 public final class XposedBridge {
 	// Pine removed: Useless apis
 
+	// Pine added: New API for querying supported features
+	private static String[] sSupportedFeatures = new String[0];
+
 	/**
 	 * The system class loader which can be used to locate Android framework classes.
 	 * Application classes cannot be retrieved from it.
@@ -57,9 +60,25 @@ public final class XposedBridge {
 		return XPOSED_BRIDGE_VERSION;
 	}
 
-	// Pine added: Lets
+	// Pine added
 	public static void setXposedVersion(int version) {
 		XPOSED_BRIDGE_VERSION = version;
+	}
+
+	// Pine added: New API for querying supported features
+	public static boolean isFeatureSupported(String featureName) {
+		for (String f : sSupportedFeatures) {
+			if (f.equalsIgnoreCase(featureName)) return true;
+		}
+		return false;
+	}
+
+	public static String[] getSupportedFeatures() {
+		return sSupportedFeatures;
+	}
+
+	public static void setSupportedFeatures(String[] features) {
+		sSupportedFeatures = features;
 	}
 
 	/**
@@ -190,8 +209,8 @@ public final class XposedBridge {
 		return unhooks;
 	}
 
-	// Pine changed: removed handleHookedMethod(), it' implements in Handler.class
-	// Pine changed: removed hookXxx(), its implements in PineXposed.class
+	// Pine changed: removed handleHookedMethod(), it be implemented in Handler.class
+	// Pine changed: removed hookXxx(), it be implemented in PineXposed.class
 
 	/**
 	 * Basically the same as {@link Method#invoke}, but calls the original method
