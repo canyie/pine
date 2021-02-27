@@ -59,9 +59,9 @@ public final class Pine {
         int sdkLevel = Build.VERSION.SDK_INT;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + Build.VERSION.SDK_INT);
-        else if (sdkLevel == Build.VERSION_CODES.Q && Build.VERSION.PREVIEW_SDK_INT > 0) {
-            // Android R Preview
-            sdkLevel = 30;
+        else if (sdkLevel == 30 && Build.VERSION.PREVIEW_SDK_INT > 0) {
+            // Android S Preview
+            sdkLevel = 31;
         }
 
         if (sdkLevel > 30) {

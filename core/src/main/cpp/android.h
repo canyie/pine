@@ -71,6 +71,7 @@ namespace pine {
         static constexpr int kP = 28;
         static constexpr int kQ = 29;
         static constexpr int kR = 30;
+        static constexpr int kS = 31;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
         static void InitClassLinker(JavaVM* jvm, const ElfImg* handle);

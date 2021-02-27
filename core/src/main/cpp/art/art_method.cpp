@@ -228,11 +228,13 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
     access_flags &= ~AccessFlags::kConstructor;
     SetAccessFlags(access_flags);
 
-    if (Android::version >= Android::kN && !is_inline_hook && !is_native_or_proxy
-            && art_quick_to_interpreter_bridge) {
+    if (Android::version >= Android::kN && Android::version < Android::kS
+            && !is_inline_hook && !is_native_or_proxy && art_quick_to_interpreter_bridge) {
         // On Android N+, the method may compiled by JIT, and unknown problem occurs when calling
         // the backup method if we use entry replacement mode. Just use the interpreter to execute.
         // Possible reason: compiled code is recycled in JIT garbage collection.
+        // TODO: Only do this if the method is compiled by jit.
+        //  JitCodeCache::WillExecuteJitCore() or ContainsPc() not working for me.
         SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
 
         // For non-native and non-proxy methods, the entry_point_from_jni_ member is used to save
@@ -296,6 +298,8 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
 bool ArtMethod::TestDontCompile(JNIEnv* env) {
     // ThrowInvocationTimeError() has a DCHECK(IsAbstract()), so we should use abstract method to test it.
     // assert(IsAbstract());
+
+    // AbstractMethodError extends from IncompatibleClassChangeError
     jclass AbstractMethodError = env->FindClass("java/lang/AbstractMethodError");
     uint32_t access_flags = GetAccessFlags();
     SetAccessFlags(access_flags | AccessFlags::kCompileDontBother_N);
