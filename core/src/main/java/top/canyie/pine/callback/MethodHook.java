@@ -30,7 +30,7 @@ public abstract class MethodHook {
         }
 
         public void unhook() {
-            hookRecord.removeCallback(MethodHook.this);
+            Pine.getHookHandler().handleUnhook(hookRecord, MethodHook.this);
         }
     }
 }

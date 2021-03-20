@@ -13,7 +13,6 @@ import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -36,6 +35,23 @@ public final class Pine {
     private static final Object sHookLock = new Object();
     private static int arch;
     private static volatile int hookMode = HookMode.AUTO;
+    private static HookHandler sHookHandler = new HookHandler() {
+        @Override
+        public MethodHook.Unhook handleHook(HookRecord hookRecord, MethodHook hook, int modifiers,
+                                            boolean newMethod, boolean canInitDeclaringClass) {
+            if (newMethod)
+                hookNewMethod(hookRecord, modifiers, canInitDeclaringClass);
+
+            hookRecord.addCallback(hook);
+
+            return hook.new Unhook(hookRecord);
+        }
+
+        @Override public void handleUnhook(HookRecord hookRecord, MethodHook hook) {
+            hookRecord.removeCallback(hook);
+        }
+    };
+
     private static HookListener sHookListener;
 
     private Pine() {
@@ -126,6 +142,14 @@ public final class Pine {
         hookMode = newHookMode;
     }
 
+    public static void setHookHandler(HookHandler h) {
+        sHookHandler = h;
+    }
+
+    public static HookHandler getHookHandler() {
+        return sHookHandler;
+    }
+
     public static void setHookListener(HookListener l) {
         sHookListener = l;
     }
@@ -139,33 +163,30 @@ public final class Pine {
         return arch == ARCH_ARM64;
     }
 
-    public static MethodHook.Unhook hook(Method method, MethodHook callback) {
+    public static MethodHook.Unhook hook(Member method, MethodHook callback) {
+        return hook(method, callback, true);
+    }
+
+    public static MethodHook.Unhook hook(Member method, MethodHook callback, boolean canInitDeclaringClass) {
+        if (PineConfig.debug)
+            Log.d(TAG, "Hooking method " + method + " with callback " + callback);
+
         if (method == null) throw new NullPointerException("method == null");
         if (callback == null) throw new NullPointerException("callback == null");
-        method.setAccessible(true);
 
         int modifiers = method.getModifiers();
-        if (Modifier.isAbstract(modifiers))
-            throw new IllegalArgumentException("Cannot hook abstract methods: " + method);
+        if (method instanceof Method) {
+            if (Modifier.isAbstract(modifiers))
+                throw new IllegalArgumentException("Cannot hook abstract methods: " + method);
+            ((Method) method).setAccessible(true);
+        } else if (method instanceof Constructor) {
+            if (Modifier.isStatic(modifiers)) // TODO: We really cannot hook this?
+                throw new IllegalArgumentException("Cannot hook class initializer: " + method);
+            ((Constructor) method).setAccessible(true);
+        } else {
+            throw new IllegalArgumentException("Only methods and constructors can be hooked: " + method);
+        }
 
-        return hookImpl(modifiers, method, callback);
-    }
-
-    public static MethodHook.Unhook hook(Constructor<?> constructor, MethodHook callback) {
-        if (constructor == null) throw new NullPointerException("constructor == null");
-        if (callback == null) throw new NullPointerException("callback == null");
-        constructor.setAccessible(true);
-
-        int modifiers = constructor.getModifiers();
-        if (Modifier.isStatic(modifiers))
-            throw new IllegalArgumentException("Cannot hook <clinit> (invoke when class-init)");
-
-        return hookImpl(modifiers, constructor, callback);
-    }
-
-    private static MethodHook.Unhook hookImpl(int modifiers, Member method, MethodHook callback) {
-        if (PineConfig.debug)
-            Log.d(TAG, "Hooking " + method + " callback " + callback);
         ensureInitialized();
 
         HookListener hookListener = sHookListener;
@@ -186,11 +207,8 @@ public final class Pine {
             }
         }
 
-        if (newMethod)
-            hookNewMethod(hookRecord, modifiers, method);
-
-        hookRecord.addCallback(callback);
-        MethodHook.Unhook unhook = callback.new Unhook(hookRecord);
+        MethodHook.Unhook unhook = sHookHandler.handleHook(hookRecord, callback, modifiers,
+                newMethod, canInitDeclaringClass);
 
         if (hookListener != null)
             hookListener.afterHook(method, unhook);
@@ -198,7 +216,8 @@ public final class Pine {
         return unhook;
     }
 
-    private static void hookNewMethod(HookRecord hookRecord, int modifiers, Member method) {
+    static void hookNewMethod(HookRecord hookRecord, int modifiers, boolean canInitDeclaringClass) {
+        Member method = hookRecord.target;
         boolean isInlineHook;
         if (hookMode == HookMode.AUTO) {
             // On Android N or lower, entry_point_from_compiled_code_ may be hard-coded in the machine code
@@ -212,12 +231,13 @@ public final class Pine {
         }
 
         long thread = Primitives.currentArtThread();
-        if (hookRecord.isStatic = Modifier.isStatic(modifiers)) {
+        if ((hookRecord.isStatic = Modifier.isStatic(modifiers)) && canInitDeclaringClass) {
             resolve((Method) method);
             if (Build.VERSION.SDK_INT >= 30) {
                 // Android R has a new class state called "visibly initialized",
                 // and FixupStaticTrampolines will be called after class was initialized.
                 // The entry point will be reset. Make this class be visibly initialized before hook
+                // TODO: We found some ROMs "indicates that is Q", but uses R's art (has "visibly initialized" state)
                 makeClassesVisiblyInitialized(thread);
             }
         }
@@ -232,7 +252,7 @@ public final class Pine {
             if (!isNativeOrProxy) {
                 boolean compiled = compile0(thread, method);
                 if (!compiled) {
-                    Log.w(TAG, "Cannot compile the target method, force use replacement mode.");
+                    Log.w(TAG, "Cannot compile the target method, force replacement mode.");
                     isInlineHook = false;
                 }
             } else {
@@ -293,7 +313,7 @@ public final class Pine {
     public static HookRecord getHookRecord(long artMethod) {
         HookRecord result = sHookRecords.get(artMethod);
         if (result == null) {
-            throw new AssertionError("Not found HookRecord for ArtMethod pointer 0x" + Long.toHexString(artMethod));
+            throw new AssertionError("No HookRecord found for ArtMethod pointer 0x" + Long.toHexString(artMethod));
         }
         return result;
     }
@@ -584,36 +604,43 @@ public final class Pine {
         int REPLACEMENT = 2;
     }
 
+    public interface HookHandler {
+        MethodHook.Unhook handleHook(HookRecord hookRecord, MethodHook hook, int modifiers,
+                                     boolean newMethod, boolean canInitDeclaringClass);
+        void handleUnhook(HookRecord hookRecord, MethodHook hook);
+    }
+
+    /** Internal API */
     public static final class HookRecord {
         public final Member target;
         public Method backup;
         public boolean isStatic;
         public int paramNumber;
         public Class<?>[] paramTypes;
-        private Set<MethodHook> callbacks = Collections.synchronizedSet(new HashSet<MethodHook>());
+        private Set<MethodHook> callbacks = new HashSet<>();
 
-        HookRecord(Member target) {
+        public HookRecord(Member target) {
             this.target = target;
         }
 
-        public void addCallback(MethodHook callback) {
+        public synchronized void addCallback(MethodHook callback) {
             callbacks.add(callback);
         }
 
-        public void removeCallback(MethodHook callback) {
+        public synchronized void removeCallback(MethodHook callback) {
             callbacks.remove(callback);
         }
 
-        public boolean emptyCallbacks() {
+        public synchronized boolean emptyCallbacks() {
             return callbacks.isEmpty();
         }
 
-        public MethodHook[] getCallbacks() {
+        public synchronized MethodHook[] getCallbacks() {
             return callbacks.toArray(new MethodHook[callbacks.size()]);
         }
 
-        public void addCallbacksFrom(HookRecord hookRecord) {
-            callbacks.addAll(hookRecord.callbacks);
+        public boolean isPending() {
+            return backup == null;
         }
     }
 
