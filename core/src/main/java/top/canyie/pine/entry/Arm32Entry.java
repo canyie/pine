@@ -3,6 +3,7 @@ package top.canyie.pine.entry;
 import android.os.Build;
 
 import top.canyie.pine.Pine;
+import top.canyie.pine.PineConfig;
 import top.canyie.pine.utils.Primitives;
 import top.canyie.pine.utils.Three;
 
@@ -18,7 +19,7 @@ public final class Arm32Entry {
     // hardfp is enabled by default in Android 6.0+.
     // https://android-review.googlesource.com/c/platform/art/+/109033
     // TODO: Use different entries for hardfp and softfp
-    private static final boolean USE_HARDFP = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
+    private static final boolean USE_HARDFP = PineConfig.sdkLevel >= Build.VERSION_CODES.M;
     private Arm32Entry() {
     }
 

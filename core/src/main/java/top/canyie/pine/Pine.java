@@ -42,8 +42,12 @@ public final class Pine {
             if (newMethod)
                 hookNewMethod(hookRecord, modifiers, canInitDeclaringClass);
 
+            if (hook == null) {
+                // This can only happens when the up handler pass null manually,
+                // just return null and let the up to do remaining everything
+                return null;
+            }
             hookRecord.addCallback(hook);
-
             return hook.new Unhook(hookRecord);
         }
 
@@ -72,15 +76,10 @@ public final class Pine {
     }
 
     @SuppressLint("ObsoleteSdkInt") private static void initialize() {
-        int sdkLevel = Build.VERSION.SDK_INT;
+        int sdkLevel = PineConfig.sdkLevel;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
-            throw new RuntimeException("Unsupported android sdk level " + Build.VERSION.SDK_INT);
-        else if (sdkLevel == 30 && Build.VERSION.PREVIEW_SDK_INT > 0) {
-            // Android S Preview
-            sdkLevel = 31;
-        }
-
-        if (sdkLevel > 30) {
+            throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
+        else if (sdkLevel > 30) {
             Log.w(TAG, "Android version too high, not tested now...");
         }
 
@@ -225,7 +224,7 @@ public final class Pine {
             // so we prefer to use inline hook; And on Android O+, this optimization is not performed,
             // so we prefer a more stable entry replacement mode.
 
-            isInlineHook = Build.VERSION.SDK_INT < Build.VERSION_CODES.O;
+            isInlineHook = PineConfig.sdkLevel < Build.VERSION_CODES.O;
         } else {
             isInlineHook = hookMode == HookMode.INLINE;
         }
@@ -233,7 +232,7 @@ public final class Pine {
         long thread = Primitives.currentArtThread();
         if ((hookRecord.isStatic = Modifier.isStatic(modifiers)) && canInitDeclaringClass) {
             resolve((Method) method);
-            if (Build.VERSION.SDK_INT >= 30) {
+            if (PineConfig.sdkLevel >= 30) {
                 // Android R has a new class state called "visibly initialized",
                 // and FixupStaticTrampolines will be called after class was initialized.
                 // The entry point will be reset. Make this class be visibly initialized before hook
@@ -329,7 +328,7 @@ public final class Pine {
     }
 
     static Object callBackupMethod(Member origin, Method backup, Object thisObject, Object[] args) throws InvocationTargetException, IllegalAccessException {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+        if (PineConfig.sdkLevel >= Build.VERSION_CODES.N) {
             // On Android 7.0+, java.lang.Class object is movable and may cause crash when
             // invoke backup method, so we update declaring_class when invoke backup method.
             Class<?> declaring = origin.getDeclaringClass();
@@ -373,6 +372,17 @@ public final class Pine {
             }
         }
 
+        if (hookRecord.backup == null) {
+            // Pending, we need to make the declaring class initialized
+            // the backup will be set in FixupStaticTrampolines or MarkClassInitialized
+            // I think we don't need makeClassesVisiblyInitialized here
+            assert method instanceof Method;
+            resolve((Method) method);
+//            if (PineConfig.sdkLevel >= 30) {
+//                makeClassesVisiblyInitialized(thread);
+//            }
+        }
+
         return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
     }
 
@@ -414,7 +424,7 @@ public final class Pine {
     }
 
     public static boolean disableJitInline() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
             // No JIT.
             return false;
         }
@@ -423,7 +433,7 @@ public final class Pine {
     }
 
     public static void setJitCompilationAllowed(boolean allowed) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
             // No JIT.
             return;
         }
@@ -432,7 +442,7 @@ public final class Pine {
     }
 
     public static boolean disableProfileSaver() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return false;
+        if (PineConfig.sdkLevel < Build.VERSION_CODES.N) return false;
         ensureInitialized();
         return disableProfileSaver0();
     }

@@ -8,6 +8,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
+import top.canyie.pine.PineConfig;
+
 /**
  * @author canyie
  */
@@ -25,7 +27,7 @@ public final class ReflectionHelper {
         }
 
         if (override == null) {
-            override = getField(AccessibleObject.class, Build.VERSION.SDK_INT >= Build.VERSION_CODES.N ? "override" : "flag");
+            override = getField(AccessibleObject.class, PineConfig.sdkLevel >= Build.VERSION_CODES.N ? "override" : "flag");
         }
 
         try {
