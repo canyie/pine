@@ -101,7 +101,10 @@ namespace pine::art {
 
         void SetNonCompilable() {
             if (Android::version < Android::kN) return;
-            AddAccessFlags(kAccCompileDontBother);
+            uint32_t access_flags = GetAccessFlags();
+            if (Android::version >= Android::kR) access_flags &= ~kAccPreCompiled;
+            access_flags |= kAccCompileDontBother;
+            SetAccessFlags(access_flags);
         }
 
         void SetFastNative() {
@@ -312,6 +315,7 @@ namespace pine::art {
         }
 
         static uint32_t kAccCompileDontBother;
+        static uint32_t kAccPreCompiled;
 
         static size_t size;
         static void* art_quick_to_interpreter_bridge;

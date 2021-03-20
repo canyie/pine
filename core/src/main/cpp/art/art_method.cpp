@@ -13,6 +13,7 @@
 using namespace pine::art;
 
 uint32_t ArtMethod::kAccCompileDontBother = 0;
+uint32_t ArtMethod::kAccPreCompiled = 0;
 
 size_t ArtMethod::size = 0;
 void* ArtMethod::art_quick_to_interpreter_bridge = nullptr;
@@ -105,6 +106,10 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
         kAccCompileDontBother = (Android::version >= Android::kOMr1)
                                 ? AccessFlags::kCompileDontBother_O_MR1
                                 : AccessFlags::kCompileDontBother_N;
+        if (Android::version >= Android::kR)
+            kAccPreCompiled = (Android::version == Android::kR)
+                    ? AccessFlags::kPreCompiled_R
+                    : AccessFlags::kPreCompiled_S;
     }
 
     size = Difference(reinterpret_cast<intptr_t>(m1), reinterpret_cast<intptr_t>(m2));
@@ -143,7 +148,7 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
                         // Android R has a new access flags: kAccPreCompiled
                         // TODO: Is this really possible?
                         LOGW("failed to find access_flags_ with default access flags, try again with kAccPreCompiled");
-                        access_flags |= AccessFlags::kPreCompiled;
+                        access_flags |= kAccPreCompiled;
                         // Don't clear kAccCompileDontBother.
                         offset = Memory::FindOffset(m1, access_flags, size, 2);
                         if (LIKELY(offset >= 0)) {
@@ -218,6 +223,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
 
     uint32_t access_flags = source->GetAccessFlags();
     if (Android::version >= Android::kN) {
+        if (Android::version >= Android::kR) access_flags &= ~kAccPreCompiled;
         access_flags |= kAccCompileDontBother;
     }
     if ((access_flags & AccessFlags::kStatic) == 0) {
@@ -234,7 +240,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
         // the backup method if we use entry replacement mode. Just use the interpreter to execute.
         // Possible reason: compiled code is recycled in JIT garbage collection.
         // TODO: Only do this if the method is compiled by jit.
-        //  JitCodeCache::WillExecuteJitCore() or ContainsPc() not working for me.
+        //  JitCodeCache::WillExecuteJitCode() or ContainsPc() not working for me.
         SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
 
         // For non-native and non-proxy methods, the entry_point_from_jni_ member is used to save
@@ -255,6 +261,7 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
     uint32_t access_flags = GetAccessFlags();
 
     if (Android::version >= Android::kN) {
+        if (Android::version >= Android::kR) access_flags &= ~kAccPreCompiled;
         access_flags |= kAccCompileDontBother;
     }
 
