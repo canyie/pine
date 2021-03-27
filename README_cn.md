@@ -9,8 +9,17 @@ Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook�
 注：在Android 6.0 & 32位架构上，参数解析可能错误；另外在Android 9.0及以上，Pine会关闭系统的隐藏API限制策略。
 
 ## 使用
+JCenter似乎已停止接收新的包，请添加以下行到您的根build.gradle中：
+```groovy
+repositories {
+    maven {
+        url  "https://dl.bintray.com/canyie/pine"
+    }
+}
+```
+Bintray 和 JCenter 即将[停止服务](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/). 我们正在寻找一个替代品，但在这之前，请使用bintray。
 ### 基础使用
-在 build.gradle 中添加如下依赖（jcenter仓库）：
+在 build.gradle 中添加如下依赖：
 ```groovy
 dependencies {
     implementation 'top.canyie.pine:core:<version>'
@@ -101,10 +110,21 @@ XposedBridge.hookMethod(target, callback);
 也可以直接加载Xposed模块：
 ```java
 // 1. load modules
-PineXposed.loadModule(new File(moudlePath));
+PineXposed.loadModule(new File(modulePath));
 
 // 2. call all 'IXposedHookLoadPackage' callback
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
+```
+
+## 增强功能
+借助[Dobby](https://github.com/jmpews/Dobby), 你可以使用一些增强功能:
+```groovy
+implementation 'top.canyie.pine:enhances:0.0.1'
+```
+
+- Delay hook (也称为pending hook), hook静态方法无需立刻初始化它所在的类，只需要加入以下代码:
+```java
+PineEnhances.enableDelayHook();
 ```
 
 ## 已知问题：
@@ -135,6 +155,8 @@ private static void methodLocked() {
 - [AndroidELF](https://github.com/ganyao114/AndroidELF)：本项目使用了的ELF符号搜索库
 - [FastHook](https://github.com/turing-technician/FastHook)
 - [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
+- [Dobby](https://github.com/jmpews/Dobby)
+- [LSPosed](https://github.com/LSPosed/LSPosed)
 
 ## 许可证
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)

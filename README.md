@@ -10,9 +10,19 @@ About its working principle, you can refer to this Chinese [article](https://can
 
 Note: For Android 6.0 and 32-bit mode, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
 ## Usage
+JCenter seems to have stopped receiving new packages. Please add the following line to your root build.gradle:
+```groovy
+repositories {
+    maven {
+        url  "https://dl.bintray.com/canyie/pine"
+    }
+}
+```
+Bintray and JCenter will be [sunset](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/). We are looking for an alternative; but before that, please use bintray.
+
 ### Basic Usage
 Add dependencies in build.gradle (like this):
-```grooxy
+```groovy
 dependencies {
     implementation 'top.canyie.pine:core:<version>'
 }
@@ -93,10 +103,21 @@ XposedBridge.hookMethod(target, callback);
 and you can load xposed modules (resources hook is not supported now):
 ```java
 // 1. load modules
-PineXposed.loadModule(new File(moudlePath));
+PineXposed.loadModule(new File(modulePath));
 
 // 2. call all 'IXposedHookLoadPackage' callback
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
+```
+
+## Enhanced Features
+With [Dobby](https://github.com/jmpews/Dobby), you can use some enhancements of Pine:
+```groovy
+implementation 'top.canyie.pine:enhances:0.0.1'
+```
+
+- Delay hook (aka pending hook) support, hooking static methods without initialize its declaring class now:
+```java
+PineEnhances.enableDelayHook();
 ```
 
 ## Known issues
@@ -127,6 +148,8 @@ In the example, we recommend that the hook method is `methodLocked` instead of `
 - [AndroidELF](https://github.com/ganyao114/AndroidELF)
 - [FastHook](https://github.com/turing-technician/FastHook)
 - [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
+- [Dobby](https://github.com/jmpews/Dobby)
+- [LSPosed](https://github.com/LSPosed/LSPosed)
 
 ## License
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)
