@@ -44,3 +44,16 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     compileOnly project(':core')
 }
+
+apply plugin: 'com.novoda.bintray-release'
+
+publish {
+    userOrg = rootProject.userOrg
+    repoName = rootProject.repoName
+    groupId = rootProject.groupId
+    artifactId = 'enhances'
+    publishVersion = '0.0.1'
+    desc = 'pine hook enhances library'
+    licences = rootProject.licences
+    website = rootProject.website
+}
