@@ -250,7 +250,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
     } else {
         SetEntryPointFromCompiledCode(entry);
 
-        // ArtMethod::CopyFrom() will clear data_ member, the member is used to save
+        // ArtMethod::CopyFrom() will clear the data_ member, the member is used to save
         // the original interface method for proxy method. Restore it to avoid errors.
         if (UNLIKELY(is_native_or_proxy && Android::version >= Android::kO))
             SetEntryPointFromJni(source->GetEntryPointFromJni());

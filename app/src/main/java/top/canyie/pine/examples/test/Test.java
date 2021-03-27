@@ -33,6 +33,10 @@ public abstract class Test extends MethodHook {
         init(c, targetName, paramTypes);
     }
 
+    protected Test(Member target) {
+        this.target = target;
+    }
+
     private void init(Class<?> c, String targetName, Class<?>... paramTypes) {
         if (targetName != null) {
             target = ReflectionHelper.getMethod(c, targetName, paramTypes);
@@ -47,13 +51,7 @@ public abstract class Test extends MethodHook {
 
     public int run() {
         if (hookEnabled) {
-            MethodHook.Unhook unhook;
-
-            if (target instanceof Method)
-                unhook = Pine.hook((Method) target, this);
-            else
-                unhook = Pine.hook((Constructor<?>) target, this);
-
+            MethodHook.Unhook unhook = Pine.hook(target, this);
             int result = testImpl();
             unhook.unhook();
             return result;

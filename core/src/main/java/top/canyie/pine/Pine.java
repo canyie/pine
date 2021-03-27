@@ -201,7 +201,7 @@ public final class Pine {
             hookRecord = sHookRecords.get(artMethod);
             if (hookRecord == null) {
                 newMethod = true;
-                hookRecord = new HookRecord(method);
+                hookRecord = new HookRecord(method, artMethod);
                 sHookRecords.put(artMethod, hookRecord);
             }
         }
@@ -623,14 +623,16 @@ public final class Pine {
     /** Internal API */
     public static final class HookRecord {
         public final Member target;
+        public final long artMethod;
         public Method backup;
         public boolean isStatic;
         public int paramNumber;
         public Class<?>[] paramTypes;
         private Set<MethodHook> callbacks = new HashSet<>();
 
-        public HookRecord(Member target) {
+        public HookRecord(Member target, long artMethod) {
             this.target = target;
+            this.artMethod = artMethod;
         }
 
         public synchronized void addCallback(MethodHook callback) {

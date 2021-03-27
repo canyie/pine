@@ -15,6 +15,7 @@ import top.canyie.pine.examples.test.*;
 
 public class MainActivity extends Activity implements AdapterView.OnItemClickListener {
     private static final TestItem[] sTestItems = {
+            new TestItem("Enable/Disable Delay Hook", new DelayHookTest()),
             new TestItem("Non-Static Method Hook", new NonStaticTest()),
             new TestItem("Direct Method Hook", new DirectMethodTest()),
             new TestItem("Constructor Hook", new ConstructorTest()),
@@ -22,6 +23,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemClickLis
             new TestItem("Direct Register JNI Hook", new DirectRegisterJNITest()),
             new TestItem("Proxy Hook", new ProxyTest()),
             new TestItem("Throw Exception Hook", new ThrowExceptionTest()),
+            new TestItem("Not Inited Hook", new NotInitedTest()),
             new TestItem("Arg0 Hook", new Arg0Test()),
             new TestItem("Arg4 Hook", new Arg4Test()),
             new TestItem("Arg8 Hook", new Arg8Test()),
