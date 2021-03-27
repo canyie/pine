@@ -224,11 +224,6 @@ namespace pine::art {
             return code_size;
         }
 
-        bool IsHooked() {
-            std::shared_lock<std::shared_mutex> lock(hooked_methods_mutex);
-            return hooked_methods.count(this) != 0;
-        }
-
         void BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy);
 
         void AfterHook(bool is_inline_hook, bool is_native_or_proxy);
@@ -335,8 +330,6 @@ namespace pine::art {
         static Member<ArtMethod, void*>* entry_point_from_interpreter_;
         static Member<ArtMethod, uint32_t>* declaring_class; // GCRoot is uint32_t
 
-        static std::set<ArtMethod*> hooked_methods;
-        static std::shared_mutex hooked_methods_mutex;
         DISALLOW_IMPLICIT_CONSTRUCTORS(ArtMethod);
     };
 }

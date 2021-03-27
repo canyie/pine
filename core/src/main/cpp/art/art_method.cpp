@@ -30,9 +30,6 @@ Member<ArtMethod, void*> ArtMethod::entry_point_from_compiled_code_;
 Member<ArtMethod, void*>* ArtMethod::entry_point_from_interpreter_;
 Member<ArtMethod, uint32_t>* ArtMethod::declaring_class = nullptr;
 
-std::set<ArtMethod*> ArtMethod::hooked_methods;
-std::shared_mutex ArtMethod::hooked_methods_mutex;
-
 void ArtMethod::Init(const ElfImg* handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
@@ -295,11 +292,6 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
 
     if (art_interpreter_to_compiled_code_bridge)
         SetEntryPointFromInterpreter(art_interpreter_to_compiled_code_bridge);
-
-    {
-        std::unique_lock<std::shared_mutex> lock(hooked_methods_mutex);
-        hooked_methods.insert(this);
-    }
 }
 
 bool ArtMethod::TestDontCompile(JNIEnv* env) {
