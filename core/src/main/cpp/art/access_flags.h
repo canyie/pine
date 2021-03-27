@@ -29,9 +29,12 @@ namespace pine {
         static constexpr uint32_t kCompileDontBother_O_MR1 = 0x02000000;
         static constexpr uint32_t kPreCompiled_R = 0x00200000;
 
-        // This value from commit https://android-review.googlesource.com/c/platform/art/+/1646010
-        // We skipped commit https://android-review.googlesource.com/c/platform/art/+/1645449
-        static constexpr uint32_t kPreCompiled_S = 0x00800000;
+        // We don’t want to break compatibility with existing DP now,
+        // just temporarily keep R value of kAccPreCompiled flag.
+        // TODO: Update this value when S is officially released
+        //  Value 0x00800000 from commit https://android-review.googlesource.com/c/platform/art/+/1646010
+        //  We skipped commit https://android-review.googlesource.com/c/platform/art/+/1645449
+        static constexpr uint32_t kPreCompiled_S = kPreCompiled_R;
         static constexpr uint32_t kSingleImplementation = 0x08000000;
         static constexpr uint32_t kPublicApi = 0x10000000;
         static constexpr uint32_t kCorePlatformApi = 0x20000000;
