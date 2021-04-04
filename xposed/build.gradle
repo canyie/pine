@@ -40,7 +40,7 @@ publish {
     repoName = rootProject.repoName
     groupId = rootProject.groupId
     artifactId = 'xposed'
-    publishVersion = '0.0.7'
+    publishVersion = '0.0.8'
     desc = 'pine hook xposed compat'
     licences = rootProject.licences
     website = rootProject.website
