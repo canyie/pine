@@ -22,7 +22,7 @@ public final class PineEnhances {
         if (inited) return;
         synchronized (PineEnhances.class) {
             if (inited) return;
-            libLoader.loadLib();
+            if (libLoader != null) libLoader.loadLib();
             inited = true;
         }
     }
