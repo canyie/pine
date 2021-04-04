@@ -2,9 +2,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-add_library(pine-enhances
-        SHARED
-        enhances.cpp)
+add_library(pine-enhances SHARED enhances.cpp)
 
 find_library(log-lib log)
 
