@@ -368,8 +368,8 @@ void Pine_disableHiddenApiPolicy0(JNIEnv*, jclass, jboolean application, jboolea
     Android::DisableHiddenApiPolicy(application, platform);
 }
 
-jlong Pine_currentArtThread0(JNIEnv*, jclass) {
-    return reinterpret_cast<jlong>(art::Thread::Current());
+jlong Pine_currentArtThread0(JNIEnv* env, jclass) {
+    return reinterpret_cast<jlong>(art::Thread::Current(env));
 }
 
 void Pine_makeClassesVisiblyInitialized(JNIEnv*, jclass, jlong thread) {

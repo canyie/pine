@@ -145,11 +145,7 @@ public final class XposedBridge {
 
 		if (newMethod) {
 			Handler handler = new Handler(callbacks);
-			if (hookMethod instanceof Constructor) {
-				Pine.hook((Constructor<?>) hookMethod, handler);
-			} else {
-				Pine.hook((Method) hookMethod, handler);
-			}
+			Pine.hook(hookMethod, handler);
 		}
 
 		return callback.new Unhook(hookMethod);

@@ -82,7 +82,7 @@ public final class Arm32Entry {
         int[] coreRegisters = three.a;
         int[] stack = three.b;
         float[] fpRegisters = three.c;
-        long thread = Primitives.currentArtThread();
+        long thread = Pine.currentArtThread0();
 
         Object receiver;
         Object[] args;

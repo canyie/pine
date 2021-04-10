@@ -55,7 +55,7 @@ public final class X86Entry {
         Pine.log("handleBridge: artMethod=%#x extras=%#x ebx=%#x", artMethod, extras, ebx);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
         int[] argsAsInts = getArgsAsInts(hookRecord, extras, ebx);
-        long thread = Primitives.currentArtThread();
+        long thread = Pine.currentArtThread0();
 
         Object receiver;
         Object[] args;

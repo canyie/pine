@@ -8,6 +8,10 @@ using namespace pine::art;
 
 Thread* (*Thread::current)() = nullptr;
 
+jclass Thread::Thread_ = nullptr;
+jfieldID Thread::nativePeer = nullptr;
+jmethodID Thread::currentThread = nullptr;
+
 pthread_key_t* Thread::key_self = nullptr;
 
 jobject (*Thread::new_local_ref)(JNIEnv*, void*) = nullptr;
@@ -29,7 +33,10 @@ void Thread::Init(const ElfImg* handle) {
                 "_ZN3art6mirror5Class21AllocNonMovableObjectEPNS_6ThreadE"));
     }
 
-    if (Android::version < Android::kN) {
+    current = reinterpret_cast<Thread* (*)()>(handle->GetSymbolAddress(
+            "_ZN3art6Thread14CurrentFromGdbEv")); // art::Thread::CurrentFromGdb()
+
+    if (UNLIKELY(!current && Android::version < Android::kN)) {
         current = reinterpret_cast<Thread* (*)()>(handle->GetSymbolAddress(
                 "_ZN3art6Thread7CurrentEv")); // art::Thread::Current()
         if (UNLIKELY(!current)) {

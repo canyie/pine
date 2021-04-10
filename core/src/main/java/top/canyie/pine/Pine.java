@@ -229,7 +229,7 @@ public final class Pine {
             isInlineHook = hookMode == HookMode.INLINE;
         }
 
-        long thread = Primitives.currentArtThread();
+        long thread = currentArtThread0();
         if ((hookRecord.isStatic = Modifier.isStatic(modifiers)) && canInitDeclaringClass) {
             resolve((Method) method);
             if (PineConfig.sdkLevel >= 30) {
@@ -402,7 +402,7 @@ public final class Pine {
         }
 
         ensureInitialized();
-        return compile0(Primitives.currentArtThread(), method);
+        return compile0(currentArtThread0(), method);
     }
 
     public static boolean decompile(Member method, boolean disableJit) {

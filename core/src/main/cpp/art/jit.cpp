@@ -125,4 +125,3 @@ bool Jit::DisableInline() {
         return false;
     }
 }
-

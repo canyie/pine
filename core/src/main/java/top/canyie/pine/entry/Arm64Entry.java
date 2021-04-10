@@ -94,7 +94,7 @@ public final class Arm64Entry {
         Object[] args;
 
         int crIndex = 0, stackIndex = 0, fprIndex = 0;
-        long thread = Primitives.currentArtThread();
+        long thread = Pine.currentArtThread0();
 
         if (hookRecord.isStatic) {
             receiver = null;

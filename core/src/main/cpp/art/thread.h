@@ -28,20 +28,48 @@ namespace pine::art {
     public:
         static void Init(const ElfImg* handle);
 
-        static inline Thread* Current() {
+        static inline Thread* Current(JNIEnv* env) {
             Thread* thread;
-            if (Android::version >= Android::kN) {
-                thread = reinterpret_cast<Thread*>(__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
-            } else if (current) {
+            if (current) {
                 thread = current();
+            } else if (NativePeerAvailable(env)) {
+                jobject javaThread = env->CallStaticObjectMethod(Thread_, currentThread);
+                thread = reinterpret_cast<Thread*>(env->GetLongField(javaThread, nativePeer));
+                if (UNLIKELY(env->ExceptionCheck())) {
+                    env->ExceptionDescribe();
+                    env->ExceptionClear();
+                    nativePeer = nullptr;
+                    thread = Current(env);
+                }
+                env->DeleteLocalRef(javaThread);
+            } else if (Android::version >= Android::kN) {
+                thread = reinterpret_cast<Thread*>(__get_tls()[7/*TLS_SLOT_ART_THREAD_SELF*/]);
             } else if (key_self) {
                 thread = static_cast<Thread*>(pthread_getspecific(*key_self));
             } else {
-                // This function only called when Thread.nativePeer is unavailable.
+                // JNIEnvExt holds the current thread but we can only get it by offset, this is danger
                 LOGE("Unable to get art::Thread by any means... this's crazy!");
                 thread = nullptr;
             }
             return thread;
+        }
+
+        static inline bool NativePeerAvailable(JNIEnv* env) {
+            if (LIKELY(currentThread)) {
+                return nativePeer != nullptr;
+            }
+            jclass T = env->FindClass("java/lang/Thread");
+            currentThread = env->GetStaticMethodID(T, "currentThread", "()Ljava/lang/Thread;");
+            nativePeer = env->GetFieldID(T, "nativePeer", "J");
+            if (LIKELY(!env->ExceptionCheck())) {
+                Thread_ = static_cast<jclass>(env->NewGlobalRef(T));
+            } else {
+                env->ExceptionDescribe();
+                env->ExceptionClear();
+                nativePeer = nullptr;
+            }
+            env->DeleteLocalRef(T);
+            return nativePeer != nullptr;
         }
 
         inline int32_t GetStateAndFlags() {
@@ -100,6 +128,12 @@ namespace pine::art {
         }
 
         static Thread* (*current)();
+
+        static jclass Thread_;
+
+        static jfieldID nativePeer;
+
+        static jmethodID currentThread;
 
         static pthread_key_t* key_self;
 
