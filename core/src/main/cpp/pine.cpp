@@ -2,7 +2,7 @@
 // Created by canyie on 2020/2/9.
 //
 
-#include <elf.h>
+#include <cassert>
 #include "pine_config.h"
 #include "jni_bridge.h"
 #include "art/art_method.h"

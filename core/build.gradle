@@ -1,9 +1,9 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
-
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 27
@@ -15,8 +15,8 @@ android {
 
         externalNativeBuild {
             cmake {
-                cFlags '-Wall -Wextra -Werror -fvisibility=hidden'
-                cppFlags '-std=c++17 -fno-exceptions -fno-rtti'
+                cFlags '-Wall -Wextra -Werror -fvisibility=hidden -fPIC'
+                cppFlags '-std=c++17 -fno-exceptions -fno-rtti -fPIC'
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
                 targets 'pine'
             }
@@ -42,6 +42,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
 
+/*
 apply plugin: 'com.novoda.bintray-release'
 
 publish {
@@ -54,3 +55,4 @@ publish {
     licences = rootProject.licences
     website = rootProject.website
 }
+ */

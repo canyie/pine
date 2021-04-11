@@ -1,9 +1,8 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
-
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 27
@@ -33,6 +32,7 @@ dependencies {
     compileOnly project(':core')
 }
 
+/*
 apply plugin: 'com.novoda.bintray-release'
 
 publish {
@@ -45,3 +45,4 @@ publish {
     licences = rootProject.licences
     website = rootProject.website
 }
+*/
