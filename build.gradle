@@ -4,6 +4,7 @@ buildscript {
     repositories {
 		mavenLocal()
         google()
+        mavenCentral()
         jcenter()
     }
     dependencies {
@@ -19,6 +20,7 @@ allprojects {
     repositories {
 		mavenLocal()
         google()
+        mavenCentral()
         jcenter()
     }
 
@@ -40,4 +42,13 @@ ext {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+task showRepos() {
+    doLast {
+        println "all repos: "
+        println repositories.collect {
+            it.name + ": " + it.url
+        }
+    }
 }

@@ -15,8 +15,9 @@ android {
 
         externalNativeBuild {
             cmake {
-                cFlags '-Wall -Wextra -Werror -fvisibility=hidden -fPIC'
-                cppFlags '-std=c++17 -fno-exceptions -fno-rtti -fPIC'
+                cFlags '-Wall -Wextra -Werror -fvisibility=hidden -fvisibility-inlines-hidden'
+                cppFlags '-std=c++17 -fno-exceptions -fno-rtti'
+                arguments '-DANDROID_STL=none' // built-in libcxx has exception
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
                 targets 'pine'
             }
@@ -36,10 +37,15 @@ android {
             version "3.10.2"
         }
     }
+
+    buildFeatures {
+        prefab true
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'dev.rikka.ndk.thirdparty:cxx:1.1.0'
 }
 
 /*

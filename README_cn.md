@@ -157,6 +157,7 @@ private static void methodLocked() {
 - [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
 - [Dobby](https://github.com/jmpews/Dobby)
 - [LSPosed](https://github.com/LSPosed/LSPosed)
+- [libcxx-prefab](https://github.com/RikkaW/libcxx-prefab)
 
 ## 许可证
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)

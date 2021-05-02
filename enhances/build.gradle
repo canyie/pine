@@ -15,8 +15,9 @@ android {
 
         externalNativeBuild {
             cmake {
-                cFlags '-Wall -Wextra'
-                cppFlags '-std=c++17'
+                cFlags '-Wall -Wextra -fvisibility=hidden -fvisibility-inlines-hidden'
+                cppFlags '-std=c++17 -fno-exceptions -fno-rtti'
+                // arguments '-DANDROID_STL=none' // Dobby requires the c++ exception support
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
                 targets 'pine-enhances'
             }
@@ -40,10 +41,16 @@ android {
             version "3.10.2"
         }
     }
+
+    buildFeatures {
+        prefab true
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // Dobby requires the c++ exception support, so we cannot use self-compiled libcxx here.
+    //implementation 'dev.rikka.ndk.thirdparty:cxx:1.1.0'
     compileOnly project(':core')
 }
 

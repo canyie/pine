@@ -6,6 +6,9 @@ add_library(pine-enhances SHARED enhances.cpp)
 
 find_library(log-lib log)
 
+# Dobby requires the c++ exception support, so we cannot use self-compiled libcxx here.
+# find_package(cxx REQUIRED CONFIG)
+
 add_library(dobby STATIC IMPORTED)
 
 get_filename_component(current_source_dir ${CMAKE_CURRENT_SOURCE_DIR} ABSOLUTE)

@@ -150,6 +150,7 @@ In the example, we recommend that the hook method is `methodLocked` instead of `
 - [YAHFA](https://github.com/PAGalaxyLab/YAHFA)
 - [Dobby](https://github.com/jmpews/Dobby)
 - [LSPosed](https://github.com/LSPosed/LSPosed)
+- [libcxx-prefab](https://github.com/RikkaW/libcxx-prefab)
 
 ## License
 [Pine](https://github.com/canyie/pine) Copyright (c) [canyie](http://github.com/canyie)
