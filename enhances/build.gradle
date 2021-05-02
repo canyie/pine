@@ -54,17 +54,20 @@ dependencies {
     compileOnly project(':core')
 }
 
-/*
-apply plugin: 'com.novoda.bintray-release'
-
-publish {
-    userOrg = rootProject.userOrg
-    repoName = rootProject.repoName
-    groupId = rootProject.groupId
-    artifactId = 'enhances'
-    publishVersion = '0.0.1'
-    desc = 'pine hook enhances library'
-    licences = rootProject.licences
-    website = rootProject.website
+apply plugin: 'com.jfrog.bintray'
+bintray {
+    user = rootProject.ext.user
+    key = rootProject.ext.bintrayKey
+    configurations = ['archives']
+    publish = true
+    pkg {
+        repo = rootProject.ext.repo
+        name = 'enhances'
+        licenses = rootProject.ext.licenses
+        vcsUrl = rootProject.ext.vcsUrl
+        version {
+            name = '0.0.1'
+            released = new Date()
+        }
+    }
 }
- */

@@ -1,0 +1,28 @@
+apply plugin: 'com.jfrog.bintray'
+/*
+afterEvaluate {
+    android.libraryVariants.collect { variant ->
+        task("generate${variant.name.capitalize()}SourcesJar", type: Jar) {
+            from variant.javaCompileProvider.get().source
+            classifier 'sources'
+        }
+        task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
+            if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
+                options.addStringOption "-release", "8"
+            }
+            source variant.javaCompileProvider.get().source
+            classpath += variant.javaCompileProvider.get().classpath
+            classpath += files(android.getBootClasspath())
+            options {
+                failOnError false
+                encoding 'UTF-8'
+            }
+        }
+        task("generate${variant.name.capitalize()}JavadocJar", type: Jar) {
+            dependsOn "generate${variant.name.capitalize()}Javadoc"
+            from tasks.getByName("generate${variant.name.capitalize()}Javadoc").destinationDir
+            classifier 'javadoc'
+        }
+    }
+}
+ */
