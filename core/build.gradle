@@ -17,7 +17,7 @@ android {
             cmake {
                 cFlags '-Wall -Wextra -Werror -fvisibility=hidden -fvisibility-inlines-hidden'
                 cppFlags '-std=c++17 -fno-exceptions -fno-rtti'
-                arguments '-DANDROID_STL=none' // built-in libcxx has exception
+                // arguments '-DANDROID_STL=none' // built-in libcxx has exception
                 abiFilters 'armeabi-v7a', 'arm64-v8a'
                 targets 'pine'
             }
@@ -45,7 +45,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'dev.rikka.ndk.thirdparty:cxx:1.1.0'
+    // implementation 'dev.rikka.ndk.thirdparty:cxx:1.1.0'
 }
 
 /*

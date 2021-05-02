@@ -45,8 +45,8 @@ endif()
 add_library(pine SHARED ${PINE_SOURCES})
 
 find_library(log-lib log)
-find_package(cxx REQUIRED CONFIG)
+# find_package(cxx REQUIRED CONFIG)
 
-target_link_libraries(pine ${log-lib} cxx::cxx)
+target_link_libraries(pine ${log-lib})
 
 ENABLE_LANGUAGE(ASM)
