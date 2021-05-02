@@ -6,11 +6,21 @@
 #define PINE_ANDROID_H
 
 #include <jni.h>
+#include "art/gc_defs.h"
 #include "utils/log.h"
 #include "utils/macros.h"
 #include "utils/elf_img.h"
 
 namespace pine {
+    class ScopedGCCriticalSection {
+    public:
+        ALWAYS_INLINE ScopedGCCriticalSection(void* self, art::GcCause cause, art::CollectorType collector);
+        ALWAYS_INLINE ~ScopedGCCriticalSection();
+    private:
+        art::GCCriticalSection critical_section_;
+        const char* old_no_suspend_reason_;
+    };
+
     class Android final {
     public:
         static inline bool Is64Bit() {
@@ -44,10 +54,24 @@ namespace pine {
         static int version;
         static JavaVM* jvm;
 
-        static void SuspendVM(void* cookie, const char* cause) {
+        static void StartGCCriticalSection(void* cookie, void* self, art::GcCause cause, art::CollectorType collector) {
+            if (start_gc_critical_section) {
+                start_gc_critical_section(cookie, self, cause, collector);
+            }
+        }
+
+        static void EndGCCriticalSection(void* cookie) {
+            if (end_gc_critical_section) {
+                end_gc_critical_section(cookie);
+            }
+        }
+
+        static void SuspendVM(void* cookie, void* self, const char* cause) {
             if (suspend_vm) {
                 suspend_vm();
             } else if (suspend_all) {
+                // Avoid a deadlock between GC and debugger where GC gets suspended during GC. b/25800335.
+                ScopedGCCriticalSection gcs(self, art::GcCause::kGcCauseDebugger, art::CollectorType::kCollectorTypeDebugger);
                 suspend_all(cookie, cause, false);
             }
         }
@@ -80,10 +104,26 @@ namespace pine {
         static void (*resume_vm)();
         static void (*suspend_all)(void*, const char*, bool);
         static void (*resume_all)(void*);
+        static void (*start_gc_critical_section)(void*, void*, art::GcCause, art::CollectorType);
+        static void (*end_gc_critical_section)(void*);
 
         static void* class_linker_;
         static void (*make_visibly_initialized_)(void*, void*, bool);
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);
+    };
+
+    class ScopedSuspendVM {
+    public:
+        ScopedSuspendVM(void* self) {
+            Android::SuspendVM(this, self, "pine hook method");
+        }
+
+        ~ScopedSuspendVM() {
+            Android::ResumeVM(this);
+        }
+
+    private:
+        DISALLOW_COPY_AND_ASSIGN(ScopedSuspendVM);
     };
 }
 

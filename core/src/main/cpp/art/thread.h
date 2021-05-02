@@ -149,21 +149,6 @@ namespace pine::art {
 
         DISALLOW_IMPLICIT_CONSTRUCTORS(Thread);
     };
-
-    class ScopedSuspendVM {
-    public:
-        ScopedSuspendVM() {
-            Android::SuspendVM(this, "pine hook method");
-        }
-
-        ~ScopedSuspendVM() {
-            Android::ResumeVM(this);
-        }
-
-    private:
-        DISALLOW_COPY_AND_ASSIGN(ScopedSuspendVM);
-    };
-
 }
 
 #endif //PINE_THREAD_H

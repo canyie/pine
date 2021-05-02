@@ -21,8 +21,10 @@ JavaVM* Android::jvm = nullptr;
 void (*Android::suspend_vm)() = nullptr;
 void (*Android::resume_vm)() = nullptr;
 
-void (*Android::suspend_all)(void*, const char*, bool);
-void (*Android::resume_all)(void*);
+void (*Android::suspend_all)(void*, const char*, bool) = nullptr;
+void (*Android::resume_all)(void*) = nullptr;
+void (*Android::start_gc_critical_section)(void*, void*, art::GcCause, art::CollectorType);
+void (*Android::end_gc_critical_section)(void*) = nullptr;
 
 void* Android::class_linker_ = nullptr;
 void (*Android::make_visibly_initialized_)(void*, void*, bool) = nullptr;
@@ -46,6 +48,17 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
                 LOGE("SuspendAll API is unavailable.");
                 suspend_all = nullptr;
                 resume_all = nullptr;
+            } else {
+                start_gc_critical_section = reinterpret_cast<void (*)(void*, void*, art::GcCause,
+                        art::CollectorType)>(art_lib_handle.GetSymbolAddress(
+                        "_ZN3art2gc23ScopedGCCriticalSectionC2EPNS_6ThreadENS0_7GcCauseENS0_13CollectorTypeE"));
+                end_gc_critical_section = reinterpret_cast<void (*)(void*)>(art_lib_handle.GetSymbolAddress(
+                        "_ZN3art2gc23ScopedGCCriticalSectionD2Ev"));
+                if (UNLIKELY(!start_gc_critical_section || !end_gc_critical_section)) {
+                    LOGE("GC critical section API is unavailable.");
+                    start_gc_critical_section = nullptr;
+                    end_gc_critical_section = nullptr;
+                }
             }
         } else {
             suspend_vm = reinterpret_cast<void (*)()>(art_lib_handle.GetSymbolAddress(
@@ -186,4 +199,13 @@ void Android::InitClassLinker(JavaVM* jvm, const ElfImg* handle) {
     }
     void* class_linker = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(runtime) + class_linker_offset);
     SetClassLinker(class_linker);
+}
+
+ALWAYS_INLINE ScopedGCCriticalSection::ScopedGCCriticalSection(void* self, art::GcCause cause,
+                                                               art::CollectorType collector) {
+    Android::StartGCCriticalSection(this, self, cause, collector);
+}
+
+ALWAYS_INLINE ScopedGCCriticalSection::~ScopedGCCriticalSection() {
+    Android::EndGCCriticalSection(this);
 }

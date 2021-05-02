@@ -5,6 +5,7 @@
 #include <cassert>
 #include "pine_config.h"
 #include "jni_bridge.h"
+#include "android.h"
 #include "art/art_method.h"
 #include "utils/macros.h"
 #include "utils/scoped_local_ref.h"
@@ -169,7 +170,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     {
         // An ArtMethod is a very important object. Many threads depend on their values,
         // so we need to suspend other threads to avoid errors when hooking.
-        art::ScopedSuspendVM suspend_vm;
+        ScopedSuspendVM suspend_vm(thread);
 
         void* call_origin = is_inline_hook
                             ? trampoline_installer->InstallInlineTrampoline(target, bridge, skip_first_few_bytes)

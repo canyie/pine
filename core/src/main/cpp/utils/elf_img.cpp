@@ -37,7 +37,7 @@ void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
         LOGE("lseek() failed for %s: errno %d (%s)", path, errno, strerror(errno));
     }
 
-    header = reinterpret_cast<Elf_Ehdr*>(mmap(0, size, PROT_READ, MAP_SHARED, fd, 0));
+    header = reinterpret_cast<Elf_Ehdr*>(mmap(nullptr, size, PROT_READ, MAP_SHARED, fd, 0));
 
     close(fd);
 
