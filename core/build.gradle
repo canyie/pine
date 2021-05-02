@@ -48,20 +48,17 @@ dependencies {
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.1.0'
 }
 
-apply plugin: 'com.jfrog.bintray'
-bintray {
-    user = rootProject.ext.user
-    key = rootProject.ext.bintrayKey
-    configurations = ['archives']
-    publish = true
-    pkg {
-        repo = rootProject.ext.repo
-        name = 'core'
-        licenses = rootProject.ext.licenses
-        vcsUrl = rootProject.ext.vcsUrl
-        version {
-            name = '0.2.4'
-            released = new Date()
-        }
-    }
+/*
+apply plugin: 'com.novoda.bintray-release'
+
+publish {
+    userOrg = rootProject.userOrg
+    repoName = rootProject.repoName
+    groupId = rootProject.groupId
+    artifactId = 'core'
+    publishVersion = '0.2.4'
+    desc = 'pine hook core library'
+    licences = rootProject.licences
+    website = rootProject.website
 }
+ */

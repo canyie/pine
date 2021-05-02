@@ -9,7 +9,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:4.1.0'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.5'
+        // classpath 'com.novoda:bintray-release:0.9.2' // FIXME: plugin bintray-release crashes with Gradle 7
         
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -29,36 +29,26 @@ allprojects {
     }
 }
 
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
 ext {
     compileSdkVersion = 30
     buildToolsVersion = "30.0.2"
     ndkVersion = "21.3.6528147"
-    user = 'canyie'
+    userOrg = 'canyie'
     groupId = 'top.canyie.pine'
-    repo = 'pine'
-    licenses = {
-        license {
-            name = 'Anti 996 License'
-            url = 'https://github.com/996icu/996.ICU/blob/master/LICENSE'
-        }
-    }
+    repoName = 'pine'
+    licences = ['MIT']
     website = "https://github.com/canyie/pine"
-    vcsUrl = "https://github.com/canyie/pine.git"
-    developers = {
-        developer {
-            name = 'canyie'
-        }
-    }
-    scm = {
-        connection = 'scm:git:https://github.com/canyie/pine.git'
-        url = 'https://github.com/canyie/pine'
-    }
-    bintrayKey = properties['bintray.apikey']
 }
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+task showRepos() {
+    doLast {
+        println "all repos: "
+        println repositories.collect {
+            it.name + ": " + it.url
+        }
+    }
 }

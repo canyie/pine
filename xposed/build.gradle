@@ -32,20 +32,17 @@ dependencies {
     compileOnly project(':core')
 }
 
-apply plugin: 'com.jfrog.bintray'
-bintray {
-    user = rootProject.ext.user
-    key = rootProject.ext.bintrayKey
-    configurations = ['archives']
-    publish = true
-    pkg {
-        repo = rootProject.ext.repo
-        name = 'xposed'
-        licenses = rootProject.ext.licenses
-        vcsUrl = rootProject.ext.vcsUrl
-        version {
-            name = '0.0.8'
-            released = new Date()
-        }
-    }
+/*
+apply plugin: 'com.novoda.bintray-release'
+
+publish {
+    userOrg = rootProject.userOrg
+    repoName = rootProject.repoName
+    groupId = rootProject.groupId
+    artifactId = 'xposed'
+    publishVersion = '0.0.8'
+    desc = 'pine hook xposed compat'
+    licences = rootProject.licences
+    website = rootProject.website
 }
+*/
