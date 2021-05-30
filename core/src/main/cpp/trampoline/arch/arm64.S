@@ -6,20 +6,25 @@ name:
 
 #define VAR(name) \
 .global name; \
-name:
+name:\
+name##_addr:
+
+#define LDVAR(reg, name) \
+ldr reg, name##_addr;
+
 
 FUNCTION(pine_direct_jump_trampoline)
-ldr x17, pine_direct_jump_trampoline_jump_entry
+LDVAR(x17, pine_direct_jump_trampoline_jump_entry)
 br x17
 VAR(pine_direct_jump_trampoline_jump_entry)
 .long 0
 .long 0
 
 FUNCTION(pine_bridge_jump_trampoline)
-ldr x17, pine_bridge_jump_trampoline_target_method
+LDVAR(x17, pine_bridge_jump_trampoline_target_method)
 cmp x0, x17
 bne jump_to_original
-ldr x17, pine_bridge_jump_trampoline_extras
+LDVAR(x17, pine_bridge_jump_trampoline_extras)
 b acquire_lock
 
 lock_failed:
@@ -46,12 +51,12 @@ str d7, [x17, #84]
 mov x1, x0 // first param = callee ArtMethod
 mov x2, x17 // second param = extras (saved x1, x2, x3)
 mov x3, sp // third param = sp
-ldr x0, pine_bridge_jump_trampoline_bridge_method
-ldr x17, pine_bridge_jump_trampoline_bridge_entry
+LDVAR(x0, pine_bridge_jump_trampoline_bridge_method)
+LDVAR(x17, pine_bridge_jump_trampoline_bridge_entry)
 br x17
 
 jump_to_original:
-ldr x17, pine_bridge_jump_trampoline_call_origin_entry
+LDVAR(x17, pine_bridge_jump_trampoline_call_origin_entry)
 br x17
 VAR(pine_bridge_jump_trampoline_target_method)
 .long 0
@@ -70,8 +75,8 @@ VAR(pine_bridge_jump_trampoline_call_origin_entry)
 .long 0
 
 FUNCTION(pine_call_origin_trampoline)
-ldr x0, pine_call_origin_trampoline_origin_method
-ldr x17, pine_call_origin_trampoline_origin_code_entry
+LDVAR(x0, pine_call_origin_trampoline_origin_method)
+LDVAR(x17, pine_call_origin_trampoline_origin_code_entry)
 br x17
 VAR(pine_call_origin_trampoline_origin_method)
 .long 0
@@ -81,7 +86,7 @@ VAR(pine_call_origin_trampoline_origin_code_entry)
 .long 0
 
 FUNCTION(pine_backup_trampoline)
-ldr x0, pine_backup_trampoline_origin_method
+LDVAR(x0, pine_backup_trampoline_origin_method)
 VAR(pine_backup_trampoline_override_space)
 .long 0 // 4 bytes (will be overwritten)
 .long 0 // 4 bytes (will be overwritten)
@@ -89,7 +94,7 @@ VAR(pine_backup_trampoline_override_space)
 .long 0 // 4 bytes (will be overwritten)
 nop // 4 bytes, may be overwritten for anti checks
 nop // 4 bytes, may be overwritten for anti checks
-ldr x17, pine_backup_trampoline_remaining_code_entry
+LDVAR(x17, pine_backup_trampoline_remaining_code_entry)
 br x17
 VAR(pine_backup_trampoline_origin_method)
 .long 0
