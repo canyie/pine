@@ -32,7 +32,7 @@ allprojects {
 ext {
     compileSdkVersion = 30
     buildToolsVersion = "30.0.2"
-    ndkVersion = "21.3.6528147"
+    ndkVersion = "22.1.7171670"
     userOrg = 'canyie'
     groupId = 'top.canyie.pine'
     repoName = 'pine'

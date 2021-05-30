@@ -28,7 +28,7 @@ void ScopedMemoryAccessProtection::HandleSignal(int signal, siginfo_t* info, voi
     }
 
     if (current->def.sa_sigaction == nullptr) {
-        FATAL("No default signal handler to dispatch SIGSEGV (fault addr %p)", fault_addr);
+        FATAL("No default signal handler to dispatch SIGSEGV (fault addr %p)", (void*) fault_addr);
     } else {
         current->def.sa_sigaction(signal, info, reserved);
     }
