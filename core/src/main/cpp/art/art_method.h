@@ -266,8 +266,10 @@ namespace pine::art {
                 case Android::kNMr1 :
                 case Android::kN :
                     return Android::Is64Bit() ? 40 : 28;
+                case Android::kM:
+                    return Android::Is64Bit() ? 40 : 32;
                 case Android::kLMr1 :
-                    return Android::Is64Bit() ? 44 : 40;
+                    return Android::Is64Bit() ? 48 : 40;
                 case Android::kL :
                     return 32;
                 default:
@@ -293,7 +295,7 @@ namespace pine::art {
                 case Android::kM :
                     return Android::Is64Bit() ? 48 : 36;
                 case Android::kLMr1 :
-                    return Android::Is64Bit() ? 52 : 44;
+                    return Android::Is64Bit() ? 56 : 44;
                 case Android::kL :
                     return 40;
                 default:
