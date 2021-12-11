@@ -148,7 +148,7 @@ ElfImg::~ElfImg() {
     }
 }
 
-Elf_Addr ElfImg::GetSymbolOffset(const char* name) const {
+Elf_Addr ElfImg::GetSymbolOffset(const char* name, bool warn_if_missing) const {
     Elf_Addr _offset = 0;
 
     //search dynmtab
@@ -185,12 +185,12 @@ Elf_Addr ElfImg::GetSymbolOffset(const char* name) const {
             }
         }
     }
-    LOGE("Symbol %s not found in elf %s", name, elf);
+    if (warn_if_missing) LOGE("Symbol %s not found in elf %s", name, elf);
     return 0;
 }
 
-void* ElfImg::GetSymbolAddress(const char* name) const {
-    Elf_Addr offset = GetSymbolOffset(name);
+void* ElfImg::GetSymbolAddress(const char* name, bool warn_if_missing) const {
+    Elf_Addr offset = GetSymbolOffset(name, warn_if_missing);
     if (LIKELY(offset > 0 && base != nullptr)) {
         // Pine changed: Use uintptr_t instead of size_t
         // return reinterpret_cast<void *>((size_t) base + offset - bias);

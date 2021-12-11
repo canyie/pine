@@ -50,8 +50,8 @@ namespace pine {
             }
         }
         // Pine changed: Rename some function & make some function const.
-        Elf_Addr GetSymbolOffset(const char* name) const;
-        void* GetSymbolAddress(const char* name) const;
+        Elf_Addr GetSymbolOffset(const char* name, bool warn_if_missing = true) const;
+        void* GetSymbolAddress(const char* name, bool warn_if_missing = true) const;
 
         ~ElfImg();
 

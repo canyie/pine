@@ -143,13 +143,19 @@ bool Android::DisableProfileSaver() {
     // If users needs this feature very much,
     // we may find these symbols during initialization in the future to reduce time consumption.
     void* process_profiling_info;
-    void* notify_jit_activity;
     {
         ElfImg handle("libart.so");
-        const char* symbol = version < kO ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEPt"
-                                          : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt";
-        process_profiling_info = handle.GetSymbolAddress(symbol);
-        notify_jit_activity = handle.GetSymbolAddress("_ZN3art12ProfileSaver17NotifyJitActivityEv");
+
+        // MIUI added, size of the original function is smaller than size of a direct jump trampoline
+        // and cannot be hooked, else we will write overflow and corrupt the next function
+        // https://github.com/canyie/pine/issues/18
+        process_profiling_info = handle.GetSymbolAddress("_ZN3art12ProfileSaver20ProcessProfilingInfoEbPtb", false);
+        if (LIKELY(!process_profiling_info)) {
+            const char* symbol = version < kO ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEPt"
+                                              : version < kS ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt"
+                                              : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbbPt";
+            process_profiling_info = handle.GetSymbolAddress(symbol);
+        }
     }
 
     if (UNLIKELY(!process_profiling_info)) {
@@ -157,20 +163,8 @@ bool Android::DisableProfileSaver() {
         return false;
     }
 
-    TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
-
-    if (auto p = (uintptr_t) process_profiling_info, n = (uintptr_t) notify_jit_activity;
-        n > p && trampoline_installer->CannotSafeInlineHook(n - p)) {
-        LOGW("Size of art::ProfileSaver::ProcessProfilingInfo is too small, filling with nop and "
-             "hooking NotifyJitActivity instead. ProcessProfilingInfo=%p, NotifyJitActivity=%p",
-             process_profiling_info, notify_jit_activity);
-        trampoline_installer->NativeHookNoBackup(notify_jit_activity,
-                reinterpret_cast<void*>(FakeProcessProfilingInfo));
-        trampoline_installer->FillWithNop(process_profiling_info, n - p);
-    } else {
-        trampoline_installer->NativeHookNoBackup(process_profiling_info,
-                reinterpret_cast<void*>(FakeProcessProfilingInfo));
-    }
+    TrampolineInstaller::GetDefault()->NativeHookNoBackup(process_profiling_info,
+            reinterpret_cast<void*>(FakeProcessProfilingInfo));
     return true;
 }
 
