@@ -81,6 +81,10 @@ public final class Pine {
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
         else if (sdkLevel > 30) {
             Log.w(TAG, "Android version too high, not tested now...");
+            if (sdkLevel == 31 && Build.VERSION.PREVIEW_SDK_INT > 0) {
+                // Android SL Preview
+                sdkLevel = 32;
+            }
         }
 
         String vmVersion = System.getProperty("java.vm.version");
