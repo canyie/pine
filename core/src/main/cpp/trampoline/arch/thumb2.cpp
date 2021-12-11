@@ -130,7 +130,7 @@ void* Thumb2TrampolineInstaller::Backup(art::ArtMethod* target, size_t size) {
     return ToPC(mem);
 }
 
-void Thumb2TrampolineInstaller::FillWithNop(void* target, size_t size) {
+void Thumb2TrampolineInstaller::FillWithNopImpl(void* target, size_t size) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target);
     for (uint index = 0;index < size;index += sizeof(uint16_t)) {
         uint16_t* p = reinterpret_cast<uint16_t*>(entry + index);

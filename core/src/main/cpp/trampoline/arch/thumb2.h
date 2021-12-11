@@ -55,7 +55,7 @@ namespace pine {
 
         size_t GetBackupCodeSize(art::ArtMethod* target, size_t min_size);
 
-        virtual void FillWithNop(void* target, size_t size) override;
+        virtual void FillWithNopImpl(void* target, size_t size) override;
     };
 }
 

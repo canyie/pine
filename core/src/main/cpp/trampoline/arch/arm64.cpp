@@ -63,7 +63,7 @@ bool Arm64TrampolineInstaller::CannotBackup(art::ArtMethod* target, size_t size)
     return false;
 }
 
-void Arm64TrampolineInstaller::FillWithNop(void* target, size_t size) {
+void Arm64TrampolineInstaller::FillWithNopImpl(void* target, size_t size) {
     uintptr_t entry = reinterpret_cast<uintptr_t>(target);
     for (uint32_t index = 0;index < size;index += sizeof(uint32_t)) {
         uint32_t* p = reinterpret_cast<uint32_t*>(entry + index);

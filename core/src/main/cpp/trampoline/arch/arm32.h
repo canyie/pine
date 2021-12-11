@@ -17,7 +17,7 @@ namespace pine {
     protected:
         virtual void InitTrampolines() override ;
         virtual bool CannotBackup(art::ArtMethod* target, size_t size) override ;
-        virtual void FillWithNop(void* target, size_t size) override ;
+        virtual void FillWithNopImpl(void* target, size_t size) override ;
     private:
         static bool IsPCRelatedInst(uint32_t inst);
     };

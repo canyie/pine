@@ -43,9 +43,13 @@ namespace pine {
             return kReplacementModeOnly;
         }
 
+        bool CannotSafeInlineHook(size_t size) {
+            return size < kDirectJumpTrampolineSize;
+        }
+
         bool CannotSafeInlineHook(art::ArtMethod* target) {
             size_t target_code_size = target->GetCompiledCodeSize();
-            if (UNLIKELY(target_code_size < kDirectJumpTrampolineSize)) {
+            if (UNLIKELY(CannotSafeInlineHook(target_code_size))) {
                 LOGW("Cannot safe inline hook method: code size of target method too small (size %u)!",
                      target_code_size);
                 return true;
@@ -79,6 +83,8 @@ namespace pine {
         void* InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge, bool skip_first_few_bytes);
 
         virtual bool NativeHookNoBackup(void* target, void* to);
+
+        bool FillWithNop(void* target, size_t size);
 
     protected:
         static inline size_t SubAsSize(void const* a, void const* b) {
@@ -116,7 +122,7 @@ namespace pine {
 
         virtual void* Backup(art::ArtMethod* target, size_t size);
 
-        virtual void FillWithNop(void* target, size_t size) = 0;
+        virtual void FillWithNopImpl(void* target, size_t size) = 0;
 
         static TrampolineInstaller* default_;
 

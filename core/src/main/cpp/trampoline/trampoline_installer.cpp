@@ -182,7 +182,7 @@ void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::
     {
         ScopedMemoryAccessProtection protection(target_code_addr, kDirectJumpTrampolineSize);
         if (skip_first_few_bytes) {
-            FillWithNop(target_code_addr, kSkipBytes);
+            FillWithNopImpl(target_code_addr, kSkipBytes);
             WriteDirectJumpTrampolineTo(AS_VOID_PTR(AS_PTR_NUM(target_code_addr) + kSkipBytes),
                     bridge_jump_trampoline);
         } else {
@@ -207,6 +207,20 @@ bool TrampolineInstaller::NativeHookNoBackup(void* target, void* to) {
     {
         ScopedMemoryAccessProtection protection(target, kDirectJumpTrampolineSize);
         WriteDirectJumpTrampolineTo(target, to);
+    }
+    return true;
+}
+
+bool TrampolineInstaller::FillWithNop(void* target, size_t size) {
+    bool target_code_writable = Memory::Unprotect(target);
+    if (UNLIKELY(!target_code_writable)) {
+        LOGE("Failed to make target code %p writable!", target);
+        return false;
+    }
+
+    {
+        ScopedMemoryAccessProtection protection(target, size);
+        FillWithNopImpl(target, size);
     }
     return true;
 }

@@ -472,3 +472,7 @@ EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* sy
 EXPORT_C void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {
     TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(target, replace);
 }
+
+EXPORT_C void PineFillWithNop(void* target, size_t size) {
+    TrampolineInstaller::GetOrInitDefault()->FillWithNop(target, size);
+}

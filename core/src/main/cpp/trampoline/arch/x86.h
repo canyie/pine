@@ -27,7 +27,7 @@ namespace pine {
         virtual void* Backup(art::ArtMethod* target, size_t size) override {
             FATAL("Backup unimplemented");
         }
-        virtual void FillWithNop(void* target, size_t size) override {
+        virtual void FillWithNopImpl(void* target, size_t size) override {
             FATAL("FillWithNop unimplemented");
         }
 

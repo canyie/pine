@@ -135,27 +135,42 @@ else  \
 #pragma clang diagnostic pop
 
 static bool FakeProcessProfilingInfo() {
-    LOGI("Skipped ProcessProfilingInfo.");
+    LOGI("Skipped ProcessProfilingInfo/NotifyJitActivity.");
     return true;
 }
 
 bool Android::DisableProfileSaver() {
-    // If the user needs this feature very much,
+    // If users needs this feature very much,
     // we may find these symbols during initialization in the future to reduce time consumption.
     void* process_profiling_info;
+    void* notify_jit_activity;
     {
         ElfImg handle("libart.so");
         const char* symbol = version < kO ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEPt"
                                           : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt";
         process_profiling_info = handle.GetSymbolAddress(symbol);
+        notify_jit_activity = handle.GetSymbolAddress("_ZN3art12ProfileSaver17NotifyJitActivityEv");
     }
 
     if (UNLIKELY(!process_profiling_info)) {
         LOGE("Failed to disable ProfileSaver: art::ProfileSaver::ProcessProfilingInfo not found");
         return false;
     }
-    TrampolineInstaller::GetDefault()->NativeHookNoBackup(process_profiling_info,
-            reinterpret_cast<void*>(FakeProcessProfilingInfo));
+
+    TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
+
+    if (auto p = (uintptr_t) process_profiling_info, n = (uintptr_t) notify_jit_activity;
+        n > p && trampoline_installer->CannotSafeInlineHook(n - p)) {
+        LOGW("Size of art::ProfileSaver::ProcessProfilingInfo is too small, filling with nop and "
+             "hooking NotifyJitActivity instead. ProcessProfilingInfo=%p, NotifyJitActivity=%p",
+             process_profiling_info, notify_jit_activity);
+        trampoline_installer->NativeHookNoBackup(notify_jit_activity,
+                reinterpret_cast<void*>(FakeProcessProfilingInfo));
+        trampoline_installer->FillWithNop(process_profiling_info, n - p);
+    } else {
+        trampoline_installer->NativeHookNoBackup(process_profiling_info,
+                reinterpret_cast<void*>(FakeProcessProfilingInfo));
+    }
     return true;
 }
 
