@@ -19,7 +19,7 @@ public class Arg0Test extends Test {
 
     @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
         super.afterCall(callFrame);
-        callFrame.setResult(SUCCESS);
+        callFrame.setResultIfNoException(SUCCESS);
     }
 
     private static int target() {

@@ -686,6 +686,13 @@ public final class Pine {
             this.returnEarly = true;
         }
 
+        public void setResultIfNoException(Object result) {
+            if (this.throwable == null) {
+                this.result = result;
+                this.returnEarly = true;
+            }
+        }
+
         public Throwable getThrowable() {
             return throwable;
         }

@@ -24,6 +24,6 @@ public class NonStaticTest extends Test {
 
     @Override public void afterCall(Pine.CallFrame callFrame) throws Throwable {
         super.afterCall(callFrame);
-        callFrame.setResult(true);
+        callFrame.setResultIfNoException(true);
     }
 }
