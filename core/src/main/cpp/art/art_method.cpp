@@ -231,13 +231,20 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
     access_flags &= ~AccessFlags::kConstructor;
     SetAccessFlags(access_flags);
 
-    if (Android::version >= Android::kN && Android::version < Android::kS
-            && !is_inline_hook && !is_native_or_proxy && art_quick_to_interpreter_bridge) {
-        // On Android N+, the method may compiled by JIT, and unknown problem occurs when calling
-        // the backup method if we use entry replacement mode. Just use the interpreter to execute.
-        // Possible reason: compiled code is recycled in JIT garbage collection.
-        // TODO: Only do this if the method is compiled by jit.
-        //  JitCodeCache::WillExecuteJitCode() or ContainsPc() not working for me.
+    // JIT compilation was added in Android N. When we hook a method, we may change its entry point
+    // and garbage collector loses reference to the entry point of compiled code, so jit info
+    // about the target method will be recycled -- but our backup method still references these info
+    // and causing random crashes. So we need to do something:
+    // 1. If possible, update the method references in jit info to backup method, so collector can
+    //   know these jit info are still reachable and won't recycle them.
+    // 2. If not possible, clear references to these info in the backup method to prevent possible UAF.
+    //   possible references: entry_point_from_compiled_code_ (may references jit compiled code),
+    //   and data_ (may be a profiling info).
+
+    bool clear_jit_info_ref = Android::version >= Android::kN && !Android::MoveJitInfo(source, this)
+            && !is_inline_hook && !is_native_or_proxy && art_quick_to_interpreter_bridge;
+    if (UNLIKELY(clear_jit_info_ref)) {
+        // entry_point_from_compiled_code_ (may references jit compiled code)
         SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
 
         // For non-native and non-proxy methods, the entry_point_from_jni_ member is used to save

@@ -6,6 +6,7 @@
 #define PINE_LOG_H
 
 #include <android/log.h>
+#include <cstdlib>
 
 #define LOG_TAG "Pine"
 

@@ -29,6 +29,9 @@ void (*Android::end_gc_critical_section)(void*) = nullptr;
 void* Android::class_linker_ = nullptr;
 void (*Android::make_visibly_initialized_)(void*, void*, bool) = nullptr;
 
+void* Android::jit_code_cache_ = nullptr;
+void (*Android::move_obsolete_method_)(void*, void*, void*) = nullptr;
+
 void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, bool disable_hiddenapi_policy_for_platform) {
     Android::version = sdk_version;
     if (UNLIKELY(env->GetJavaVM(&jvm) != JNI_OK)) {
@@ -82,9 +85,7 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
 
-        if (UNLIKELY(sdk_version >= kR)) {
-            InitClassLinker(jvm, &art_lib_handle);
-        }
+        InitMembersFromRuntime(jvm, &art_lib_handle);
     }
 
     WellKnownClasses::Init(env);
@@ -135,7 +136,7 @@ else  \
 #pragma clang diagnostic pop
 
 static bool FakeProcessProfilingInfo() {
-    LOGI("Skipped ProcessProfilingInfo/NotifyJitActivity.");
+    LOGI("Skipped ProcessProfilingInfo.");
     return true;
 }
 
@@ -168,7 +169,46 @@ bool Android::DisableProfileSaver() {
     return true;
 }
 
-void Android::InitClassLinker(JavaVM* jvm, const ElfImg* handle) {
+void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
+    if (version < kQ) {
+        // ClassLinker is unnecessary before R.
+        // JIT was added in Android N but MoveObsoleteMethod was added in Android O
+        // and didn't find a stable way to retrieve jit code cache until Q
+        // from Runtime object, so try to retrieve from ProfileSaver.
+        // TODO: Still clearing jit info on Android N but only for jit-compiled methods.
+        if (version >= kO) {
+            InitJitCodeCache(nullptr, 0, handle);
+        }
+        return;
+    }
+    void** instance_ptr = static_cast<void**>(handle->GetSymbolAddress("_ZN3art7Runtime9instance_E"));
+    void* runtime;
+    if (UNLIKELY(!instance_ptr || !(runtime = *instance_ptr))) {
+        LOGE("Unable to retrieve Runtime.");
+        return;
+    }
+    size_t jvm_offset = OffsetOfJavaVm();
+    auto val = jvm_offset
+            ? reinterpret_cast<std::unique_ptr<JavaVM>*>(reinterpret_cast<uintptr_t>(runtime) + jvm_offset)->get()
+            : nullptr;
+    if (LIKELY(val == jvm)) {
+        LOGD("JavaVM offset matches the default offset");
+    } else {
+        LOGW("JavaVM offset mismatches the default offset, try search the memory of Runtime");
+        int offset = Memory::FindOffset(runtime, jvm, 1024, 4);
+        if (UNLIKELY(offset == -1)) {
+            LOGE("Failed to find java vm from Runtime");
+            return;
+        }
+        jvm_offset = offset;
+        LOGW("Found JavaVM in Runtime at %zu", jvm_offset);
+    }
+    InitClassLinker(runtime, jvm_offset, handle);
+    InitJitCodeCache(runtime, jvm_offset, handle);
+}
+
+void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle) {
+    if (version < kR) return;
     make_visibly_initialized_ = reinterpret_cast<void (*)(void*, void*, bool)>(handle->GetSymbolAddress(
             "_ZN3art11ClassLinker40MakeInitializedClassesVisiblyInitializedEPNS_6ThreadEb"));
     if (UNLIKELY(!make_visibly_initialized_)) {
@@ -176,38 +216,45 @@ void Android::InitClassLinker(JavaVM* jvm, const ElfImg* handle) {
         return;
     }
 
-    void** instance_ptr = static_cast<void**>(handle->GetSymbolAddress("_ZN3art7Runtime9instance_E"));
-    void* runtime;
-    if (UNLIKELY(!instance_ptr || !(runtime = *instance_ptr))) {
-        LOGE("Unable to get Runtime.");
+    constexpr size_t kDifference = sizeof(std::unique_ptr<void>) + sizeof(void*) * 2;
+
+    void* class_linker = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(runtime) + java_vm_offset - kDifference);
+    SetClassLinker(class_linker);
+}
+
+void Android::InitJitCodeCache(void *runtime, size_t java_vm_offset, const ElfImg *handle) {
+    move_obsolete_method_ = reinterpret_cast<void (*)(void*, void*, void*)>(handle->GetSymbolAddress(
+            "_ZN3art3jit12JitCodeCache18MoveObsoleteMethodEPNS_9ArtMethodES3_"));
+    if (UNLIKELY(!move_obsolete_method_)) {
+        LOGW("JitCodeCache::MoveObsoleteMethod not found. Fallback to clearing jit info.");
         return;
     }
+    if (UNLIKELY(!runtime)) {
+        // We are not safe to get jit code cache from Runtime... then try ProfileSaver.
+        // ProfileSaver is not available before app starts, so we first try Runtime.
 
-    constexpr size_t kDifference = sizeof(std::unique_ptr<void>) + sizeof(void*) + sizeof(void*);
-#ifdef __LP64__
-    constexpr size_t kDefaultClassLinkerOffset = 472;
-#else
-    constexpr size_t kDefaultClassLinkerOffset = 276;
-#endif
-    constexpr size_t kDefaultJavaVMOffset = kDefaultClassLinkerOffset + kDifference;
-
-    auto jvm_ptr = reinterpret_cast<std::unique_ptr<JavaVM>*>(reinterpret_cast<uintptr_t>(runtime) + kDefaultJavaVMOffset);
-    size_t class_linker_offset;
-    if (LIKELY(jvm_ptr->get() == jvm)) {
-        LOGD("JavaVM offset matches the default offset");
-        class_linker_offset = kDefaultClassLinkerOffset;
-    } else {
-        LOGW("JavaVM offset mismatches the default offset, try search the memory of Runtime");
-        int jvm_offset = Memory::FindOffset(runtime, jvm, 1024, 4);
-        if (UNLIKELY(jvm_offset == -1)) {
-            LOGE("Failed to find java vm from Runtime");
+        // class ProfileSaver {
+        //   static ProfileSaver* instance_;
+        //   jit::JitCodeCache* jit_code_cache_;
+        // }
+        void*** symbol = reinterpret_cast<void***>(handle->GetSymbolAddress(
+                "_ZN3art12ProfileSaver9instance_E"));
+        if (UNLIKELY(symbol == nullptr)) {
+            LOGW("ProfileSaver::instance_ not found. Fallback to clearing jit info.");
             return;
         }
-        class_linker_offset = jvm_offset - kDifference;
-        LOGW("New java_vm_offset: %d, class_linker_offset: %u", jvm_offset, class_linker_offset);
+        void** profile_saver = *symbol;
+        if (UNLIKELY(profile_saver == nullptr)) {
+            LOGW("ProfileSaver is not initialized, cannot get jit code cache. Fallback to clearing jit info.");
+            return;
+        }
+        if (UNLIKELY((jit_code_cache_ = *profile_saver) == nullptr)) {
+            LOGE("ProfileSaver is initialized but no jit code cache??? Fallback to clearing jit info.");
+        }
+        return;
     }
-    void* class_linker = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(runtime) + class_linker_offset);
-    SetClassLinker(class_linker);
+    constexpr size_t kDifference = sizeof(std::unique_ptr<void>) * 2;
+    jit_code_cache_ = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(runtime) + java_vm_offset + kDifference);
 }
 
 ALWAYS_INLINE ScopedGCCriticalSection::ScopedGCCriticalSection(void* self, art::GcCause cause,

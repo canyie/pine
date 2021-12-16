@@ -23,7 +23,7 @@ namespace pine {
 
     class Android final {
     public:
-        static inline bool Is64Bit() {
+        static inline constexpr bool Is64Bit() {
             return sizeof(void*) == 8;
         }
 
@@ -49,6 +49,14 @@ namespace pine {
                 return;
             }
             make_visibly_initialized_(class_linker_, thread, wait);
+        }
+
+        static bool MoveJitInfo(void* from, void* to) {
+            if (LIKELY(jit_code_cache_ && move_obsolete_method_)) {
+                move_obsolete_method_(jit_code_cache_, from, to);
+                return true;
+            }
+            return false;
         }
 
         static int version;
@@ -99,7 +107,21 @@ namespace pine {
         static constexpr int kSL = 32;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
-        static void InitClassLinker(JavaVM* jvm, const ElfImg* handle);
+        static void InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle);
+        static void InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle);
+        static void InitJitCodeCache(void* runtime, size_t java_vm_offset, const ElfImg* handle);
+
+        static size_t OffsetOfJavaVm() {
+            switch (version) {
+                case kSL:
+                case kS:
+                case kR:
+                case kQ:
+                    return Is64Bit() ? 496 : 288;
+                default:
+                    FATAL("Unexpected android version %d", version);
+            }
+        }
 
         static void (*suspend_vm)();
         static void (*resume_vm)();
@@ -110,6 +132,9 @@ namespace pine {
 
         static void* class_linker_;
         static void (*make_visibly_initialized_)(void*, void*, bool);
+
+        static void* jit_code_cache_;
+        static void (*move_obsolete_method_)(void*, void*, void*);
         DISALLOW_IMPLICIT_CONSTRUCTORS(Android);
     };
 
