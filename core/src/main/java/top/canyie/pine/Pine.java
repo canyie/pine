@@ -236,11 +236,13 @@ public final class Pine {
         long thread = currentArtThread0();
         if ((hookRecord.isStatic = Modifier.isStatic(modifiers)) && canInitDeclaringClass) {
             resolve((Method) method);
-            if (PineConfig.sdkLevel >= 30) {
+            if (PineConfig.sdkLevel >= Build.VERSION_CODES.Q) {
                 // Android R has a new class state called "visibly initialized",
                 // and FixupStaticTrampolines will be called after class was initialized.
                 // The entry point will be reset. Make this class be visibly initialized before hook
-                // TODO: We found some ROMs "indicates that is Q", but uses R's art (has "visibly initialized" state)
+                // Note: this feature does not exist on official Android Q,
+                // but some weird ROMs cherry-pick this commit to these Android Q ROMs
+                // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
                 makeClassesVisiblyInitialized(thread);
             }
         }

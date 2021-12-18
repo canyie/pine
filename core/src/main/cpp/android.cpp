@@ -141,7 +141,7 @@ static bool FakeProcessProfilingInfo() {
 }
 
 bool Android::DisableProfileSaver() {
-    // If users needs this feature very much,
+    // If users need this feature very much,
     // we may find these symbols during initialization in the future to reduce time consumption.
     void* process_profiling_info;
     {
@@ -208,15 +208,21 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
 }
 
 void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle) {
-    if (version < kR) return;
+    // ClassStatus::kVisiblyInitialized is not implemented in official Android Q
+    // but some weird ROMs cherry-pick this commit to these Q ROMs
+    // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
+    if (version < kQ) return;
+    bool required = version > kQ;
     make_visibly_initialized_ = reinterpret_cast<void (*)(void*, void*, bool)>(handle->GetSymbolAddress(
-            "_ZN3art11ClassLinker40MakeInitializedClassesVisiblyInitializedEPNS_6ThreadEb"));
-    if (UNLIKELY(!make_visibly_initialized_)) {
-        LOGE("ClassLinker::MakeInitializedClassesVisiblyInitialized not found");
+            "_ZN3art11ClassLinker40MakeInitializedClassesVisiblyInitializedEPNS_6ThreadEb", required));
+    if (!make_visibly_initialized_) {
+        if (UNLIKELY(required)) LOGE("ClassLinker::MakeInitializedClassesVisiblyInitialized not found");
         return;
     }
 
-    constexpr size_t kDifference = sizeof(std::unique_ptr<void>) + sizeof(void*) * 2;
+    const size_t kDifference = UNLIKELY(version == kQ)
+            ? sizeof(void*) * 2
+            : sizeof(std::unique_ptr<void>) + sizeof(void*) * 2;
 
     void* class_linker = *reinterpret_cast<void**>(reinterpret_cast<uintptr_t>(runtime) + java_vm_offset - kDifference);
     SetClassLinker(class_linker);

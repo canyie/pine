@@ -188,6 +188,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
      if (sdk_level >= __ANDROID_API_Q__) {
          // Note: kVisiblyInitialized is not implemented in Android Q,
          // but we found some ROMs "indicates that is Q", but uses R's art (has "visibly initialized" state)
+         // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
          void* MarkClassInitialized = DobbySymbolResolver("libart.so", "_ZN3art11ClassLinker20MarkClassInitializedEPNS_6ThreadENS_6HandleINS_6mirror5ClassEEE");
          if (MarkClassInitialized) {
              HOOK_FUNC(MarkClassInitialized);

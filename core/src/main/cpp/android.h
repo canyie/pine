@@ -44,8 +44,7 @@ namespace pine {
         static void MakeInitializedClassesVisiblyInitialized(void* thread, bool wait) {
             // If symbol MakeInitializedClassesVisiblyInitialized not found,
             // class_linker_ won't be initialized.
-            if (UNLIKELY(!class_linker_)) {
-                LOGE("No ClassLinker, skip MakeInitializedClassesVisiblyInitialized.");
+            if (!class_linker_) {
                 return;
             }
             make_visibly_initialized_(class_linker_, thread, wait);
