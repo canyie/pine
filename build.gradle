@@ -8,7 +8,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.0'
+        classpath 'com.android.tools.build:gradle:7.0.4'
         // classpath 'com.novoda:bintray-release:0.9.2' // FIXME: plugin bintray-release crashes with Gradle 7
         
         // NOTE: Do not place your application dependencies here; they belong
@@ -30,9 +30,10 @@ allprojects {
 }
 
 ext {
-    compileSdkVersion = 30
-    buildToolsVersion = "30.0.2"
-    ndkVersion = "22.1.7171670"
+    compileSdkVersion = 32
+    buildToolsVersion = "32.0.0"
+    ndkVersion = "23.1.7779620"
+    cmakeVersion = "3.18.1"
     userOrg = 'canyie'
     groupId = 'top.canyie.pine'
     repoName = 'pine'
@@ -44,11 +45,3 @@ task clean(type: Delete) {
     delete rootProject.buildDir
 }
 
-task showRepos() {
-    doLast {
-        println "all repos: "
-        println repositories.collect {
-            it.name + ": " + it.url
-        }
-    }
-}

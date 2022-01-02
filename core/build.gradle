@@ -6,7 +6,7 @@ android {
     ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         minSdkVersion 19
-        targetSdkVersion 27
+        targetSdkVersion 32
         versionCode 1
         versionName "1.0"
 
@@ -34,12 +34,12 @@ android {
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
-            version "3.10.2"
+            version rootProject.ext.cmakeVersion
         }
     }
 
     buildFeatures {
-        prefab true
+        // prefab true
     }
 }
 

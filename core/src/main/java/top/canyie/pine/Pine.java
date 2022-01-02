@@ -5,7 +5,6 @@ import android.os.Build;
 import android.util.Log;
 
 import top.canyie.pine.callback.MethodHook;
-import top.canyie.pine.utils.Primitives;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -79,11 +78,11 @@ public final class Pine {
         int sdkLevel = PineConfig.sdkLevel;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
-        else if (sdkLevel > 30) {
+        else if (sdkLevel > Build.VERSION_CODES.R) {
             Log.w(TAG, "Android version too high, not tested now...");
-            if (sdkLevel == 31 && Build.VERSION.PREVIEW_SDK_INT > 0) {
+            if (sdkLevel == Build.VERSION_CODES.S && Build.VERSION.PREVIEW_SDK_INT > 0) {
                 // Android SL Preview
-                sdkLevel = 32;
+                sdkLevel = Build.VERSION_CODES.S_V2;
             }
         }
 
@@ -185,7 +184,7 @@ public final class Pine {
         } else if (method instanceof Constructor) {
             if (Modifier.isStatic(modifiers)) // TODO: We really cannot hook this?
                 throw new IllegalArgumentException("Cannot hook class initializer: " + method);
-            ((Constructor) method).setAccessible(true);
+            ((Constructor<?>) method).setAccessible(true);
         } else {
             throw new IllegalArgumentException("Only methods and constructors can be hooked: " + method);
         }
@@ -271,7 +270,7 @@ public final class Pine {
             Class<?> returnType = ((Method) method).getReturnType();
             bridgeMethodName = returnType.isPrimitive() ? returnType.getName() + "Bridge" : "objectBridge";
         } else {
-            hookRecord.paramTypes = ((Constructor) method).getParameterTypes();
+            hookRecord.paramTypes = ((Constructor<?>) method).getParameterTypes();
             // Constructor is actually a method named <init> and its return type is void.
             bridgeMethodName = "voidBridge";
         }
@@ -355,7 +354,7 @@ public final class Pine {
         if (method instanceof Method) {
             ((Method) method).setAccessible(true);
         } else if (method instanceof Constructor) {
-            ((Constructor) method).setAccessible(true);
+            ((Constructor<?>) method).setAccessible(true);
         } else {
             throw new IllegalArgumentException("method must be of type Method or Constructor");
         }
@@ -368,7 +367,7 @@ public final class Pine {
                     throw new IllegalArgumentException(
                             "Cannot invoke a not hooked Constructor with a non-null receiver");
                 try {
-                    ((Constructor) method).newInstance(args);
+                    ((Constructor<?>) method).newInstance(args);
                     return null;
                 } catch (InstantiationException e) {
                     throw new IllegalArgumentException("invalid Constructor", e);
