@@ -248,12 +248,13 @@ public final class Pine {
 
         Class<?> declaring = method.getDeclaringClass();
 
-        boolean isNativeOrProxy = Modifier.isNative(modifiers) || Proxy.isProxyClass(declaring);
+        final boolean jni = Modifier.isNative(modifiers);
+        final boolean proxy = Proxy.isProxyClass(declaring);
 
         // Only try compile target method when trying inline hook.
         if (isInlineHook) {
             // Cannot compile native or proxy methods.
-            if (!isNativeOrProxy) {
+            if (!(jni || proxy)) {
                 boolean compiled = compile0(thread, method);
                 if (!compiled) {
                     Log.w(TAG, "Cannot compile the target method, force replacement mode.");
@@ -281,7 +282,7 @@ public final class Pine {
         if (bridge == null)
             throw new AssertionError("Cannot find bridge method for " + method);
 
-        Method backup = hook0(thread, declaring, method, bridge, isInlineHook, isNativeOrProxy);
+        Method backup = hook0(thread, declaring, method, bridge, isInlineHook, jni, proxy);
 
         if (backup == null)
             throw new RuntimeException("Failed to hook method " + method);
@@ -570,7 +571,7 @@ public final class Pine {
     private static native long getArtMethod(Member method);
 
     private static native Method hook0(long thread, Class<?> declaring, Member target, Method bridge,
-                                       boolean isInlineHook, boolean isNativeOrProxy);
+                                       boolean isInlineHook, boolean jni, boolean proxy);
 
     private static native boolean compile0(long thread, Member method);
 

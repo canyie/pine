@@ -211,7 +211,7 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
     }
 }
 
-void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy) {
+void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native, bool is_proxy) {
     if (LIKELY(copy_from)) {
         copy_from(this, source, sizeof(void*));
     } else {
@@ -224,7 +224,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
         access_flags |= kAccCompileDontBother;
     }
     if ((access_flags & AccessFlags::kStatic) == 0) {
-        // Non-static method, set kAccPrivate to ensure it is a direct method.
+        // Non-static method, set kAccPrivate to ensure it will be invoked like a direct method.
         access_flags &= ~(AccessFlags::kPublic | AccessFlags::kProtected);
         access_flags |= AccessFlags::kPrivate;
     }
@@ -241,8 +241,14 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
     //   possible references: entry_point_from_compiled_code_ (may references jit compiled code),
     //   and data_ (may be a profiling info).
 
-    bool clear_jit_info_ref = Android::version >= Android::kN && !Android::MoveJitInfo(source, this)
-            && !is_inline_hook && !is_native_or_proxy && art_quick_to_interpreter_bridge;
+    bool clear_jit_info_ref = Android::version >= Android::kN && !is_proxy;
+    if (LIKELY(clear_jit_info_ref)) {
+        // First try to move jit info instead.
+        clear_jit_info_ref = !Android::MoveJitInfo(source, this);
+        if (UNLIKELY(clear_jit_info_ref))
+            clear_jit_info_ref = !is_inline_hook && !is_native && art_quick_to_interpreter_bridge;
+    }
+
     if (UNLIKELY(clear_jit_info_ref)) {
         // entry_point_from_compiled_code_ (may references jit compiled code)
         SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
@@ -256,7 +262,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
 
         // ArtMethod::CopyFrom() will clear the data_ member, the member is used to save
         // the original interface method for proxy method. Restore it to avoid errors.
-        if (UNLIKELY(is_native_or_proxy && Android::version >= Android::kO))
+        if (UNLIKELY((is_native || is_proxy) && Android::version >= Android::kO))
             SetEntryPointFromJni(source->GetEntryPointFromJni());
     }
 }

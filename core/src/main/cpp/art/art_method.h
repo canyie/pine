@@ -224,7 +224,7 @@ namespace pine::art {
             return code_size;
         }
 
-        void BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native_or_proxy);
+        void BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, bool is_native, bool is_proxy);
 
         void AfterHook(bool is_inline_hook, bool is_native_or_proxy);
 

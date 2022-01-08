@@ -12,6 +12,7 @@
 #define PACKED(x) __attribute__ ((__aligned__(x), __packed__))
 #define EXPORT_C extern "C" __attribute__ ((visibility ("default")))
 #define ALWAYS_INLINE __attribute__((always_inline))
+#define JBOOL_TRUE(x) (x != JNI_FALSE)
 
 #define DISALLOW_COPY_AND_ASSIGN(TypeName) \
 TypeName(const TypeName&) = delete;      \
