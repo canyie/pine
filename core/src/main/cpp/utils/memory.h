@@ -18,7 +18,7 @@ namespace pine {
 
         static inline bool Unprotect(void* ptr) {
             size_t alignment = (uintptr_t) ptr % page_size;
-            void *aligned_ptr = (void*) ((uintptr_t) ptr - alignment);
+            void* aligned_ptr = (void*) ((uintptr_t) ptr - alignment);
             int result = mprotect(aligned_ptr, page_size, PROT_READ | PROT_WRITE | PROT_EXEC);
             if (UNLIKELY(result == -1)) {
                 LOGE("mprotect failed for %p: %s (%d)", ptr, strerror(errno), errno);

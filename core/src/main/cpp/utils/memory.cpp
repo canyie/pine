@@ -20,7 +20,7 @@ std::mutex Memory::mutex;
 
 void* Memory::AllocUnprotected(size_t size) {
     if (UNLIKELY(size > page_size)) {
-        LOGE("Attempting to allocate too much memory space (%x bytes)", size);
+        LOGE("Attempting to allocate too much memory space (%zx bytes)", size);
         errno = ENOMEM;
         return nullptr;
     }

@@ -168,6 +168,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     }
 
     bool success;
+    char error_msg[288];
 
     {
         // An ArtMethod is a very important object. Many threads depend on their values,
@@ -183,7 +184,11 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
             target->AfterHook(is_inline_hook, is_native_or_proxy);
             success = true;
         } else {
-            LOGE("Failed to hook the method!");
+            snprintf(error_msg, sizeof(error_msg), "Failed to install %s trampoline on method %p: %s (%d).",
+                     is_inline_hook ? "inline" : "replacement", target, strerror(errno), errno);
+            if (errno == EACCES || errno == EPERM)
+                strlcat(error_msg, " This is a security failure, check selinux policy, seccomp or capabilities. Earlier log may point out root cause.", sizeof(error_msg));
+            LOGE("%s", error_msg);
             success = false;
         }
     }
@@ -192,8 +197,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         return env->ToReflectedMethod(declaring, backup->ToMethodID(),
                                       static_cast<jboolean>(backup->IsStatic()));
     } else {
-        // TODO Throw exception has detailed error message
-        JNIHelper::Throw(env, "java/lang/RuntimeException", "hook failed");
+        JNIHelper::Throw(env, errno == EACCES || errno == EPERM ? "java/lang/SecurityException" : "java/lang/RuntimeException", error_msg);
         return nullptr;
     }
 }
