@@ -11,6 +11,10 @@ import top.canyie.pine.utils.Primitives;
  */
 public final class PineEnhances {
     public static final String TAG = "PineEnhances";
+    /**
+     * A function object that will be invoked when loading our native library (libpine-enhances.so)
+     * @see Pine.LibLoader
+     */
     public static Pine.LibLoader libLoader = new Pine.LibLoader() {
         @Override public void loadLib() {
             System.loadLibrary("pine-enhances");
@@ -18,6 +22,9 @@ public final class PineEnhances {
     };
     private static volatile boolean inited;
 
+    /**
+     * Initialize the Pine enhances library if uninitialized.
+     */
     public static void ensureInited() {
         if (inited) return;
         synchronized (PineEnhances.class) {
@@ -27,6 +34,11 @@ public final class PineEnhances {
         }
     }
 
+    /**
+     * Enable delay hook (aka pending hook) for subsequent hooks.
+     * Allow hooking a static method without pre-initialize its declaring class.
+     * @return Whether the delay hook successfully enabled.
+     */
     public static boolean enableDelayHook() {
         ensureInited();
         if (!PendingHookHandler.canWork()) {

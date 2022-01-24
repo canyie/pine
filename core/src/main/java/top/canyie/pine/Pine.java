@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
+ * The bridge class provides main APIs for you.
  * @author canyie
  */
 @SuppressWarnings("WeakerAccess")
@@ -61,6 +62,9 @@ public final class Pine {
         throw new RuntimeException("Use static methods");
     }
 
+    /**
+     * Initialize the Pine library if not initialized.
+     */
     public static void ensureInitialized() {
         if (initialized) return;
         synchronized (Pine.class) {
@@ -69,6 +73,11 @@ public final class Pine {
             initialized = true;
         }
     }
+
+    /**
+     * Check whether Pine library is initialized.
+     * @return {@code true} If Pine is initialized, {@code false} otherwise.
+     */
 
     public static boolean isInitialized() {
         return initialized;
@@ -138,37 +147,97 @@ public final class Pine {
         }
     }
 
+    /**
+     * Set how Pine to hook method.
+     * @param newHookMode One of {@code Pine.HookMode.AUTO}, {@code Pine.HookMode.INLINE} or
+     *                    {@code Pine.HookMode.REPLACEMENT}.
+     * @throws IllegalArgumentException If the {@code newHookMode} is not one of
+     *                     {@code Pine.HookMode.AUTO}, {@code Pine.HookMode.INLINE} or
+     *                     {@code Pine.HookMode.REPLACEMENT}.
+     * @see Pine.HookMode
+     */
     public static void setHookMode(int newHookMode) {
         if (newHookMode < HookMode.AUTO || newHookMode > HookMode.REPLACEMENT)
             throw new IllegalArgumentException("Illegal hookMode " + newHookMode);
         hookMode = newHookMode;
     }
 
+    /**
+     * Set a handler that will be used when Pine hooking a method.
+     * Internal API, use {@code HookListener} instead if you just want to be notified when hooking.
+     * Note that only one handler can exist at a time, so setting a new handler will override
+     * the old one. Save the old handler if yours don't know how to properly hook a method!
+     * @param h The handler you want to register. Cannot be null.
+     * @throws NullPointerException If the handler you given is null.
+     * @see HookHandler
+     */
     public static void setHookHandler(HookHandler h) {
+        if (h == null) throw new NullPointerException("h == null");
         sHookHandler = h;
     }
 
+    /**
+     * Get the handler that will be used when Pine hooking a method.
+     * Internal API, use the returned handler only when you are implementing your own handler
+     * and want to continue hooking. Do NOT use the returned hook handler if you just want to hook.
+     * @return The handler that will be used when hooking. Will never be null.
+     * @see HookHandler
+     */
     public static HookHandler getHookHandler() {
         return sHookHandler;
     }
 
+    /**
+     * Set a listener that will be called before/after hooking a method.
+     * @param l The listener you want to set. Can be null.
+     * @see HookListener
+     */
     public static void setHookListener(HookListener l) {
         sHookListener = l;
     }
 
+    /**
+     * Get the listener that will be called before/after hooking method.
+     * @return The listener that will be called before/after hooking method, or {@code null} if not set.
+     * @see HookListener
+     */
     public static HookListener getHookListener() {
         return sHookListener;
     }
 
+    /**
+     * Return whether the system is 64-bit.
+     * Note that this method will initialize Pine library if uninitialized.
+     * @return {@code true} if the system is 64-bit, {@code false} otherwise.
+     */
     public static boolean is64Bit() {
         ensureInitialized();
         return arch == ARCH_ARM64;
     }
 
+    /**
+     * Register a hook that will be invoked when the {@code method} is invoked.
+     * Note that this will initialize Pine library if uninitialized.
+     * @param method The method want to control.
+     * @param callback The callback that will be invoked when the {@code method} is invoked.
+     * @return The unhook for this hook. Call {@code unhook.unhook()} to unregister the hook.
+     * @throws NullPointerException If {@code method} or {@code callback} is null.
+     * @throws IllegalArgumentException If {@code method} cannot be hooked, such as abstract method.
+     */
     public static MethodHook.Unhook hook(Member method, MethodHook callback) {
         return hook(method, callback, true);
     }
 
+    /**
+     * Register a hook that will be invoked when the {@code method} is invoked.
+     * Note that this will initialize Pine library if uninitialized.
+     * @param method The method want to control.
+     * @param callback The callback that will be invoked when the {@code method} is invoked.
+     * @param canInitDeclaringClass {@code true} if initializing the class is allowed, {@code false} otherwise.
+     * @return The unhook for this hook. Call {@code unhook.unhook()} to unregister the hook.
+     * @throws NullPointerException If {@code method} or {@code callback} is null.
+     * @throws IllegalArgumentException If {@code method} cannot be hooked, such as abstract method.
+     */
     public static MethodHook.Unhook hook(Member method, MethodHook callback, boolean canInitDeclaringClass) {
         if (PineConfig.debug)
             Log.d(TAG, "Hooking method " + method + " with callback " + callback);
@@ -309,6 +378,12 @@ public final class Pine {
         throw new RuntimeException("No IllegalArgumentException thrown when resolve static method.");
     }
 
+    /**
+     * Return whether the given method has been hooked before.
+     * Note that once the method is hooked, this will return {@code true}, even it has been unhooked.
+     * @param method the method you want to check.
+     * @return {@code true} if the method has been hooked before, {@code false} otherwise.
+     */
     public static boolean isHooked(Member method) {
         if (!(method instanceof Method || method instanceof Constructor))
             throw new IllegalArgumentException("Only methods and constructors can be hooked: " + method);
@@ -339,6 +414,7 @@ public final class Pine {
             // invoke backup method, so we update declaring_class when invoke backup method.
             Class<?> declaring = origin.getDeclaringClass();
             updateDeclaringClass(origin, backup);
+            //Runtime.getRuntime().gc();
             Object result = backup.invoke(thisObject, args);
 
             // Explicit use declaring_class object to ensure it has reference on stack
@@ -350,6 +426,21 @@ public final class Pine {
         }
     }
 
+    /**
+     * Invoke the original implementation of the given method.
+     * If the method is not hooked, just invoke it directly.
+     * @param method The method you want to invoke its original implementation.
+     * @param thisObject  The object the underlying method is invoked from
+     * @param args The arguments used for the method call
+     * @return The result of the original method
+     * @throws NullPointerException If the given method is null.
+     * @throws IllegalAccessException Should never happen
+     * @throws InvocationTargetException If the underlying method throws an exception.
+     * @throws IllegalArgumentException If the method cannot be invoked with the given args.
+     * @see CallFrame#invokeOriginalMethod()
+     * @see CallFrame#invokeOriginalMethod(Object, Object...)
+     * @see Method#invoke(Object, Object...)
+     */
     public static Object invokeOriginalMethod(Member method, Object thisObject, Object... args) throws IllegalAccessException, InvocationTargetException {
         if (method == null) throw new NullPointerException("method == null");
         if (method instanceof Method) {
@@ -392,6 +483,15 @@ public final class Pine {
         return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
     }
 
+    /**
+     * Compile the given method. Note that this will always do nothing on Android R+,
+     * and may crash if JIT compilation is not allowed the current process,
+     * like some system process. Make sure you really need this before use!
+     * @param method The method you want to compile.
+     * @return {@code true} if successfully compile the method, {@code false} otherwise.
+     * @throws NullPointerException If the given method is null.
+     * @throws IllegalArgumentException If the given method cannot be compiled.
+     */
     public static boolean compile(Member method) {
         int modifiers = method.getModifiers();
         Class<?> declaring = method.getDeclaringClass();
@@ -411,6 +511,14 @@ public final class Pine {
         return compile0(currentArtThread0(), method);
     }
 
+    /**
+     * Decompile the given method. Force the given method executes by interpreter.
+     * This may be very useful when hooking a method that is inlined into caller.
+     * Note that in that case, you should decompile the caller rather than the callee.
+     * @param method The method you want to decompile.
+     * @param disableJit {@code true} if you want to prevent the method gets JIT compiled again
+     * @return {@code true} If successfully decompiled this method, {@code false} otherwise.
+     */
     public static boolean decompile(Member method, boolean disableJit) {
         int modifiers = method.getModifiers();
         Class<?> declaring = method.getDeclaringClass();
@@ -429,6 +537,10 @@ public final class Pine {
         return decompile0(method, disableJit);
     }
 
+    /**
+     * Prevent any JIT inlining in the current process. DOES NOT WORK FOR NOW.
+     * @return {@code true} if successfully disabled jit inlining, {@code false} otherwise.
+     */
     public static boolean disableJitInline() {
         if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
             // No JIT.
@@ -438,6 +550,10 @@ public final class Pine {
         return disableJitInline0();
     }
 
+    /**
+     * Set whether we can manually JIT compile a method.
+     * @param allowed {@code true} if allowed, {@code false} otherwise.
+     */
     public static void setJitCompilationAllowed(boolean allowed) {
         if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
             // No JIT.
@@ -447,12 +563,23 @@ public final class Pine {
         setJitCompilationAllowed0(allowed);
     }
 
+    /**
+     * Prevent art recording our method call profile. This can prevent methods being AOT-compiled,
+     * so can avoid some hook invalidation caused by optimization, but will cause performance problems.
+     * @return {@code true} if we successfully disabled profile saver, {@code false} otherwise.
+     */
     public static boolean disableProfileSaver() {
         if (PineConfig.sdkLevel < Build.VERSION_CODES.N) return false;
         ensureInitialized();
         return disableProfileSaver0();
     }
 
+    /**
+     * Set whether the current process is debuggable, like {@code PineConfig#debuggable} but allows
+     * you set the value after Pine library is initialized.
+     * @param debuggable whether the current process is debuggable.
+     * @see PineConfig#debuggable
+     */
     public static void setDebuggable(boolean debuggable) {
         if (!initialized) {
             synchronized (Pine.class) {
@@ -468,6 +595,13 @@ public final class Pine {
         setDebuggable0(debuggable);
     }
 
+    /**
+     * Disable the hidden api restriction policy in the current process.
+     * @param application whether the restriction policy for application domain should be disabled
+     * @param platform whether the restriction policy for platform domain should be disabled
+     * @see PineConfig#disableHiddenApiPolicy
+     * @see PineConfig#disableHiddenApiPolicyForPlatformDomain
+     */
     public static void disableHiddenApiPolicy(boolean application, boolean platform) {
         if (initialized) {
             disableHiddenApiPolicy0(application, platform);
@@ -480,6 +614,8 @@ public final class Pine {
 
     public static Object handleCall(HookRecord hookRecord, Object thisObject, Object[] args)
             throws Throwable {
+        // WARNING: DO NOT print thisObject or args, else the toString() method will be called on it
+        // At this time the object may not "ready"
         if (PineConfig.debug)
             /*Log.d(TAG, "handleCall: target=" + hookRecord.target + " thisObject=" +
                     thisObject + " args=" + Arrays.toString(args));*/
@@ -550,12 +686,22 @@ public final class Pine {
             return callFrame.getResult();
     }
 
+    /**
+     * Print a log with "Pine" tag if {@code PineConfig#debug} is set, or do nothing.
+     * @param message The message you want print.
+     */
     public static void log(String message) {
         if (PineConfig.debug) {
             Log.i(TAG, message);
         }
     }
 
+    /**
+     * Print a log with "Pine" tag if {@code PineConfig#debug} is set, or do nothing.
+     * @param fmt The message format you want print.
+     * @param args The args used to format {@code format}.
+     * @see String#format(String, Object...)
+     */
     public static void log(String fmt, Object... args) {
         if (PineConfig.debug) {
             Log.i(TAG, String.format(fmt, args));
@@ -605,28 +751,70 @@ public final class Pine {
 
     public static native long cloneExtras(long origin);
 
+    /**
+     * Interface definition for a callback to be invoked when a method is hooked.
+     */
     public interface HookListener {
+        /**
+         * Invoked before a method hooking.
+         * @param method The method that will be hooked
+         * @param callback The hook that will be registered
+         */
         void beforeHook(Member method, MethodHook callback);
+
+        /**
+         * Invoke after a method hooking.
+         * @param method The hooked method
+         * @param unhook The registered hook
+         */
         void afterHook(Member method, MethodHook.Unhook unhook);
     }
 
+    /**
+     * Interface definition for an implementation to be invoked when load our native library (libpine.so)
+     */
     public interface LibLoader {
+        /**
+         * Will be invoked when our native library (libpine.so) needs to be loaded.
+         */
         void loadLib();
     }
 
+    /**
+     * Enum definition for how to hook method.
+     * @see Pine#setHookMode(int)
+     */
     public interface HookMode {
+        /**
+         * AUTO: Let Pine itself to decide how to hook. The default value.
+         */
         int AUTO = 0;
+
+        /**
+         * INLINE: Use inline hook (overwrite the first few instructions to hook) first.
+         * If the method cannot be hooked in this mode, fallback to {@code REPLACEMENT}.
+         */
         int INLINE = 1;
+
+        /**
+         * REPLACEMENT: Always change entry point of the method to hook it.
+         */
         int REPLACEMENT = 2;
     }
 
+    /**
+     * Internal API. Implement the hook logic by implementing this interface.
+     * @see Pine#setHookHandler(HookHandler)
+     */
     public interface HookHandler {
         MethodHook.Unhook handleHook(HookRecord hookRecord, MethodHook hook, int modifiers,
                                      boolean newMethod, boolean canInitDeclaringClass);
         void handleUnhook(HookRecord hookRecord, MethodHook hook);
     }
 
-    /** Internal API */
+    /**
+     * Internal API. Record hook info about a method.
+     */
     public static final class HookRecord {
         public final Member target;
         public final long artMethod;
@@ -662,9 +850,25 @@ public final class Pine {
         }
     }
 
+    /**
+     * A Holder that holds the method, "this" object, arguments, result or exception of a method call.
+     */
     public static class CallFrame {
+        /**
+         * The calling method.
+         */
         public final Member method;
+
+        /**
+         * The "this" object of this call, {@code null} if executing a static method.
+         * Change it in {@code beforeCall} to set new object as "this" when calling original method.
+         */
         public Object thisObject;
+
+        /**
+         * The arguments passed to the method in this call. Will never be null.
+         * Change it or its value in {@code beforeCall} to change arguments when calling original method.
+         */
         public Object[] args;
         private Object result;
         private Throwable throwable;
@@ -678,16 +882,30 @@ public final class Pine {
             this.args = args;
         }
 
+        /**
+         * Get the result that will be returned in this method call.
+         * @return The result that will be returned in this method call
+         */
         public Object getResult() {
             return result;
         }
 
+        /**
+         * Set a result that will be returned in this method call.
+         * If you call it {@code beforeCall}, the original method call will be prevented, and next
+         * hooks will not be called.
+         * @param result The return value you want to set.
+         */
         public void setResult(Object result) {
             this.result = result;
             this.throwable = null;
             this.returnEarly = true;
         }
 
+        /**
+         * Like {@link CallFrame#setResult(Object)} but only set the return value if no exception will be thrown.
+         * @param result The return value you want to set.
+         */
         public void setResultIfNoException(Object result) {
             if (this.throwable == null) {
                 this.result = result;
@@ -695,36 +913,76 @@ public final class Pine {
             }
         }
 
+        /**
+         * Get the exception that will be thrown in this method call.
+         * @return The exception that will be thrown in this method call.
+         */
         public Throwable getThrowable() {
             return throwable;
         }
 
+        /**
+         * Return whether an exception will be thrown as the result of this method call.
+         * @return {@code true} If there is an exception will be thrown, {@code false} otherwise.
+         */
         public boolean hasThrowable() {
             return throwable != null;
         }
 
+        /**
+         * Set the exception that will be thrown in this method call.
+         * If you call it {@code beforeCall}, the original method call will be prevented, and next
+         * hooks will not be called.
+         * @param throwable The exception you want to throw.
+         */
         public void setThrowable(Throwable throwable) {
             this.throwable = throwable;
             this.result = null;
             this.returnEarly = true;
         }
 
+        /**
+         * Like {@link CallFrame#getResult()} but throwing an exception if there is an exception set.
+         * @return The result of this method call
+         * @throws Throwable The exception happened in this method call
+         */
         public Object getResultOrThrowable() throws Throwable {
             if (throwable != null)
                 throw throwable;
             return result;
         }
 
+        /**
+         * Reset any previous result or exception, and allows the original method to be executed.
+         */
         public void resetResult() {
             this.result = null;
             this.throwable = null;
             this.returnEarly = false;
         }
 
+        /**
+         * Invoke the original implementation of the method with current {@code thisObject} and {@code args}.
+         * @return The return value of this method.
+         * @throws InvocationTargetException If the original method throws an exception.
+         * @throws IllegalAccessException Should never happen
+         * @see #invokeOriginalMethod(Object, Object...)
+         * @see Pine#invokeOriginalMethod(Member, Object, Object...)
+         */
         public Object invokeOriginalMethod() throws InvocationTargetException, IllegalAccessException {
             return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
         }
 
+        /**
+         * Like {@link #invokeOriginalMethod()} but use the passed {@code thisObject} and {@code args}.
+         * @param thisObject The "this" object of this method call.
+         * @param args The arguments of this method call.
+         * @return The return value of this method.
+         * @throws InvocationTargetException If the original method throws an exception.
+         * @throws IllegalAccessException Should never happen
+         * @see #invokeOriginalMethod()
+         * @see #invokeOriginalMethod(Member, Object, Object...)
+         */
         public Object invokeOriginalMethod(Object thisObject, Object... args) throws InvocationTargetException, IllegalAccessException {
             return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
         }
