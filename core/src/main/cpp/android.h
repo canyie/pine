@@ -107,10 +107,13 @@ namespace pine {
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
         static void InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle);
-        static void InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle);
+        static void InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle, bool has_small_irt);
         static void InitJitCodeCache(void* runtime, size_t java_vm_offset, const ElfImg* handle);
 
-        static size_t OffsetOfJavaVm() {
+        static size_t OffsetOfJavaVm(bool has_small_irt) {
+            if (has_small_irt) {
+                return Is64Bit() ? 528 : 0 /* TODO: Calculate offset on 32-bit. Currently force fallback to search memory. */;
+            }
             switch (version) {
                 case kSL:
                 case kS:

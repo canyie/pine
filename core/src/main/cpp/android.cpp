@@ -187,7 +187,15 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
         LOGE("Unable to retrieve Runtime.");
         return;
     }
-    size_t jvm_offset = OffsetOfJavaVm();
+
+    // If SmallIrtAllocator symbols can be found, then the ROM has merged commit "Initially allocate smaller local IRT"
+    // This commit added a pointer member between `class_linker_` and `java_vm_`. Need to calibrate offset here.
+    // https://android.googlesource.com/platform/art/+/4dcac3629ea5925e47b522073f3c49420e998911
+    // https://github.com/crdroidandroid/android_art/commit/aa7999027fa830d0419c9518ab56ceb7fcf6f7f1
+    bool has_smaller_irt = handle->GetSymbolAddress(
+            "_ZN3art17SmallIrtAllocator10DeallocateEPNS_8IrtEntryE", false) != nullptr;
+
+    size_t jvm_offset = OffsetOfJavaVm(has_smaller_irt);
     auto val = jvm_offset
             ? reinterpret_cast<std::unique_ptr<JavaVM>*>(reinterpret_cast<uintptr_t>(runtime) + jvm_offset)->get()
             : nullptr;
@@ -203,11 +211,11 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
         jvm_offset = offset;
         LOGW("Found JavaVM in Runtime at %zu", jvm_offset);
     }
-    InitClassLinker(runtime, jvm_offset, handle);
+    InitClassLinker(runtime, jvm_offset, handle, has_smaller_irt);
     InitJitCodeCache(runtime, jvm_offset, handle);
 }
 
-void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle) {
+void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle, bool has_small_irt) {
     // ClassStatus::kVisiblyInitialized is not implemented in official Android Q
     // but some weird ROMs cherry-pick this commit to these Q ROMs
     // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
@@ -220,7 +228,9 @@ void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg
         return;
     }
 
-    const size_t kDifference = UNLIKELY(version == kQ)
+    const size_t kDifference = UNLIKELY(has_small_irt)
+            ? sizeof(std::unique_ptr<void>) + sizeof(void*) * 3
+            : UNLIKELY(version == kQ)
             ? sizeof(void*) * 2
             : sizeof(std::unique_ptr<void>) + sizeof(void*) * 2;
 
