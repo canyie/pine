@@ -120,8 +120,8 @@ HOOK_ENTRY(FixupStaticTrampolines, void, void* thiz, void* cls) {
     MaybeCallClassInitMonitor(cls);
 }
 
-HOOK_ENTRY(FixupStaticTrampolinesWithThread, void, void* thiz, void* cls) {
-    backup_FixupStaticTrampolines(thiz, cls);
+HOOK_ENTRY(FixupStaticTrampolinesWithThread, void, void* thiz, void* self, void* cls) {
+    backup_FixupStaticTrampolinesWithThread(thiz, self, cls);
     MaybeCallClassInitMonitor(cls);
 }
 
