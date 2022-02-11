@@ -231,6 +231,7 @@ namespace pine::art {
     private:
         static int32_t GetDefaultAccessFlagsOffset() {
             switch (Android::version) {
+                case Android::kT :
                 case Android::kSL :
                 case Android::kS :
                 case Android::kR :
@@ -255,6 +256,7 @@ namespace pine::art {
 
         static int32_t GetDefaultEntryPointFromJniOffset() {
             switch (Android::version) {
+                case Android::kT :
                 case Android::kSL :
                 case Android::kS :
                     return 16;
@@ -282,6 +284,7 @@ namespace pine::art {
 
         static int32_t GetDefaultEntryPointFromQuickCompiledCodeOffset() {
             switch (Android::version) {
+                case Android::kT :
                 case Android::kSL :
                 case Android::kS :
                     return 24;

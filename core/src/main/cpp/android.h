@@ -104,6 +104,7 @@ namespace pine {
         static constexpr int kR = 30;
         static constexpr int kS = 31;
         static constexpr int kSL = 32;
+        static constexpr int kT = 33;
     private:
         static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
         static void InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle);
@@ -115,6 +116,7 @@ namespace pine {
                 return Is64Bit() ? 528 : 0 /* TODO: Calculate offset on 32-bit. Currently force fallback to search memory. */;
             }
             switch (version) {
+                case kT:
                 case kSL:
                 case kS:
                 case kR:

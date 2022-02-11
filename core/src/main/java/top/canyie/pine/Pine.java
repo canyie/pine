@@ -14,6 +14,7 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -78,9 +79,20 @@ public final class Pine {
      * Check whether Pine library is initialized.
      * @return {@code true} If Pine is initialized, {@code false} otherwise.
      */
-
     public static boolean isInitialized() {
         return initialized;
+    }
+
+    // https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:core/core/src/main/java/androidx/core/os/BuildCompat.java;l=49;drc=f8ab4c3030c3fbadca32a9593c522c89a9f2cadf
+    private static boolean isAtLeastPreReleaseCodename(String codename) {
+        final String buildCodename = Build.VERSION.CODENAME.toUpperCase(Locale.ROOT);
+
+        // Special case "REL", which means the build is not a pre-release build.
+        if ("REL".equals(buildCodename)) {
+            return false;
+        }
+
+        return buildCodename.compareTo(codename.toUpperCase(Locale.ROOT)) >= 0;
     }
 
     @SuppressLint("ObsoleteSdkInt") private static void initialize() {
@@ -89,8 +101,11 @@ public final class Pine {
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
         else if (sdkLevel > Build.VERSION_CODES.R) {
             Log.w(TAG, "Android version too high, not tested now...");
-            if (sdkLevel == Build.VERSION_CODES.S && Build.VERSION.PREVIEW_SDK_INT > 0) {
-                // Android SL Preview
+            if (sdkLevel >= Build.VERSION_CODES.S_V2 && isAtLeastPreReleaseCodename("Tiramisu")) {
+                // Android 13 (Tiramisu) Preview
+                sdkLevel = Build.VERSION_CODES.S_V2 + 1;
+            } else if (sdkLevel == Build.VERSION_CODES.S && isAtLeastPreReleaseCodename("Sv2")) {
+                // Android 12.1 (SL) Preview
                 sdkLevel = Build.VERSION_CODES.S_V2;
             }
         }
