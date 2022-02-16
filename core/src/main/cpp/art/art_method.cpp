@@ -253,10 +253,14 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
         // entry_point_from_compiled_code_ (may references jit compiled code)
         SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
 
-        // For non-native and non-proxy methods, the entry_point_from_jni_ member is used to save
-        // ProfilingInfo, and the ProfilingInfo may saved original compiled code entry, the interpreter
+        // Before Android S, for non-native and non-proxy methods, the entry_point_from_jni_ member
+        // is used to save ProfilingInfo, which may saved original compiled code entry, the interpreter
         // will jump directly to the saved_code_entry_ for execution. Clear entry_point_from_jni_ to avoid it.
-        entry_point_from_jni_.Set(this, nullptr);
+        // Don't do this on Android S(12)+ since the `data_` member is now used for save CodeItem* in Android 12
+        // https://cs.android.com/android/_/android/platform/art/+/095dc4611b8001861f8d0e621f9df704a933754a
+        // https://cs.android.com/android/_/android/platform/art/+/4717175e40a19e79af904dfb7b7dd13f046debd7
+
+        if (Android::version < Android::kS) entry_point_from_jni_.Set(this, nullptr);
     } else {
         SetEntryPointFromCompiledCode(entry);
 
