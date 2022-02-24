@@ -115,6 +115,11 @@ HOOK_ENTRY(ShouldUseInterpreterEntrypoint, bool, void* method, const void* quick
     return backup_ShouldUseInterpreterEntrypoint(method, quick_code);
 }
 
+HOOK_ENTRY(ShouldStayInSwitchInterpreter, bool, void* method) {
+    if (IsMethodHooked(method, false)) return false;
+    return backup_ShouldStayInSwitchInterpreter(method);
+}
+
 HOOK_ENTRY(FixupStaticTrampolines, void, void* thiz, void* cls) {
     backup_FixupStaticTrampolines(thiz, cls);
     MaybeCallClassInitMonitor(cls);
@@ -181,7 +186,11 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 
      HOOK_SYMBOL(ShouldUseInterpreterEntrypoint, "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
      if (!hooked) {
-         LOGE("Failed to hook ShouldUseInterpreterEntrypoint. Hook may not work.");
+         // Android Tiramisu?
+         HOOK_SYMBOL(ShouldStayInSwitchInterpreter, "_ZN3art11interpreter29ShouldStayInSwitchInterpreterEPNS_9ArtMethodE");
+     }
+     if (!hooked) {
+         LOGE("Failed to hook ShouldUseInterpreterEntrypoint/ShouldStayInSwitchInterpreter. Hook may not work.");
      }
      hooked = false;
 
