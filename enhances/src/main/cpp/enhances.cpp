@@ -12,7 +12,7 @@
 #include <android/log.h>
 #include <bits/sysconf.h>
 #include <sys/mman.h>
-#include "external/dobby/dobby.h"
+#include <dobby.h>
 
 #define LOG_TAG "PineEnhances"
 #define EXPORT JNIEXPORT extern "C"

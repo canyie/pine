@@ -43,12 +43,13 @@ android {
     }
 
     buildFeatures {
-        // prefab true
+        prefab true
     }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "io.github.vvb2060.ndk:dobby:1.2"
     // Dobby requires the c++ exception support, so we cannot use self-compiled libcxx here.
     //implementation 'dev.rikka.ndk.thirdparty:cxx:1.1.0'
     compileOnly project(':core')
