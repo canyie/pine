@@ -59,6 +59,9 @@ public final class Pine {
 
     private static HookListener sHookListener;
 
+    /** Internal API, used by enhances library. DO NOT USE IT. */
+    public static long openElf, findElfSymbol, closeElf;
+
     private Pine() {
         throw new RuntimeException("Use static methods");
     }

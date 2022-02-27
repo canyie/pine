@@ -35,6 +35,8 @@ static std::mutex cared_classes_mutex_;
 static std::shared_mutex hooked_methods_mutex_;
 static bool care_no_class_def_ = false;
 
+static void* (*FindElfSymbol)(void*, const char*, bool);
+
 class ScopedLock {
 public:
     inline ScopedLock(std::mutex& mutex) : mLock(mutex)  { mLock.lock(); }
@@ -78,7 +80,7 @@ bool IsClassCared(void* ptr) {
 
 bool IsMethodHooked(void* method, bool exact) {
     std::shared_lock<std::shared_mutex> lk(hooked_methods_mutex_);
-    std::unordered_map<void*, bool>::iterator i = hooked_methods_.find(method);
+    auto i = hooked_methods_.find(method);
     if (i == hooked_methods_.end()) return false;
     if (exact) return i->second;
     return true;
@@ -100,8 +102,8 @@ static bool HookFunc(void* target, void* replace, void** backup) {
     return DobbyHook(target, replace, backup) == RS_SUCCESS;
 }
 
-static bool HookSymbol(const char* image, const char* symbol, void* replace, void** backup) {
-    void* target = DobbySymbolResolver(image, symbol);
+static bool HookSymbol(void* handle, const char* symbol, void* replace, void** backup) {
+    void* target = FindElfSymbol(handle, symbol, true);
     if (!target) return false;
     return HookFunc(target, replace, backup);
 }
@@ -160,7 +162,8 @@ void PineEnhances_recordMethodHooked(JNIEnv*, jclass, jlong method, jboolean exa
     hooked_methods_[reinterpret_cast<void*>(method)] = exact == JNI_TRUE;
 }
 
-jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jint sdk_level) {
+jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jint sdk_level,
+                                           jlong openElf, jlong findElfSymbol, jlong closeElf) {
      onClassInit_ = env->GetStaticMethodID(PineEnhances, "onClassInit", "(J)V");
      if (!onClassInit_) {
          LOGE("Unable to find onClassInit");
@@ -171,10 +174,14 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          LOGE("Unable to make new global ref");
          return JNI_FALSE;
      }
-     const char* image_name = "libart.so";
+     auto OpenElf = reinterpret_cast<void* (*)(const char*)>(openElf);
+     FindElfSymbol = reinterpret_cast<void* (*)(void*, const char*, bool)>(findElfSymbol);
+     auto CloseElf = reinterpret_cast<void (*)(void*)>(closeElf);
 
-     GetClassDef = reinterpret_cast<void* (*)(void*)>(DobbySymbolResolver(image_name,
-             "_ZN3art6mirror5Class11GetClassDefEv"));
+     void* handle = OpenElf("libart.so");
+
+     GetClassDef = reinterpret_cast<void* (*)(void*)>(FindElfSymbol(handle,
+             "_ZN3art6mirror5Class11GetClassDefEv", true));
      if (!GetClassDef) {
          LOGE("Cannot find symbol art::Class::GetClassDef");
          return JNI_FALSE;
@@ -182,7 +189,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 
      bool hooked = false;
 #define HOOK_FUNC(name) hooked |= HookFunc(name, (void*) replace_##name , (void**) &backup_##name)
-#define HOOK_SYMBOL(name, symbol) hooked |= HookSymbol(image_name, symbol, (void*) replace_##name , (void**) &backup_##name )
+#define HOOK_SYMBOL(name, symbol) hooked |= HookSymbol(handle, symbol, (void*) replace_##name , (void**) &backup_##name )
 
      HOOK_SYMBOL(ShouldUseInterpreterEntrypoint, "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
      if (!hooked) {
@@ -198,7 +205,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          // Note: kVisiblyInitialized is not implemented in Android Q,
          // but we found some ROMs "indicates that is Q", but uses R's art (has "visibly initialized" state)
          // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
-         void* MarkClassInitialized = DobbySymbolResolver("libart.so", "_ZN3art11ClassLinker20MarkClassInitializedEPNS_6ThreadENS_6HandleINS_6mirror5ClassEEE");
+         void* MarkClassInitialized = FindElfSymbol(handle, "_ZN3art11ClassLinker20MarkClassInitializedEPNS_6ThreadENS_6HandleINS_6mirror5ClassEEE", sdk_level >= __ANDROID_API_R__);
          if (MarkClassInitialized) {
              HOOK_FUNC(MarkClassInitialized);
              HOOK_SYMBOL(FixupStaticTrampolinesWithThread, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6ThreadENS_6ObjPtrINS_6mirror5ClassEEE");
@@ -212,13 +219,14 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
              hooked = orig_hooked;
          }
      }
-    HOOK_SYMBOL(FixupStaticTrampolines,
-                "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
+     HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
      if (!hooked && sdk_level == __ANDROID_API_N__) {
          // huawei lon-al00 android 7.0 api level 24
          HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6mirror5ClassE");
      }
 #undef HOOK_SYMBOL
+
+     CloseElf(handle);
 
      if (!hooked) {
          LOGE("Cannot hook MarkClassInitialized or FixupStaticTrampolines");
@@ -228,7 +236,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 }
 
  JNINativeMethod JNI_METHODS[] = {
-         {"initClassInitMonitor", "(I)Z", (void*) PineEnhances_initClassInitMonitor},
+         {"initClassInitMonitor", "(IJJJ)Z", (void*) PineEnhances_initClassInitMonitor},
          {"careClassInit", "(J)V", (void*) PineEnhances_careClassInit},
          {"recordMethodHooked", "(JZ)V", (void*) PineEnhances_recordMethodHooked}
 };

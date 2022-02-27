@@ -36,6 +36,37 @@ bool PineConfig::debuggable = false;
 bool PineConfig::anti_checks = false;
 bool PineConfig::jit_compilation_allowed = true;
 
+EXPORT_C void PineSetAndroidVersion(int version) {
+    Android::version = version;
+}
+
+EXPORT_C void* PineOpenElf(const char* elf) {
+    return new ElfImg(elf);
+}
+
+EXPORT_C void PineCloseElf(void* handle) {
+    delete static_cast<ElfImg*>(handle);
+}
+
+EXPORT_C void* PineGetElfSymbolAddress(void* handle, const char* symbol, bool warn_if_missing) {
+    return static_cast<ElfImg*>(handle)->GetSymbolAddress(symbol, warn_if_missing);
+}
+
+EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* symbol, void* replace) {
+    ElfImg handle(elf);
+    void* addr = handle.GetSymbolAddress(symbol);
+    if (UNLIKELY(!addr)) return false;
+    return TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(addr, replace);
+}
+
+EXPORT_C void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {
+    TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(target, replace);
+}
+
+EXPORT_C void PineFillWithNop(void* target, size_t size) {
+    TrampolineInstaller::GetOrInitDefault()->FillWithNop(target, size);
+}
+
 void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, jboolean debuggable,
         jboolean antiChecks, jboolean disableHiddenApiPolicy, jboolean disableHiddenApiPolicyForPlatformDomain) {
     LOGI("Pine native init...");
@@ -95,7 +126,15 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, j
         }
     }
 
-    env->SetStaticIntField(Pine, env->GetStaticFieldID(Pine, "arch", "I"), kCurrentArch);
+#define SET_JAVA_VALUE(name, sig, value) \
+if (auto field = env->GetStaticFieldID(Pine, (name), (sig)); (sig)[0] == 'I') env->SetStaticIntField(Pine, field, (value)); \
+else env->SetStaticLongField(Pine, field, (value));
+
+    SET_JAVA_VALUE("arch", "I", kCurrentArch);
+    SET_JAVA_VALUE("openElf", "J", reinterpret_cast<jlong>(PineOpenElf));
+    SET_JAVA_VALUE("findElfSymbol", "J", reinterpret_cast<jlong>(PineGetElfSymbolAddress));
+    SET_JAVA_VALUE("closeElf", "J", reinterpret_cast<jlong>(PineCloseElf));
+#undef SET_JAVA_VALUE
 }
 
 jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject javaTarget,
@@ -450,35 +489,4 @@ static const JNINativeMethod gMethods[] = {
 
 bool register_Pine(JNIEnv* env, jclass Pine) {
     return LIKELY(env->RegisterNatives(Pine, gMethods, NELEM(gMethods)) == JNI_OK);
-}
-
-EXPORT_C void PineSetAndroidVersion(int version) {
-    Android::version = version;
-}
-
-EXPORT_C void* PineOpenElf(const char* elf) {
-    return new ElfImg(elf);
-}
-
-EXPORT_C void PineCloseElf(void* handle) {
-    delete static_cast<ElfImg*>(handle);
-}
-
-EXPORT_C void* PineGetElfSymbolAddress(void* handle, const char* symbol) {
-    return static_cast<ElfImg*>(handle)->GetSymbolAddress(symbol);
-}
-
-EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* symbol, void* replace) {
-    ElfImg handle(elf);
-    void* addr = handle.GetSymbolAddress(symbol);
-    if (UNLIKELY(!addr)) return false;
-    return TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(addr, replace);
-}
-
-EXPORT_C void PineNativeInlineHookFuncNoBackup(void* target, void* replace) {
-    TrampolineInstaller::GetOrInitDefault()->NativeHookNoBackup(target, replace);
-}
-
-EXPORT_C void PineFillWithNop(void* target, size_t size) {
-    TrampolineInstaller::GetOrInitDefault()->FillWithNop(target, size);
 }

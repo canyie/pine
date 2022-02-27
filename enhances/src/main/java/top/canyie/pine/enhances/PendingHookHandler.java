@@ -21,6 +21,7 @@ import static top.canyie.pine.enhances.PineEnhances.recordMethodHooked;
 /**
  * @author canyie
  */
+@SuppressLint("SoonBlockedPrivateApi")
 public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Callback {
     private static volatile PendingHookHandler instance;
     private static Field status;

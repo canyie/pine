@@ -12,7 +12,7 @@ import top.canyie.pine.utils.Primitives;
 public final class PineEnhances {
     public static final String TAG = "PineEnhances";
     /**
-     * A function object that will be invoked when loading our native library (libpine-enhances.so)
+     * A function object that will be invoked to load our native library (libpine-enhances.so)
      * @see Pine.LibLoader
      */
     public static Pine.LibLoader libLoader = new Pine.LibLoader() {
@@ -72,7 +72,7 @@ public final class PineEnhances {
         }
     }
 
-    static native boolean initClassInitMonitor(int sdkLevel);
+    static native boolean initClassInitMonitor(int sdkLevel, long openElf, long findElfSymbol, long closeElf);
     static native void careClassInit(long ptr);
     public static native void recordMethodHooked(long artMethod, boolean exact);
 }

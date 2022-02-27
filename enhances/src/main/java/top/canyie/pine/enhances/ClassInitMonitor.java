@@ -13,7 +13,8 @@ public class ClassInitMonitor {
 
     static {
         try {
-            canWork = PineEnhances.initClassInitMonitor(PineConfig.sdkLevel);
+            Pine.ensureInitialized();
+            canWork = PineEnhances.initClassInitMonitor(PineConfig.sdkLevel, Pine.openElf, Pine.findElfSymbol, Pine.closeElf);
         } catch (Throwable e) {
             PineEnhances.logE("Error in initClassInitMonitor", e);
         }
