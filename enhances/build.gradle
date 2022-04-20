@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -40,6 +42,20 @@ android {
         }
     }
 
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/**'
+            excludes += '/*.properties'
+        }
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+
     buildFeatures {
         prefab true
     }
@@ -52,17 +68,29 @@ dependencies {
     compileOnly project(':core')
 }
 
-/*
-apply plugin: 'com.novoda.bintray-release'
-
-publish {
-    userOrg = rootProject.userOrg
-    repoName = rootProject.repoName
-    groupId = rootProject.groupId
-    artifactId = 'enhances'
-    publishVersion = '0.0.1'
-    desc = 'pine hook enhances library'
-    licences = rootProject.licences
-    website = rootProject.website
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            group rootProject.groupId
+            artifactId 'enhances'
+            version '0.0.2'
+            // the components are created only during the afterEvaluate phase
+            afterEvaluate {
+                from components.release
+            }
+            pom {
+                name = rootProject.repoName
+                description = 'pine hook enhances library'
+                url = rootProject.website
+                licenses rootProject.licenses
+                developers rootProject.developers
+                scm rootProject.scm
+            }
+        }
+    }
+    repositories rootProject.uploadRepositories
 }
- */
+
+signing {
+    sign publishing.publications.mavenJava
+}

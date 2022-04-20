@@ -1,23 +1,16 @@
-# Pine [![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg)](https://bintray.com/canyie/pine/core/_latestVersion) [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE_CN)
+# Pine [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE_CN)
 ## 简介
 Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook框架，它可以拦截本进程内几乎所有的java方法调用。
 
-目前它支持Android 4.4（只支持ART）~ **11.0** 与 thumb-2/arm64 指令集。
+目前它支持Android 4.4（只支持ART）~ **12.1** 与 thumb-2/arm64 指令集。
 
 关于它的实现原理，可以参考[本文](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/)。
 
 注：在Android 6.0 & 32位架构上，参数解析可能错误；另外在Android 9.0及以上，Pine会关闭系统的隐藏API限制策略。
 
 ## 使用
-JCenter似乎已停止接收新的包，请添加以下行到您的根build.gradle中：
-```groovy
-repositories {
-    maven {
-        url  "https://dl.bintray.com/canyie/pine"
-    }
-}
-```
-Bintray 和 JCenter 即将[停止服务](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/). 我们正在寻找一个替代品，但在这之前，请使用bintray。
+[![Download](https://img.shields.io/maven-central/v/top.canyie.pine/core.svg)](https://repo1.maven.org/maven2/top/canyie/pine/core/)
+
 ### 基础使用
 在 build.gradle 中添加如下依赖：
 ```groovy
@@ -75,7 +68,7 @@ Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
 ```
 
 ### Xposed支持
-[![Download](https://api.bintray.com/packages/canyie/pine/xposed/images/download.svg)](https://bintray.com/canyie/pine/xposed/_latestVersion)
+[![Download](https://img.shields.io/maven-central/v/top.canyie.pine/xposed.svg)](https://repo1.maven.org/maven2/top/canyie/pine/xposed/)
 
 Pine支持以Xposed风格hook方法和加载Xposed模块（注：目前不支持资源hook等）。
 
@@ -117,9 +110,11 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ```
 
 ## 增强功能
+[![Download](https://img.shields.io/maven-central/v/top.canyie.pine/enhances.svg)](https://repo1.maven.org/maven2/top/canyie/pine/enhances/)
+
 借助[Dobby](https://github.com/jmpews/Dobby), 你可以使用一些增强功能:
 ```groovy
-implementation 'top.canyie.pine:enhances:0.0.1'
+implementation 'top.canyie.pine:enhances:<version>'
 ```
 
 - Delay hook (也称为pending hook), hook静态方法无需立刻初始化它所在的类，只需要加入以下代码:

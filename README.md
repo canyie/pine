@@ -1,26 +1,18 @@
-# Pine [![Download](https://api.bintray.com/packages/canyie/pine/core/images/download.svg)](https://bintray.com/canyie/pine/core/_latestVersion) [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
+# Pine [![LICENSE](https://img.shields.io/badge/license-Anti%20996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
 [中文版本](README_cn.md)
 ## Introduction
 Pine is a dynamic java method hook framework on ART runtime, it can intercept almost all java method calls in this process.
 
-Currently it supports Android 4.4(ART only) ~ **11.0** with thumb-2/arm64 architecture.
+Currently it supports Android 4.4(ART only) ~ **12.1** with thumb-2/arm64 architecture.
 
 About its working principle, you can refer to this Chinese [article](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/).
 
 Note: For Android 6.0 and 32-bit mode, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
 ## Usage
-JCenter seems to have stopped receiving new packages. Please add the following line to your root build.gradle:
-```groovy
-repositories {
-    maven {
-        url  "https://dl.bintray.com/canyie/pine"
-    }
-}
-```
-Bintray and JCenter will be [sunset](https://jfrog.com/blog/into-the-sunset-bintray-jcenter-gocenter-and-chartcenter/). We are looking for an alternative; but before that, please use bintray.
-
 ### Basic Usage
+[![Download](https://img.shields.io/maven-central/v/top.canyie.pine/core.svg)](https://repo1.maven.org/maven2/top/canyie/pine/core/)
+
 Add dependencies in build.gradle (like this):
 ```groovy
 dependencies {
@@ -72,7 +64,7 @@ Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
 ```
 
 ### Xposed Support
-[![Download](https://api.bintray.com/packages/canyie/pine/xposed/images/download.svg)](https://bintray.com/canyie/pine/xposed/_latestVersion)
+[![Download](https://img.shields.io/maven-central/v/top.canyie.pine/xposed.svg)](https://repo1.maven.org/maven2/top/canyie/pine/xposed/)
 
 Pine supports hooking methods in Xposed-style and loading Xposd modules. (Only supports java method hook now.)
 ```groovy
@@ -110,9 +102,11 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ```
 
 ## Enhanced Features
+[![Download](https://img.shields.io/maven-central/v/top.canyie.pine/enhances.svg)](https://repo1.maven.org/maven2/top/canyie/pine/enhances/)
+
 With [Dobby](https://github.com/jmpews/Dobby), you can use some enhancements of Pine:
 ```groovy
-implementation 'top.canyie.pine:enhances:0.0.1'
+implementation 'top.canyie.pine:enhances:<version>'
 ```
 
 - Delay hook (aka pending hook) support, hooking static methods without initialize its declaring class now:

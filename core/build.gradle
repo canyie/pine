@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -36,6 +38,20 @@ android {
         }
     }
 
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/**'
+            excludes += '/*.properties'
+        }
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+
     buildFeatures {
         prefab true
     }
@@ -46,17 +62,29 @@ dependencies {
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
 }
 
-/*
-apply plugin: 'com.novoda.bintray-release'
-
-publish {
-    userOrg = rootProject.userOrg
-    repoName = rootProject.repoName
-    groupId = rootProject.groupId
-    artifactId = 'core'
-    publishVersion = '0.2.5'
-    desc = 'pine hook core library'
-    licences = rootProject.licences
-    website = rootProject.website
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            group rootProject.groupId
+            artifactId 'core'
+            version '0.2.6'
+            // the components are created only during the afterEvaluate phase
+            afterEvaluate {
+                from components.release
+            }
+            pom {
+                name = rootProject.repoName
+                description = 'pine hook core library'
+                url = rootProject.website
+                licenses rootProject.licenses
+                developers rootProject.developers
+                scm rootProject.scm
+            }
+        }
+    }
+    repositories rootProject.uploadRepositories
 }
- */
+
+signing {
+    sign publishing.publications.mavenJava
+}

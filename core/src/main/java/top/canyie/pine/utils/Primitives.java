@@ -27,6 +27,7 @@ import top.canyie.pine.Pine;
         return Pine.currentArtThread0();
     }
 
+    @SuppressLint("SoonBlockedPrivateApi")
     public static void setObjectClass(Object target, Class<?> newClass) {
         if (target.getClass() == newClass) return;
         if (!triedGetShadowKlassField) {
@@ -58,7 +59,7 @@ import top.canyie.pine.Pine;
         if (target.getSuperclass() == newSuperClass) return;
         if (superClassField == null) {
             try {
-                // noinspection JavaReflectionMemberAccess
+                // noinspection SoonBlockedPrivateApi
                 superClassField = Class.class.getDeclaredField("superClass");
                 superClassField.setAccessible(true);
             } catch (NoSuchFieldException e) {
@@ -75,6 +76,7 @@ import top.canyie.pine.Pine;
     public static int getFieldOffset(Field field) throws Exception {
         // 1. try Android-specific field
         try {
+            // noinspection SoonBlockedPrivateApi
             Field offset = Field.class.getDeclaredField("offset");
             offset.setAccessible(true);
             return offset.getInt(field);
@@ -83,7 +85,8 @@ import top.canyie.pine.Pine;
 
         // 2. try Android-specific method
         try {
-            @SuppressLint("DiscouragedPrivateApi") Method getOffset = Field.class.getDeclaredMethod("getOffset");
+            // noinspection DiscouragedPrivateApi
+            Method getOffset = Field.class.getDeclaredMethod("getOffset");
             getOffset.setAccessible(true);
             return (int) getOffset.invoke(field);
         } catch (Exception ignored) {

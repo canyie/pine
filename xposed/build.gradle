@@ -1,4 +1,6 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -25,6 +27,20 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/**'
+            excludes += '/*.properties'
+        }
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 dependencies {
@@ -32,17 +48,29 @@ dependencies {
     compileOnly project(':core')
 }
 
-/*
-apply plugin: 'com.novoda.bintray-release'
-
-publish {
-    userOrg = rootProject.userOrg
-    repoName = rootProject.repoName
-    groupId = rootProject.groupId
-    artifactId = 'xposed'
-    publishVersion = '0.0.8'
-    desc = 'pine hook xposed compat'
-    licences = rootProject.licences
-    website = rootProject.website
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            group rootProject.groupId
+            artifactId 'xposed'
+            version '0.0.9'
+            // the components are created only during the afterEvaluate phase
+            afterEvaluate {
+                from components.release
+            }
+            pom {
+                name = rootProject.repoName
+                description = 'pine hook xposed compat'
+                url = rootProject.website
+                licenses rootProject.licenses
+                developers rootProject.developers
+                scm rootProject.scm
+            }
+        }
+    }
+    repositories rootProject.uploadRepositories
 }
-*/
+
+signing {
+    sign publishing.publications.mavenJava
+}
