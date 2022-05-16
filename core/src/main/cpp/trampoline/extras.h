@@ -26,16 +26,15 @@ namespace pine {
         ~Extras() {
         }
 
-#if defined(__aarch64__) || defined(__arm__) // Not supported spinlock on x86 platform
         void ReleaseLock() {
+#if defined(__aarch64__) || defined(__arm__) // Not supported spinlock on x86 platform
             CHECK(lock_flag == 0, "Unexpected lock_flag %d", lock_flag);
-
             dmb(); // Ensure all previous accesses are observed before the lock is released.
             lock_flag = 1;
             dsb(); // Ensure completion of the store that cleared the lock before sending the event.
             sev(); // Wake up the thread that is waiting for the lock.
-        }
 #endif
+        }
 
         /** Thread lock flag, 1: unlocked, 0: locked. */
         volatile uint32_t lock_flag = 1;

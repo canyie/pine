@@ -11,10 +11,10 @@
 #include "utils/scoped_local_ref.h"
 #include "utils/log.h"
 #include "utils/jni_helper.h"
-#include "trampoline/extras.h"
 #include "utils/memory.h"
 #include "utils/well_known_classes.h"
 #include "trampoline/trampoline_installer.h"
+#include "trampoline/extras.h"
 
 using namespace pine;
 
@@ -396,13 +396,29 @@ void Pine_getArgsX86(JNIEnv* env, jclass, jint javaExtras, jintArray javaArray, 
 }
 #endif
 
-void Pine_updateDeclaringClass(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBackup) {
+void Pine_syncMethodInfo(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBackup) {
     auto origin = art::ArtMethod::FromReflectedMethod(env, javaOrigin);
     auto backup = art::ArtMethod::FromReflectedMethod(env, javaBackup);
-    uint32_t declaring_class = origin->GetDeclaringClass();
-    if (declaring_class != backup->GetDeclaringClass()) {
-        LOGI("The declaring_class of method has moved by gc, update its reference in backup method.");
-        backup->SetDeclaringClass(declaring_class);
+
+    // ArtMethod is actually an instance of java class "java.lang.reflect.ArtMethod" on pre M
+    // declaring_class is a reference field so the runtime itself will update it if moved by GC
+    if (Android::version >= Android::kM) {
+        uint32_t declaring_class = origin->GetDeclaringClass();
+        if (declaring_class != backup->GetDeclaringClass()) {
+            LOGI("GC moved declaring class of method %p, also update in backup %p", origin, backup);
+            backup->SetDeclaringClass(declaring_class);
+        }
+    }
+
+    // JNI method entry may be changed by RegisterNatives or UnregisterNatives
+    // Use backup to check native as we may add kNative to access flags of origin (Android 8.0+ with debuggable mode)
+    if (backup->IsNative()) {
+        void* previous = backup->GetEntryPointFromJni();
+        void* current = origin->GetEntryPointFromJni();
+        if (current != previous) {
+            LOGI("Native entry of method %p was changed, also update in backup %p", origin, backup);
+            backup->SetEntryPointFromJni(current);
+        }
     }
 }
 
@@ -431,7 +447,7 @@ static const struct {
     const char* signature;
 } gFastNativeMethods[] = {
         {"getArtMethod", "(Ljava/lang/reflect/Member;)J"},
-        {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V"},
+        {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V"},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z"},
         {"disableJitInline0", "()Z"},
         {"setJitCompilationAllowed0", "(Z)V"},
@@ -470,7 +486,7 @@ static const JNINativeMethod gMethods[] = {
         {"disableJitInline0", "()Z", (void*) Pine_disableJitInline0},
         {"setJitCompilationAllowed0", "(Z)V", (void*) Pine_setJitCompilationAllowed},
         {"disableProfileSaver0", "()Z", (void*) Pine_disableProfileSaver0},
-        {"updateDeclaringClass", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_updateDeclaringClass},
+        {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_syncMethodInfo},
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},
         {"getAddress0", "(JLjava/lang/Object;)J", (void*) Pine_getAddress0},
         {"setDebuggable0", "(Z)V", (void*) Pine_setDebuggable},

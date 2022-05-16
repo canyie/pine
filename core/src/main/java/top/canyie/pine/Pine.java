@@ -427,21 +427,18 @@ public final class Pine {
     }
 
     static Object callBackupMethod(Member origin, Method backup, Object thisObject, Object[] args) throws InvocationTargetException, IllegalAccessException {
-        if (PineConfig.sdkLevel >= Build.VERSION_CODES.N) {
-            // On Android 7.0+, java.lang.Class object is movable and may cause crash when
-            // invoke backup method, so we update declaring_class when invoke backup method.
-            Class<?> declaring = origin.getDeclaringClass();
-            updateDeclaringClass(origin, backup);
-            // FIXME: GC happens here (you can add Runtime.getRuntime().gc()) will crash backup calling
-            Object result = backup.invoke(thisObject, args);
+        // java.lang.Class object is movable and may cause crash when invoke backup method,
+        // native entry of JNI method may be changed by RegisterNatives and UnregisterNatives,
+        // so we need to update them when invoke backup method.
 
-            // Explicit use declaring_class object to ensure it has reference on stack
-            // and avoid being moved by gc.
-            declaring.getClass();
-            return result;
-        } else {
-            return backup.invoke(thisObject, args);
-        }
+        Class<?> declaring = origin.getDeclaringClass();
+        syncMethodInfo(origin, backup);
+        // FIXME: GC happens here (you can add Runtime.getRuntime().gc() to test) will crash backup calling
+        Object result = backup.invoke(thisObject, args);
+        // Explicit use declaring_class object to ensure it has reference on stack
+        // and avoid being moved by gc. (invalid for now)
+        declaring.getClass();
+        return result;
     }
 
     /**
@@ -763,7 +760,7 @@ public final class Pine {
 
     public static native void getArgsX86(int extras, int[] out, int ebx);
 
-    private static native void updateDeclaringClass(Member origin, Method backup);
+    private static native void syncMethodInfo(Member origin, Method backup);
 
     public static native long currentArtThread0();
 
