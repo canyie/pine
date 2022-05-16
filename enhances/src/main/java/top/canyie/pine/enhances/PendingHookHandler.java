@@ -23,6 +23,10 @@ import static top.canyie.pine.enhances.PineEnhances.recordMethodHooked;
  */
 @SuppressLint("SoonBlockedPrivateApi")
 public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Callback {
+    // Special flag, means "delaying, not yet actually hooked"
+    private static final long DELAYING = 0x0;
+    // Special flag, means "prevents farther entry update, but backup is not available yet".
+    private static final long PREVENT_ENTRY_UPDATE = 0x1;
     private static volatile PendingHookHandler instance;
     private static Field status;
     private Pine.HookHandler realHandler;
@@ -114,7 +118,7 @@ public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Ca
         Member target = hookRecord.target;
         if (hook != null && shouldDelay(target, newMethod, modifiers)) {
             PineEnhances.logD("Delay hook method %s", target);
-            recordMethodHooked(hookRecord.artMethod, false);
+            recordMethodHooked(hookRecord.artMethod, DELAYING);
             Class<?> declaring = hookRecord.target.getDeclaringClass();
             synchronized (pendingMap) {
                 Set<Pine.HookRecord> pendingHooks = pendingMap.get(declaring);
@@ -129,8 +133,10 @@ public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Ca
             return hook.new Unhook(hookRecord);
         }
         PineEnhances.logD("Not delay method %s", target);
-        if (newMethod) recordMethodHooked(hookRecord.artMethod, true);
-        return realHandler.handleHook(hookRecord, hook, modifiers, newMethod, canInitDeclaringClass);
+        if (newMethod) recordMethodHooked(hookRecord.artMethod, PREVENT_ENTRY_UPDATE);
+        MethodHook.Unhook u = realHandler.handleHook(hookRecord, hook, modifiers, newMethod, canInitDeclaringClass);
+        if (newMethod) recordMethodHooked(hookRecord.artMethod, Pine.getArtMethod(hookRecord.backup));
+        return u;
     }
 
     @Override public void handleUnhook(Pine.HookRecord hookRecord, MethodHook hook) {
@@ -147,8 +153,10 @@ public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Ca
         for (Pine.HookRecord hookRecord : pendingHooks) {
             Member target = hookRecord.target;
             PineEnhances.logD("Flushing pending hooks for method %s", target);
-            recordMethodHooked(hookRecord.artMethod, true);
+            // Place 0x1 to prevent method entry updating
+            recordMethodHooked(hookRecord.artMethod, PREVENT_ENTRY_UPDATE);
             realHandler.handleHook(hookRecord, null, target.getModifiers(), true, false);
+            recordMethodHooked(hookRecord.artMethod, Pine.getArtMethod(hookRecord.backup));
         }
     }
 }

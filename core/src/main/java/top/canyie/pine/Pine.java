@@ -735,7 +735,7 @@ public final class Pine {
 
     private static native void enableFastNative();
 
-    private static native long getArtMethod(Member method);
+    public static native long getArtMethod(Member method);
 
     private static native Method hook0(long thread, Class<?> declaring, Member target, Method bridge,
                                        boolean isInlineHook, boolean jni, boolean proxy);

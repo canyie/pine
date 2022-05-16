@@ -24,23 +24,32 @@
 #define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, __VA_ARGS__)
 #define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 
+// Special flag, means "delaying, not yet actually hooked"
+#define DELAYING (nullptr)
+// Special flag, means "redirects farther entry update, but backup is not available yet".
+#define REDIRECT_ENTRY_UPDATE (reinterpret_cast<void* const>(0x1))
+
 static JavaVM* jvm_;
 static jclass PineEnhances_;
 static jmethodID onClassInit_;
 static void*(*GetClassDef)(void* cls) = nullptr;
 static size_t page_size_ = static_cast<const size_t>(sysconf(_SC_PAGESIZE));
 static std::unordered_set<void*> cared_classes_;
-static std::unordered_map<void*, bool> hooked_methods_;
+static std::unordered_map<void*, void*> hooked_methods_;
+static std::unordered_map<void*, const void*> pending_entries_;
 static std::mutex cared_classes_mutex_;
 static std::shared_mutex hooked_methods_mutex_;
+static std::mutex pending_entries_mutex_;
 static bool care_no_class_def_ = false;
+
+static void* instrumentation_ = nullptr;
 
 static void* (*FindElfSymbol)(void*, const char*, bool);
 
 class ScopedLock {
 public:
-    inline ScopedLock(std::mutex& mutex) : mLock(mutex)  { mLock.lock(); }
-    inline ScopedLock(std::mutex* mutex) : mLock(*mutex) { mLock.lock(); }
+    inline explicit ScopedLock(std::mutex& mutex) : mLock(mutex)  { mLock.lock(); }
+    inline explicit ScopedLock(std::mutex* mutex) : mLock(*mutex) { mLock.lock(); }
     inline ~ScopedLock() { mLock.unlock(); }
 private:
     std::mutex& mLock;
@@ -68,7 +77,7 @@ static bool Unprotect(void* addr) {
     return true;
 }
 
-bool IsClassCared(void* ptr) {
+bool AcquireClassCareFlag(void* ptr) {
     if (ptr == nullptr) return false;
     void* class_def = GetClassDef(ptr);
     if (class_def == nullptr) {
@@ -78,16 +87,24 @@ bool IsClassCared(void* ptr) {
     return cared_classes_.erase(class_def) != 0;
 }
 
-bool IsMethodHooked(void* method, bool exact) {
+bool IsMethodHooked(void* method, bool redirect_entry_update) {
     std::shared_lock<std::shared_mutex> lk(hooked_methods_mutex_);
     auto i = hooked_methods_.find(method);
     if (i == hooked_methods_.end()) return false;
-    if (exact) return i->second;
+    if (redirect_entry_update) return i->second != DELAYING;
     return true;
 }
 
+void* GetMethodBackup(void* method) {
+    std::shared_lock<std::shared_mutex> lk(hooked_methods_mutex_);
+    auto i = hooked_methods_.find(method);
+    if (i == hooked_methods_.end()) return nullptr;
+    auto second = i->second;
+    return second == REDIRECT_ENTRY_UPDATE ? nullptr : second;
+}
+
 void MaybeCallClassInitMonitor(void* ptr) {
-    if (!IsClassCared(ptr)) return;
+    if (!AcquireClassCareFlag(ptr)) return;
     JNIEnv* env = CurrentEnv();
     env->CallStaticVoidMethod(PineEnhances_, onClassInit_, reinterpret_cast<jlong>(ptr));
     if (env->ExceptionCheck()) {
@@ -139,7 +156,18 @@ HOOK_ENTRY(MarkClassInitialized, void*, void* thiz, void* self, uint32_t* cls_pt
 }
 
 HOOK_ENTRY(UpdateMethodsCode, void, void* thiz, void* method, const void* quick_code) {
-    if (IsMethodHooked(method, true)) return;
+    instrumentation_ = thiz;
+    if (IsMethodHooked(method, true)) {
+        auto backup = GetMethodBackup(method);
+        if (backup) {
+            // Redirect entry update to backup
+            method = backup;
+        } else {
+            ScopedLock lk(pending_entries_mutex_);
+            pending_entries_[method] = quick_code;
+            return;
+        }
+    }
     backup_UpdateMethodsCode(thiz, method, quick_code);
 }
 
@@ -157,9 +185,23 @@ void PineEnhances_careClassInit(JNIEnv*, jclass, jlong address) {
     cared_classes_.insert(class_def);
 }
 
-void PineEnhances_recordMethodHooked(JNIEnv*, jclass, jlong method, jboolean exact) {
-    std::unique_lock<std::shared_mutex> lk(hooked_methods_mutex_);
-    hooked_methods_[reinterpret_cast<void*>(method)] = exact == JNI_TRUE;
+void PineEnhances_recordMethodHooked(JNIEnv*, jclass, jlong method, jlong backup) {
+    auto o = reinterpret_cast<void*>(method);
+    auto b = reinterpret_cast<void*>(backup);
+    {
+        std::unique_lock<std::shared_mutex> lk(hooked_methods_mutex_);
+        hooked_methods_[o] = b;
+    }
+    if (!(instrumentation_ && backup_UpdateMethodsCode)) return;
+    const void* saved_entry;
+    {
+        ScopedLock lk(pending_entries_mutex_);
+        auto i = pending_entries_.find(o);
+        if (i == pending_entries_.end()) return;
+        saved_entry = i->second;
+        pending_entries_.erase(i);
+    }
+    backup_UpdateMethodsCode(instrumentation_, b, saved_entry);
 }
 
 jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jint sdk_level,
@@ -238,7 +280,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
  JNINativeMethod JNI_METHODS[] = {
          {"initClassInitMonitor", "(IJJJ)Z", (void*) PineEnhances_initClassInitMonitor},
          {"careClassInit", "(J)V", (void*) PineEnhances_careClassInit},
-         {"recordMethodHooked", "(JZ)V", (void*) PineEnhances_recordMethodHooked}
+         {"recordMethodHooked", "(JJ)V", (void*) PineEnhances_recordMethodHooked}
 };
 
 EXPORT bool init_PineEnhances(JavaVM* jvm, JNIEnv* env, jclass cls) {
