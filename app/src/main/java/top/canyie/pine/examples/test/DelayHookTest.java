@@ -13,6 +13,7 @@ import top.canyie.pine.examples.ExampleApp;
 public class DelayHookTest extends Test {
     private boolean enabled;
     @Override public int run() {
+        int res = IGNORED;
         Context ctx = ExampleApp.getInstance();
         CharSequence alert;
         if (enabled) {
@@ -27,10 +28,11 @@ public class DelayHookTest extends Test {
                 alert = "Enabled delay hook";
             } else {
                 alert = "Delay hook init error";
+                res = FAILED;
             }
         }
         Toast.makeText(ctx, alert, Toast.LENGTH_SHORT).show();
-        return IGNORED;
+        return res;
     }
 
     @Override protected int testImpl() {
