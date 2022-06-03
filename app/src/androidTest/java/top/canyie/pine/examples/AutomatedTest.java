@@ -1,7 +1,7 @@
 package top.canyie.pine.examples;
 
+import android.os.Looper;
 import org.junit.Test;
-
 import top.canyie.pine.examples.test.*;
 
 import static top.canyie.pine.examples.ExampleApp.ALL_TESTS;
@@ -10,8 +10,6 @@ import static top.canyie.pine.examples.ExampleApp.TOAST_TEST;
 import static top.canyie.pine.examples.ExampleApp.TOGGLE_DELAY_HOOK_TEST;
 import static top.canyie.pine.examples.test.Test.*;
 import static org.junit.Assert.*;
-
-import android.os.Looper;
 
 /**
  * @author canyie

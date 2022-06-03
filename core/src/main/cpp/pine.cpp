@@ -382,7 +382,7 @@ void Pine_getArgsX86(JNIEnv* env, jclass, jint javaExtras, jintArray javaArray, 
                 array[2] = ebx;
                 break;
             }
-            uintptr_t esp = reinterpret_cast<uintptr_t>(extras->esp) + 4/*edi*/;
+            uintptr_t esp = reinterpret_cast<uintptr_t>(extras->esp) + 4/*edi*/ + 4 /*return address*/;
 
             // get args from stack
             for (int i = 2; i < length; i++) {
@@ -410,7 +410,7 @@ void Pine_syncMethodInfo(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBa
         }
     }
 
-    // JNI method entry may be changed by RegisterNatives or UnregisterNatives
+    // JNI method entry might be changed by RegisterNatives or UnregisterNatives
     // Use backup to check native as we may add kNative to access flags of origin (Android 8.0+ with debuggable mode)
     if (backup->IsNative()) {
         void* previous = backup->GetEntryPointFromJni();
