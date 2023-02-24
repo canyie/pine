@@ -44,7 +44,7 @@ public final class Pine {
                 hookNewMethod(hookRecord, modifiers, canInitDeclaringClass);
 
             if (hook == null) {
-                // This can only happens when the up handler pass null manually,
+                // This can only happen when the up handler pass null manually,
                 // just return null and let the up to do remaining everything
                 return null;
             }
@@ -102,14 +102,11 @@ public final class Pine {
         int sdkLevel = PineConfig.sdkLevel;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
-        else if (sdkLevel > Build.VERSION_CODES.R) {
+        else if (sdkLevel > Build.VERSION_CODES.S_V2) {
             Log.w(TAG, "Android version too high, not tested now...");
-            if (sdkLevel >= Build.VERSION_CODES.S_V2 && isAtLeastPreReleaseCodename("Tiramisu")) {
-                // Android 13 (Tiramisu) Preview
-                sdkLevel = Build.VERSION_CODES.S_V2 + 1;
-            } else if (sdkLevel == Build.VERSION_CODES.S && isAtLeastPreReleaseCodename("Sv2")) {
-                // Android 12.1 (SL) Preview
-                sdkLevel = Build.VERSION_CODES.S_V2;
+            if (isAtLeastPreReleaseCodename("UpsideDownCake")) {
+                // Android 14 (UpsideDownCake) Preview
+                sdkLevel = Build.VERSION_CODES.TIRAMISU + 1;
             }
         }
 
@@ -190,7 +187,7 @@ public final class Pine {
      * @see HookHandler
      */
     public static void setHookHandler(HookHandler h) {
-        if (h == null) throw new NullPointerException("h == null");
+        if (h == null) throw new NullPointerException("handler == null");
         sHookHandler = h;
     }
 

@@ -8,10 +8,10 @@
 
 #include "elf_img.h"
 
-#include <malloc.h>
 #include <cstring>
-#include <sys/mman.h>
+#include <malloc.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #include "io_wrapper.h"
 #include "log.h"
 #include "macros.h"

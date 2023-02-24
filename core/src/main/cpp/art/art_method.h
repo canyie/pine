@@ -216,7 +216,7 @@ namespace pine::art {
             uint32_t code_size = *reinterpret_cast<uint32_t*>(
                     reinterpret_cast<uintptr_t>(GetCompiledCodeAddr()) - sizeof(uint32_t));
             if (Android::version >= Android::kO) {
-                // On Android 8+, The highest bit is used to signify if the compiled
+                // On Android 8+, the highest bit is used to signify if the compiled
                 // code with the method header has should_deoptimize flag.
                 uint32_t kShouldDeoptimizeMask = 0x80000000;
                 code_size &= ~kShouldDeoptimizeMask;
@@ -231,6 +231,10 @@ namespace pine::art {
     private:
         static int32_t GetDefaultAccessFlagsOffset() {
             switch (Android::version) {
+                default:
+                    LOGW("Unsupported Android API level %d, using Android UpsideDownCake", Android::version);
+                    [[fallthrough]];
+                case Android::kU :
                 case Android::kT :
                 case Android::kSL :
                 case Android::kS :
@@ -248,14 +252,15 @@ namespace pine::art {
                     return 20;
                 case Android::kL :
                     return 56;
-                default:
-                    // Android Kitkat doesn't use this function.
-                    FATAL("Unexpected android version %d", Android::version);
             }
         }
 
         static int32_t GetDefaultEntryPointFromJniOffset() {
             switch (Android::version) {
+                default:
+                    LOGW("Unsupported Android API level %d, using Android UpsideDownCake", Android::version);
+                    [[fallthrough]];
+                case Android::kU :
                 case Android::kT :
                 case Android::kSL :
                 case Android::kS :
@@ -276,14 +281,15 @@ namespace pine::art {
                     return Android::Is64Bit() ? 48 : 40;
                 case Android::kL :
                     return 32;
-                default:
-                    // Android Kitkat doesn't use this function.
-                    FATAL("Unexpected android version %d", Android::version);
             }
         }
 
         static int32_t GetDefaultEntryPointFromQuickCompiledCodeOffset() {
             switch (Android::version) {
+                default:
+                    LOGW("Unsupported Android API level %d, using Android UpsideDownCake", Android::version);
+                    [[fallthrough]];
+                case Android::kU :
                 case Android::kT :
                 case Android::kSL :
                 case Android::kS :
@@ -304,9 +310,6 @@ namespace pine::art {
                     return Android::Is64Bit() ? 56 : 44;
                 case Android::kL :
                     return 40;
-                default:
-                    // Android Kitkat doesn't use this function.
-                    FATAL("Unexpected android version %d", Android::version);
             }
         }
 

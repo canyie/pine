@@ -35,6 +35,7 @@ namespace pine {
 
     private:
         void WriteDirectJump(void* target, void* jump_to) {
+            // FIXME: Unaligned memory access is undefined behavior
             *static_cast<uint8_t*>(target) = 0xE9;
             *reinterpret_cast<int32_t*>(reinterpret_cast<uintptr_t>(target) + 1) = GetJmpOffset(target, jump_to);
         }

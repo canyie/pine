@@ -51,6 +51,6 @@ dependencies {
     implementation project(':enhances')
     implementation 'com.iqiyi.xcrash:xcrash-android-lib:2.4.9'
 
-    androidTestImplementation "androidx.test.ext:junit:1.1.3"
-    androidTestImplementation "androidx.test:runner:1.4.0"
+    androidTestImplementation "androidx.test.ext:junit:1.1.5"
+    androidTestImplementation "androidx.test:runner:1.5.2"
 }
