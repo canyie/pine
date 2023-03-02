@@ -208,29 +208,47 @@ public final class Arm32Entry {
     }
 
     private static Three<int[], int[], float[]> getArgs(Pine.HookRecord hookRecord, int extras, int sp) {
-        // TODO: Cache these values
-        int crLength = hookRecord.isStatic ? 0 : 1/*this*/;
-        int stackLength = crLength;
-        int floatLength = 0, doubleLength = 0;
-        Class<?>[] paramTypes = hookRecord.paramTypes;
-        for (Class<?> paramType : paramTypes) {
-            if (paramType == double.class) {
-                doubleLength++;
-                stackLength++;
-            } else if (paramType == float.class) {
-                floatLength++;
-            } else {
-                if (paramType == long.class) {
-                    if (crLength == 0) crLength++; // first non-fp arg, r1 will be skipped
-                    if (crLength < CR_SIZE) crLength++;
+        int crLength;
+        int stackLength;
+        int fpLength;
+
+        if (hookRecord.paramTypesCache == null) {
+            stackLength = crLength = hookRecord.isStatic ? 0 : 1/*this*/;
+
+            int floatLength = 0, doubleLength = 0;
+            Class<?>[] paramTypes = hookRecord.paramTypes;
+            for (Class<?> paramType : paramTypes) {
+                if (paramType == double.class) {
+                    doubleLength++;
                     stackLength++;
-                    // Fall-through to take of the high part.
+                } else if (paramType == float.class) {
+                    floatLength++;
+                } else {
+                    if (paramType == long.class) {
+                        if (crLength == 0) crLength++; // first non-fp arg, r1 will be skipped
+                        if (crLength < CR_SIZE) crLength++;
+                        stackLength++;
+                        // Fall-through to take of the high part.
+                    }
+                    if (crLength < CR_SIZE) crLength++;
                 }
-                if (crLength < CR_SIZE) crLength++;
+                stackLength++;
             }
-            stackLength++;
+            fpLength = (doubleLength * 2) + floatLength;
+
+            // Expose paramTypesCache after cache initialized to prevent possible race conditions
+            ParamTypesCache cache = new ParamTypesCache();
+            cache.crLength = crLength;
+            cache.stackLength = stackLength;
+            cache.fpLength = fpLength;
+            hookRecord.paramTypesCache = cache;
+        } else {
+            ParamTypesCache cache = (ParamTypesCache) hookRecord.paramTypesCache;
+            crLength = cache.crLength;
+            stackLength = cache.stackLength;
+            fpLength = cache.fpLength;
         }
-        int fpLength = (doubleLength * 2) + floatLength;
+
         float[] fpRegisters = EMPTY_FLOAT_ARRAY;
         if (USE_HARDFP) {
             if (fpLength != 0) {
@@ -244,5 +262,11 @@ public final class Arm32Entry {
         int[] stack = stackLength != 0 ? new int[stackLength] : EMPTY_INT_ARRAY;
         Pine.getArgsArm32(extras, sp, coreRegisters, stack, fpRegisters);
         return new Three<>(coreRegisters, stack, fpRegisters);
+    }
+
+    private static class ParamTypesCache {
+        int crLength;
+        int stackLength;
+        int fpLength;
     }
 }

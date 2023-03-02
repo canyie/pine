@@ -841,6 +841,7 @@ public final class Pine {
         public int paramNumber;
         public Class<?>[] paramTypes;
         private Set<MethodHook> callbacks = new HashSet<>();
+        public volatile Object paramTypesCache;
 
         public HookRecord(Member target, long artMethod) {
             this.target = target;

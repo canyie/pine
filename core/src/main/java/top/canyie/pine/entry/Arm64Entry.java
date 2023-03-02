@@ -161,57 +161,74 @@ public final class Arm64Entry {
 
     private static Three<long[], long[], double[]> getArgs(Pine.HookRecord hookRecord, long extras, long sp,
                                                          long x4, long x5, long x6, long x7) {
-        // TODO: Cache these values
         int crLength = 0;
         int stackLength = 0;
         int fprLength = 0;
         boolean[] typeWides;
 
-        int paramTotal = hookRecord.paramNumber;
-        if (!hookRecord.isStatic) {
-            crLength = 1;
-            stackLength = 1;
-            paramTotal++;
-        }
-        if (paramTotal != 0) {
-            typeWides = new boolean[paramTotal];
+        if (hookRecord.paramTypesCache == null) {
+            int paramTotal = hookRecord.paramNumber;
             if (!hookRecord.isStatic) {
-                typeWides[0] = false; // this object is a reference, always 32-bit
+                crLength = 1;
+                stackLength = 1;
+                paramTotal++;
             }
-            for (int i = 0;i < hookRecord.paramNumber;i++) {
-                Class<?> paramType = hookRecord.paramTypes[i];
-                boolean fp;
-                boolean wide;
-                if (paramType == double.class) {
-                    fp = true;
-                    wide = true;
-                } else if (paramType == float.class) {
-                    fp = true;
-                    wide = false;
-                } else if (paramType == long.class) {
-                    fp = false;
-                    wide = true;
-                } else {
-                    fp = false;
-                    wide = false;
+            if (paramTotal != 0) {
+                typeWides = new boolean[paramTotal];
+                if (!hookRecord.isStatic) {
+                    typeWides[0] = false; // "this" object is a reference which is always 32-bit
                 }
+                for (int i = 0;i < hookRecord.paramNumber;i++) {
+                    Class<?> paramType = hookRecord.paramTypes[i];
+                    boolean fp;
+                    boolean wide;
+                    if (paramType == double.class) {
+                        fp = true;
+                        wide = true;
+                    } else if (paramType == float.class) {
+                        fp = true;
+                        wide = false;
+                    } else if (paramType == long.class) {
+                        fp = false;
+                        wide = true;
+                    } else {
+                        fp = false;
+                        wide = false;
+                    }
 
-                if (fp) { // floating point
-                    if (fprLength < FPR_SIZE)
-                        fprLength++;
-                } else {
-                    if (crLength < CR_SIZE)
-                        crLength++;
+                    if (fp) { // floating point
+                        if (fprLength < FPR_SIZE)
+                            fprLength++;
+                    } else {
+                        if (crLength < CR_SIZE)
+                            crLength++;
+                    }
+                    stackLength += wide ? 8 : 4;
+
+                    if (hookRecord.isStatic)
+                        typeWides[i] = wide;
+                    else
+                        typeWides[i + 1] = wide;
                 }
-                stackLength += wide ? 8 : 4;
-
-                if (hookRecord.isStatic)
-                    typeWides[i] = wide;
-                else
-                    typeWides[i + 1] = wide;
+            } else {
+                typeWides = EMPTY_BOOLEAN_ARRAY;
             }
+
+            // Expose paramTypesCache after cache initialized to prevent possible race conditions
+            ParamTypesCache cache = new ParamTypesCache();
+            cache.crLength = crLength;
+            cache.stackLength = stackLength;
+            cache.fprLength = fprLength;
+            cache.typeWides = typeWides.clone();
+            hookRecord.paramTypesCache = cache;
         } else {
-            typeWides = EMPTY_BOOLEAN_ARRAY;
+            ParamTypesCache cache = (ParamTypesCache) hookRecord.paramTypesCache;
+            crLength = cache.crLength;
+            stackLength = cache.stackLength;
+            fprLength = cache.fprLength;
+
+            // Do not use original typeWides array as it may still be used by other threads
+            typeWides = cache.typeWides.clone();
         }
 
         long[] coreRegisters = crLength != 0 ? new long[crLength] : EMPTY_LONG_ARRAY;
@@ -232,5 +249,12 @@ public final class Arm64Entry {
         } while(false);
 
         return new Three<>(coreRegisters, stack, fpRegisters);
+    }
+
+    private static class ParamTypesCache {
+        int crLength;
+        int stackLength;
+        int fprLength;
+        boolean[] typeWides;
     }
 }

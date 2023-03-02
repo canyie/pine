@@ -20,7 +20,7 @@ JitCompiler** Jit::global_compiler_ptr = nullptr;
 Member<void, size_t>* Jit::CompilerOptions_inline_max_code_units = nullptr;
 
 void Jit::Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle) {
-    if (UNLIKELY(Android::version >= Android::kR)) {
+    if (LIKELY(Android::version >= Android::kR)) {
         return; // JIT API is unavailable in Android R
     }
     global_compiler_ptr = static_cast<JitCompiler**>(art_lib_handle->GetSymbolAddress(
