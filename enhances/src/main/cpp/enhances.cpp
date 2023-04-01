@@ -233,15 +233,20 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 #define HOOK_FUNC(name) hooked |= HookFunc(name, (void*) replace_##name , (void**) &backup_##name)
 #define HOOK_SYMBOL(name, symbol) hooked |= HookSymbol(handle, symbol, (void*) replace_##name , (void**) &backup_##name )
 
-     HOOK_SYMBOL(ShouldUseInterpreterEntrypoint, "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
-     if (!hooked) {
-         // Android Tiramisu?
-         HOOK_SYMBOL(ShouldStayInSwitchInterpreter, "_ZN3art11interpreter29ShouldStayInSwitchInterpreterEPNS_9ArtMethodE");
+     // Before 7.0, it is NeedsInterpreter which is inlined so cannot be hooked
+     // But the logic which forces code to be executed by interpreter is added in Android 8.0
+     // And we have hooked UpdateMethodsCode to avoid entry updating, so it should be safe to skip
+     if (sdk_level >= __ANDROID_API_N__) {
+         HOOK_SYMBOL(ShouldUseInterpreterEntrypoint, "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
+         if (!hooked) {
+             // Android Tiramisu?
+             HOOK_SYMBOL(ShouldStayInSwitchInterpreter, "_ZN3art11interpreter29ShouldStayInSwitchInterpreterEPNS_9ArtMethodE");
+         }
+         if (!hooked) {
+             LOGE("Failed to hook ShouldUseInterpreterEntrypoint/ShouldStayInSwitchInterpreter. Hook may not work.");
+         }
+         hooked = false;
      }
-     if (!hooked) {
-         LOGE("Failed to hook ShouldUseInterpreterEntrypoint/ShouldStayInSwitchInterpreter. Hook may not work.");
-     }
-     hooked = false;
 
      if (sdk_level >= __ANDROID_API_Q__) {
          // Note: kVisiblyInitialized is not implemented in Android Q,
@@ -262,8 +267,8 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          }
      }
      HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
-     if (!hooked && sdk_level == __ANDROID_API_N__) {
-         // huawei lon-al00 android 7.0 api level 24
+     if (!hooked) {
+         // Before Android 8.0, it uses raw mirror::Class* without ObjPtr<>
          HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6mirror5ClassE");
      }
 #undef HOOK_SYMBOL
