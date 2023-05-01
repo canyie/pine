@@ -34,9 +34,11 @@ namespace pine::art {
                 thread = current();
             } else if (NativePeerAvailable(env)) {
                 jobject javaThread = env->CallStaticObjectMethod(Thread_, currentThread);
-                thread = reinterpret_cast<Thread*>(Android::version < Android::kL
-                        ? env->GetIntField(javaThread, nativePeer)
-                        : env->GetLongField(javaThread, nativePeer));
+                thread = reinterpret_cast<Thread*>(
+#if __ANDROID_API__ < __ANDROID_API_L__
+                        Android::version < Android::kL ? env->GetIntField(javaThread, nativePeer) :
+#endif
+                        env->GetLongField(javaThread, nativePeer));
                 if (UNLIKELY(env->ExceptionCheck())) {
                     env->ExceptionDescribe();
                     env->ExceptionClear();
@@ -62,7 +64,11 @@ namespace pine::art {
             }
             jclass T = env->FindClass("java/lang/Thread");
             currentThread = env->GetStaticMethodID(T, "currentThread", "()Ljava/lang/Thread;");
-            nativePeer = env->GetFieldID(T, "nativePeer", Android::version < Android::kL ? "I" : "J");
+            nativePeer = env->GetFieldID(T, "nativePeer",
+#if __ANDROID_API__ < __ANDROID_API_L__
+                                         Android::version < Android::kL ? "I" :
+#endif
+                                         "J");
             if (LIKELY(!env->ExceptionCheck())) {
                 Thread_ = static_cast<jclass>(env->NewGlobalRef(T));
             } else {

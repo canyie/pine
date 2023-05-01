@@ -177,11 +177,15 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         backup = static_cast<art::ArtMethod*>(thread->AllocNonMovable(
                 WellKnownClasses::java_lang_reflect_ArtMethod));
         if (UNLIKELY(!backup)) {
+#if __ANDROID_API__ < __ANDROID_API_L__
             // On Android kitkat, moving gc is not supported in art. All objects are immovable.
-            if (UNLIKELY(Android::version != Android::kK)) {
+            if (UNLIKELY(Android::version >= Android::kL)) {
+#endif
                 LOGE("Failed to allocate an immovable object for creating backup method.");
                 env->ExceptionClear();
+#if __ANDROID_API__ < __ANDROID_API_L__
             }
+#endif
 
             jobject javaBackup = env->AllocObject(WellKnownClasses::java_lang_reflect_ArtMethod);
             if (UNLIKELY(env->ExceptionCheck())) {

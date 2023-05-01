@@ -111,7 +111,9 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
 
     size = Difference(reinterpret_cast<intptr_t>(m1), reinterpret_cast<intptr_t>(m2));
     int android_version = Android::version;
+#if __ANDROID_API__ < __ANDROID_API_L__
     if (LIKELY(android_version >= Android::kL)) {
+#endif
         for (uint32_t offset = 0; offset < size; offset += 2) {
             void* ptr = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(m1) + offset);
             if ((*static_cast<uint32_t*>(ptr)) == access_flags) {
@@ -174,7 +176,6 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
             }
 
             entry_point_from_compiled_code_.SetOffset(compiled_code_entry_offset);
-
         } else {
             LOGE("Member entry_point_from_jni_ not found in ArtMethod, use default.");
             entry_point_from_jni_.SetOffset(GetDefaultEntryPointFromJniOffset());
@@ -191,6 +192,8 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
             // so we check and update it when invoke backup method.
             declaring_class = new Member<ArtMethod, uint32_t>(0);
         }
+
+#if __ANDROID_API__ < __ANDROID_API_L__
     } else {
         // Hardcode members offset for Kitkat :(
         LOGW("Android Kitkat, hardcode offset only...");
@@ -200,6 +203,7 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
         // FIXME This offset has not been verified, so it may be wrong
         entry_point_from_interpreter_ = new Member<ArtMethod, void*>(36);
     }
+#endif
 
     if (UNLIKELY(throw_invocation_time_error)) {
         // See https://github.com/canyie/pine/issues/8
@@ -296,9 +300,13 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
     }
 
     bool is_native = (access_flags & AccessFlags::kNative) != 0;
-    if (UNLIKELY(is_native && Android::version >= Android::kL)) {
-        // GC is disabled when executing FastNative and CriticalNative methods
-        // and may cause deadlocks. This is not applicable for hooked methods.
+    if (UNLIKELY(is_native
+#if __ANDROID_API__ < __ANDROID_API_L__
+        && Android::version >= Android::kL
+#endif
+        )) {
+        // GC is disabled when executing FastNative and CriticalNative methods,
+        // which may cause deadlocks. This is not applicable for hooked methods.
         access_flags &= ~AccessFlags::kFastNative;
         if (Android::version >= Android::kP) {
             access_flags &= ~AccessFlags::kCriticalNative;

@@ -6,6 +6,7 @@
 #define PINE_ANDROID_H
 
 #include <jni.h>
+#include <android/api-level.h>
 #include "art/gc_defs.h"
 #include "utils/log.h"
 #include "utils/macros.h"
