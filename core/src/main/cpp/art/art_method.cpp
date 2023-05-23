@@ -28,7 +28,7 @@ Member<ArtMethod, uint32_t> ArtMethod::access_flags_;
 Member<ArtMethod, void*> ArtMethod::entry_point_from_jni_;
 Member<ArtMethod, void*> ArtMethod::entry_point_from_compiled_code_;
 Member<ArtMethod, void*>* ArtMethod::entry_point_from_interpreter_;
-Member<ArtMethod, uint32_t>* ArtMethod::declaring_class = nullptr;
+Member<ArtMethod, uint32_t> ArtMethod::declaring_class;
 
 void ArtMethod::Init(const ElfImg* handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
@@ -184,13 +184,9 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
         }
 
         if (Android::version < Android::kN) {
-            // Not align: PtrSizedFields is PACKED(4) in the android version.
+            // Not aligned: PtrSizedFields is PACKED(4) in the android version.
             entry_point_from_interpreter_ = new Member<ArtMethod, void*>(
                     entry_point_from_jni_.GetOffset() - entry_point_member_size);
-        } else {
-            // On Android 7.0+, the declaring_class may be moved by the GC,
-            // so we check and update it when invoke backup method.
-            declaring_class = new Member<ArtMethod, uint32_t>(0);
         }
 
 #if __ANDROID_API__ < __ANDROID_API_L__
