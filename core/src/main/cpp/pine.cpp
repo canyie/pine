@@ -172,7 +172,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     art::ArtMethod* backup;
     if (WellKnownClasses::java_lang_reflect_ArtMethod) {
         // If ArtMethod has mirror class in java, we cannot use malloc to direct
-        // allocate a instance because it must has a record in Runtime.
+        // allocate an instance because it must has a record in Runtime.
 
         backup = static_cast<art::ArtMethod*>(thread->AllocNonMovable(
                 WellKnownClasses::java_lang_reflect_ArtMethod));
@@ -214,8 +214,8 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     char error_msg[288];
 
     {
-        // An ArtMethod is a very important object. Many threads depend on their values,
-        // so we need to suspend other threads to avoid errors when hooking.
+        // ArtMethod objects are very important. Many threads depend on their values,
+        // so we need to suspend other threads to avoid errors.
         ScopedSuspendVM suspend_vm(thread);
 
         void* call_origin = is_inline_hook
@@ -404,7 +404,7 @@ void Pine_syncMethodInfo(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBa
     auto origin = art::ArtMethod::FromReflectedMethod(env, javaOrigin);
     auto backup = art::ArtMethod::FromReflectedMethod(env, javaBackup);
 
-    // ArtMethod is actually an instance of java class "java.lang.reflect.ArtMethod" on pre M
+    // An ArtMethod is actually an instance of java class "java.lang.reflect.ArtMethod" on pre M
     // declaring_class is a reference field so the runtime itself will update it if moved by GC
     if (Android::version >= Android::kM) {
         uint32_t declaring_class = origin->GetDeclaringClass();

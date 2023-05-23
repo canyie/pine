@@ -1,8 +1,7 @@
 package top.canyie.pine.entry;
 
 import top.canyie.pine.Pine;
-import top.canyie.pine.utils.Primitives;
-import top.canyie.pine.utils.Three;
+import top.canyie.pine.utils.ThreeTuple;
 
 /**
  * @author canyie
@@ -85,10 +84,10 @@ public final class Arm64Entry {
         long extras = Pine.cloneExtras(originExtras);
         Pine.log("handleBridge: artMethod=%#x originExtras=%#x extras=%#x sp=%#x", artMethod, originExtras, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
-        Three<long[], long[], double[]> three = getArgs(hookRecord, extras, sp, x4, x5, x6, x7);
-        long[] coreRegisters = three.a;
-        long[] stack = three.b;
-        double[] fpRegisters = three.c;
+        ThreeTuple<long[], long[], double[]> threeTuple = getArgs(hookRecord, extras, sp, x4, x5, x6, x7);
+        long[] coreRegisters = threeTuple.a;
+        long[] stack = threeTuple.b;
+        double[] fpRegisters = threeTuple.c;
 
         Object receiver;
         Object[] args;
@@ -159,8 +158,8 @@ public final class Arm64Entry {
         return Pine.handleCall(hookRecord, receiver, args);
     }
 
-    private static Three<long[], long[], double[]> getArgs(Pine.HookRecord hookRecord, long extras, long sp,
-                                                         long x4, long x5, long x6, long x7) {
+    private static ThreeTuple<long[], long[], double[]> getArgs(Pine.HookRecord hookRecord, long extras, long sp,
+                                                                long x4, long x5, long x6, long x7) {
         int crLength = 0;
         int stackLength = 0;
         int fprLength = 0;
@@ -248,7 +247,7 @@ public final class Arm64Entry {
             coreRegisters[6] = x7;
         } while(false);
 
-        return new Three<>(coreRegisters, stack, fpRegisters);
+        return new ThreeTuple<>(coreRegisters, stack, fpRegisters);
     }
 
     private static class ParamTypesCache {

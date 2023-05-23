@@ -2,13 +2,13 @@
 
 [中文版本](README_cn.md)
 ## Introduction
-Pine is a dynamic java method hook framework on ART runtime, it can intercept almost all java method calls in this process.
+Pine is a dynamic java method hook framework on ART runtime, which can intercept almost all java method calls in the current process.
 
-Currently it supports Android 4.4(ART only) ~ **12.1** with thumb-2/arm64 architecture.
+Currently it supports Android 4.4(ART only) ~ **13** with thumb-2/arm64 architecture.
 
 About its working principle, you can refer to this Chinese [article](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/).
 
-Note: For Android 6.0 and 32-bit mode, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
+Note: For Android 6.0 devices with arm32/thumb-2 architectures, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
 ## Usage
 ### Basic Usage
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/core.svg)](https://repo1.maven.org/maven2/top/canyie/pine/core/)
@@ -57,7 +57,7 @@ Pine.hook(Thread.class.getDeclaredMethod("start"), new MethodHook() {
 });
 ```
 
-Example 3: force allow any threads to modify the ui:
+Example 3: force allow any threads to modify ui:
 ```java
 Method checkThread = Class.forName("android.view.ViewRootImpl").getDeclaredMethod("checkThread");
 Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
@@ -66,11 +66,11 @@ Pine.hook(checkThread, MethodReplacement.DO_NOTHING);
 ### Xposed Support
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/xposed.svg)](https://repo1.maven.org/maven2/top/canyie/pine/xposed/)
 
-Pine supports hooking methods in Xposed-style and loading Xposd modules. (Only supports java method hook now.)
+Pine supports hooking methods in Xposed-style and loading Xposed modules. (Only java method hooking is supported. Modules using unsupported features like Resource-hooking won't work.)
 ```groovy
 implementation 'top.canyie.pine:xposed:<version>'
 ```
-Direct hook methods in Xposed-style:
+Directly hook methods in Xposed-style:
 ```java
 XposedHelpers.findAndHookMethod(TextView.class, "setText",
                 CharSequence.class, TextView.BufferType.class, boolean.class, int.class,
@@ -104,12 +104,12 @@ PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoa
 ## Enhanced Features
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/enhances.svg)](https://repo1.maven.org/maven2/top/canyie/pine/enhances/)
 
-With [Dobby](https://github.com/jmpews/Dobby), you can use some enhancements of Pine:
+With [Dobby](https://github.com/jmpews/Dobby), you can use some enhanced features:
 ```groovy
 implementation 'top.canyie.pine:enhances:<version>'
 ```
 
-- Delay hook (aka pending hook) support, hooking static methods without initialize its declaring class now:
+- Delay hook (aka pending hook) support, hooking static methods without initializing its declaring class immediately:
 ```java
 PineEnhances.enableDelayHook();
 ```
@@ -129,12 +129,13 @@ private static void methodLocked() {
     // ...
 }
 ```
-In the example, we recommend that the hook method is `methodLocked` instead of `method`.
+In the example, we recommend you to hook `methodLocked` instead of `method`.
 
 - For more, see [issues](https://github.com/canyie/pine/issues).
 
 ## Discussion
 [QQ Group：949888394](https://shang.qq.com/wpa/qunwpa?idkey=25549719b948d2aaeb9e579955e39d71768111844b370fcb824d43b9b20e1c04)
+[Telegram Group: @DreamlandFramework](https://t.me/DreamlandFramework)
 
 ## Credits
 - [SandHook](https://github.com/ganyao114/SandHook)

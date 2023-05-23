@@ -141,8 +141,7 @@ static bool FakeProcessProfilingInfo() {
 }
 
 bool Android::DisableProfileSaver() {
-    // If users need this feature very much,
-    // we may find these symbols during initialization in the future to reduce time consumption.
+    // I think most users don't need this feature, so I don't get the symbol during initialization...
     void* process_profiling_info;
     {
         ElfImg handle("libart.so");
@@ -173,7 +172,7 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
     if (version < kQ) {
         // ClassLinker is unnecessary before R.
         // JIT was added in Android N but MoveObsoleteMethod was added in Android O
-        // and didn't find a stable way to retrieve jit code cache until Q
+        // and I didn't find a stable way to retrieve jit code cache until Q
         // from Runtime object, so try to retrieve from ProfileSaver.
         // TODO: Still clearing jit info on Android N but only for jit-compiled methods.
         if (version >= kO) {

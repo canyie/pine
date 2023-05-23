@@ -5,15 +5,15 @@ import java.util.Objects;
 /**
  * @author canyie
  */
-public final class Three<A, B, C> {
+public final class ThreeTuple<A, B, C> {
     public A a;
     public B b;
     public C c;
 
-    public Three() {
+    public ThreeTuple() {
     }
 
-    public Three(A a, B b, C c) {
+    public ThreeTuple(A a, B b, C c) {
         this.a = a;
         this.b = b;
         this.c = c;
@@ -21,8 +21,8 @@ public final class Three<A, B, C> {
 
     @Override public boolean equals(Object obj) {
         if (obj == this) return true;
-        if (!(obj instanceof Three)) return false;
-        Three<?, ?, ?> that = (Three) obj;
+        if (!(obj instanceof ThreeTuple)) return false;
+        ThreeTuple<?, ?, ?> that = (ThreeTuple) obj;
         return Objects.equals(a, that.a) && Objects.equals(b, that.b) && Objects.equals(c, that.c);
     }
 
@@ -31,6 +31,6 @@ public final class Three<A, B, C> {
     }
 
     @Override public String toString() {
-        return "Three{A: " + a + "; b: " + b + "; c: " + c + "}";
+        return "ThreeTuple{A: " + a + "; b: " + b + "; c: " + c + "}";
     }
 }

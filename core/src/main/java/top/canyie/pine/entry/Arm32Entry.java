@@ -5,7 +5,7 @@ import android.os.Build;
 import top.canyie.pine.Pine;
 import top.canyie.pine.PineConfig;
 import top.canyie.pine.utils.Primitives;
-import top.canyie.pine.utils.Three;
+import top.canyie.pine.utils.ThreeTuple;
 
 /**
  * @author canyie
@@ -78,10 +78,10 @@ public final class Arm32Entry {
         int extras = (int) Pine.cloneExtras(originExtras);
         Pine.log("handleBridge: artMethod=%#x originExtras=%#x extras=%#x sp=%#x", artMethod, originExtras, extras, sp);
         Pine.HookRecord hookRecord = Pine.getHookRecord(artMethod);
-        Three<int[], int[], float[]> three = getArgs(hookRecord, extras, sp);
-        int[] coreRegisters = three.a;
-        int[] stack = three.b;
-        float[] fpRegisters = three.c;
+        ThreeTuple<int[], int[], float[]> threeTuple = getArgs(hookRecord, extras, sp);
+        int[] coreRegisters = threeTuple.a;
+        int[] stack = threeTuple.b;
+        float[] fpRegisters = threeTuple.c;
         long thread = Pine.currentArtThread0();
 
         Object receiver;
@@ -207,7 +207,7 @@ public final class Arm32Entry {
         return Pine.handleCall(hookRecord, receiver, args);
     }
 
-    private static Three<int[], int[], float[]> getArgs(Pine.HookRecord hookRecord, int extras, int sp) {
+    private static ThreeTuple<int[], int[], float[]> getArgs(Pine.HookRecord hookRecord, int extras, int sp) {
         int crLength;
         int stackLength;
         int fpLength;
@@ -261,7 +261,7 @@ public final class Arm32Entry {
         int[] coreRegisters = crLength != 0 ? new int[crLength] : EMPTY_INT_ARRAY;
         int[] stack = stackLength != 0 ? new int[stackLength] : EMPTY_INT_ARRAY;
         Pine.getArgsArm32(extras, sp, coreRegisters, stack, fpRegisters);
-        return new Three<>(coreRegisters, stack, fpRegisters);
+        return new ThreeTuple<>(coreRegisters, stack, fpRegisters);
     }
 
     private static class ParamTypesCache {

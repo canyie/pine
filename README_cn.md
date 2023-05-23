@@ -2,7 +2,7 @@
 ## 简介
 Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook框架，它可以拦截本进程内几乎所有的java方法调用。
 
-目前它支持Android 4.4（只支持ART）~ **12.1** 与 thumb-2/arm64 指令集。
+目前它支持Android 4.4（只支持ART）~ **13** 且使用 thumb-2/arm64 指令集的设备。
 
 关于它的实现原理，可以参考[本文](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/)。
 
@@ -143,6 +143,7 @@ private static void methodLocked() {
 
 ## 交流讨论
 [QQ群：949888394](https://shang.qq.com/wpa/qunwpa?idkey=25549719b948d2aaeb9e579955e39d71768111844b370fcb824d43b9b20e1c04)
+[Telegram Group: @DreamlandFramework](https://t.me/DreamlandFramework)
 
 ## 致谢
 - [SandHook](https://github.com/ganyao114/SandHook)
