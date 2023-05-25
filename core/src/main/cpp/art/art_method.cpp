@@ -111,6 +111,9 @@ void ArtMethod::InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod
 
     size = Difference(reinterpret_cast<intptr_t>(m1), reinterpret_cast<intptr_t>(m2));
     int android_version = Android::version;
+
+    if (android_version >= Android::kM)
+        declaring_class.SetOffset(0);
 #if __ANDROID_API__ < __ANDROID_API_L__
     if (LIKELY(android_version >= Android::kL)) {
 #endif
