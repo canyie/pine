@@ -18,52 +18,52 @@ public final class Arm64Entry {
     private Arm64Entry() {
     }
 
-    private static void voidBridge(long artMethod, long extras, long sp,
+    static void voidBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
         handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static int intBridge(long artMethod, long extras, long sp,
+    static int intBridge(long artMethod, long extras, long sp,
                                  long x4, long x5, long x6, long x7) throws Throwable {
         return (int) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static long longBridge(long artMethod, long extras, long sp,
+    static long longBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
         return (long) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static double doubleBridge(long artMethod, long extras, long sp,
+    static double doubleBridge(long artMethod, long extras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
         return (double) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static float floatBridge(long artMethod, long extras, long sp,
+    static float floatBridge(long artMethod, long extras, long sp,
                                      long x4, long x5, long x6, long x7) throws Throwable {
         return (float) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static boolean booleanBridge(long artMethod, long extras, long sp,
+    static boolean booleanBridge(long artMethod, long extras, long sp,
                                          long x4, long x5, long x6, long x7) throws Throwable {
         return (boolean) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static char charBridge(long artMethod, long extras, long sp,
+    static char charBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
         return (char) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static byte byteBridge(long artMethod, long extras, long sp,
+    static byte byteBridge(long artMethod, long extras, long sp,
                                    long x4, long x5, long x6, long x7) throws Throwable {
         return (byte) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static short shortBridge(long artMethod, long extras, long sp,
+    static short shortBridge(long artMethod, long extras, long sp,
                                      long x4, long x5, long x6, long x7) throws Throwable {
         return (short) handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
 
-    private static Object objectBridge(long artMethod, long extras, long sp,
+    static Object objectBridge(long artMethod, long extras, long sp,
                                        long x4, long x5, long x6, long x7) throws Throwable {
         return handleBridge(artMethod, extras, sp, x4, x5, x6, x7);
     }
@@ -229,6 +229,12 @@ public final class Arm64Entry {
             // Do not use original typeWides array as it may still be used by other threads
             typeWides = cache.typeWides.clone();
         }
+
+        // This can happen when we are running on Android 6.0. Avoid reading any value from stack
+        // to avoid segmentation faults. This is safe because this only happens when the target
+        // method have few parameters, in which case we can get all arguments from core registers
+        if (sp == 0)
+            stackLength = 0;
 
         long[] coreRegisters = crLength != 0 ? new long[crLength] : EMPTY_LONG_ARRAY;
         long[] stack = stackLength != 0 ? new long[stackLength] : EMPTY_LONG_ARRAY;

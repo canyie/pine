@@ -5,6 +5,7 @@ import android.os.Build;
 import android.util.Log;
 
 import top.canyie.pine.callback.MethodHook;
+import top.canyie.pine.entry.Arm64MarshmallowEntry;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -362,7 +363,9 @@ public final class Pine {
 
         hookRecord.paramNumber = hookRecord.paramTypes.length;
 
-        Method bridge = sBridgeMethods.get(bridgeMethodName);
+        Method bridge = PineConfig.sdkLevel == Build.VERSION_CODES.M && arch == ARCH_ARM64
+                ? Arm64MarshmallowEntry.getBridge(bridgeMethodName, hookRecord.paramNumber)
+                : sBridgeMethods.get(bridgeMethodName);
         if (bridge == null)
             throw new AssertionError("Cannot find bridge method for " + method);
 
