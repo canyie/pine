@@ -68,7 +68,8 @@ namespace pine::art {
         }
 
         bool IsCompiled() {
-            return GetEntryPointFromCompiledCode() != GetInterpreterBridge();
+            void* entry = GetEntryPointFromCompiledCode();
+            return entry != GetInterpreterBridge() && entry != ExecuteNterpImpl;
         }
 
         bool Compile(Thread* thread) {
@@ -328,6 +329,7 @@ namespace pine::art {
         static void* art_quick_generic_jni_trampoline;
         static void* art_interpreter_to_interpreter_bridge;
         static void* art_interpreter_to_compiled_code_bridge;
+        static void* ExecuteNterpImpl;
 
         static void (*copy_from)(ArtMethod*, ArtMethod*, size_t);
         static void (*throw_invocation_time_error)(ArtMethod*);

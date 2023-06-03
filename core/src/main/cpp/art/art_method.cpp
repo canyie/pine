@@ -20,6 +20,7 @@ void* ArtMethod::art_quick_to_interpreter_bridge = nullptr;
 void* ArtMethod::art_quick_generic_jni_trampoline = nullptr;
 void* ArtMethod::art_interpreter_to_compiled_code_bridge = nullptr;
 void* ArtMethod::art_interpreter_to_interpreter_bridge = nullptr;
+void* ArtMethod::ExecuteNterpImpl = nullptr;
 
 void (*ArtMethod::copy_from)(ArtMethod*, ArtMethod*, size_t) = nullptr;
 void (*ArtMethod::throw_invocation_time_error)(ArtMethod*) = nullptr;
@@ -33,6 +34,7 @@ Member<ArtMethod, uint32_t> ArtMethod::declaring_class;
 void ArtMethod::Init(const ElfImg* handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
+    ExecuteNterpImpl = handle->GetSymbolAddress("ExecuteNterpImpl", false);
 
     if (Android::version < Android::kN) {
         art_interpreter_to_compiled_code_bridge = handle->GetSymbolAddress(
@@ -253,7 +255,7 @@ void ArtMethod::BackupFrom(ArtMethod* source, void* entry, bool is_inline_hook, 
     }
 
     if (UNLIKELY(clear_jit_info_ref)) {
-        // entry_point_from_compiled_code_ (may references jit compiled code)
+        // entry_point_from_compiled_code_ (may refer to jit compiled code)
         SetEntryPointFromCompiledCode(art_quick_to_interpreter_bridge);
 
         // Before Android S, for non-native and non-proxy methods, the entry_point_from_jni_ member
