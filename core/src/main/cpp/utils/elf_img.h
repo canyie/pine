@@ -53,6 +53,11 @@ namespace pine {
         Elf_Addr GetSymbolOffset(const char* name, bool warn_if_missing = true) const;
         void* GetSymbolAddress(const char* name, bool warn_if_missing = true) const;
 
+        void Open(const char* path, bool warn_if_symtab_not_found);
+        bool IsOpened() const {
+            return base != nullptr;
+        }
+
         ~ElfImg();
 
     private:

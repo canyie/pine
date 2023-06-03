@@ -42,6 +42,17 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
 
     {
         ElfImg art_lib_handle("libart.so");
+        if (UNLIKELY(!art_lib_handle.IsOpened())) {
+            // Alibaba YunOS AOC runtime?
+            constexpr const char* kLibAocPath = "/system/lib"
+#ifdef __LP64__
+                "64"
+#endif
+                "/libaoc.so";
+            if (access(kLibAocPath, R_OK) == 0) {
+                art_lib_handle.Open(kLibAocPath, true);
+            }
+        }
         if (Android::version >= Android::kR) {
             suspend_all = reinterpret_cast<void (*)(void*, const char*, bool)>(art_lib_handle.GetSymbolAddress(
                     "_ZN3art16ScopedSuspendAllC1EPKcb"));

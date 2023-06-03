@@ -36,6 +36,12 @@ void ArtMethod::Init(const ElfImg* handle) {
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
     ExecuteNterpImpl = handle->GetSymbolAddress("ExecuteNterpImpl", false);
 
+    // Alibaba YunOS AOC runtime?
+    if (UNLIKELY(!art_quick_to_interpreter_bridge))
+        art_quick_to_interpreter_bridge = handle->GetSymbolAddress("aoc_quick_to_interpreter_bridge");
+    if (UNLIKELY(!art_quick_generic_jni_trampoline))
+        art_quick_generic_jni_trampoline = handle->GetSymbolAddress("aoc_quick_generic_jni_trampoline");
+
     if (Android::version < Android::kN) {
         art_interpreter_to_compiled_code_bridge = handle->GetSymbolAddress(
                 "artInterpreterToCompiledCodeBridge");
