@@ -20,6 +20,13 @@ public final class Arm32Entry {
     // https://android-review.googlesource.com/c/platform/art/+/109033
     // TODO: Use different entries for hardfp and softfp
     private static final boolean USE_HARDFP = PineConfig.sdkLevel >= Build.VERSION_CODES.M;
+
+    // For some reasons, starting from Android 12, if we need to pass a long argument when
+    // only one core register (r3) is available, the register won't be used and art directly
+    // pushes all parts of the argument onto stack. I've forgot whether I checked oatdump from
+    // old versions or not, but related tests don't fail. To avoid regressions, let's check it :)
+    private static final boolean DISALLOW_LONG_CROSS_CR_AND_STACK = PineConfig.sdkLevel >= Build.VERSION_CODES.S;
+
     private Arm32Entry() {
     }
 
@@ -163,6 +170,10 @@ public final class Arm32Entry {
                         crIndex = CR_SIZE;
                         stackIndex += 2;
                         continue;
+                    }
+                    if (crIndex == 2 && DISALLOW_LONG_CROSS_CR_AND_STACK) {
+                        // Do not take the low part from the core register (r3)
+                        crIndex = CR_SIZE;
                     }
                     if (crIndex < coreRegisters.length) {
                         l = coreRegisters[crIndex++];
