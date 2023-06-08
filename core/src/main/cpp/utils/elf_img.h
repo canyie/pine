@@ -61,7 +61,6 @@ namespace pine {
         ~ElfImg();
 
     private:
-        void Open(const char* path, bool warn_if_symtab_not_found);
         void RelativeOpen(const char* elf, bool warn_if_symtab_not_found);
         // Pine changed: GetModuleBase is private
         void* GetModuleBase(const char* name);
