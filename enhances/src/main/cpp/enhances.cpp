@@ -204,6 +204,38 @@ void PineEnhances_recordMethodHooked(JNIEnv*, jclass, jlong method, jlong backup
     backup_UpdateMethodsCode(instrumentation_, b, saved_entry);
 }
 
+std::string GetRuntimeLibraryName(JNIEnv* env) {
+    // initClassInitMonitor will always be called after Pine core library is initialized
+    // At this time we can directly access hidden APIs
+    jclass VMRuntime = env->FindClass("dalvik/system/VMRuntime");
+    jmethodID getRuntime = VMRuntime
+            ? env->GetStaticMethodID(VMRuntime, "getRuntime", "()Ldalvik/system/VMRuntime;")
+            : nullptr;
+    jmethodID getVMLibrary = getRuntime
+            ? env->GetMethodID(VMRuntime, "vmLibrary", "()Ljava/lang/String;")
+            : nullptr;
+    if (getVMLibrary) {
+        jobject vmRuntime = env->CallStaticObjectMethod(VMRuntime, getRuntime);
+        if (vmRuntime) {
+            jstring vmLibrary = static_cast<jstring>(env->CallObjectMethod(vmRuntime, getVMLibrary));
+            env->DeleteLocalRef(vmRuntime);
+            if (vmLibrary) {
+                env->DeleteLocalRef(VMRuntime);
+                const char* vm_library_cstr = env->GetStringUTFChars(vmLibrary, nullptr);
+                std::string vm_library(vm_library_cstr);
+                env->ReleaseStringUTFChars(vmLibrary, vm_library_cstr);
+                env->DeleteLocalRef(vmLibrary);
+                return vm_library;
+            }
+        }
+    }
+    LOGE("Failed to get VM library name");
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+    if (VMRuntime) env->DeleteLocalRef(VMRuntime);
+    return "libart.so";
+}
+
 jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jint sdk_level,
                                            jlong openElf, jlong findElfSymbol, jlong closeElf) {
      onClassInit_ = env->GetStaticMethodID(PineEnhances, "onClassInit", "(J)V");
@@ -220,7 +252,8 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
      FindElfSymbol = reinterpret_cast<void* (*)(void*, const char*, bool)>(findElfSymbol);
      auto CloseElf = reinterpret_cast<void (*)(void*)>(closeElf);
 
-     void* handle = OpenElf("libart.so");
+     auto vm_library = GetRuntimeLibraryName(env);
+     void* handle = OpenElf(vm_library.data());
 
      GetClassDef = reinterpret_cast<void* (*)(void*)>(FindElfSymbol(handle,
              "_ZN3art6mirror5Class11GetClassDefEv", true));

@@ -135,7 +135,6 @@ void ElfImg::RelativeOpen(const char* elf, bool warn_if_symtab_not_found) {
     Open(buffer, warn_if_symtab_not_found);
 }
 
-
 ElfImg::~ElfImg() {
     //open elf file local
     if (buffer) {

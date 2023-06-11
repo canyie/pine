@@ -41,18 +41,26 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
     }
 
     {
+        bool eng_build = false;
         ElfImg art_lib_handle("libart.so");
         if (UNLIKELY(!art_lib_handle.IsOpened())) {
-            // Alibaba YunOS AOC runtime?
-            constexpr const char* kLibAocPath = "/system/lib"
+            // Running on eng build ROMs?
+            art_lib_handle.RelativeOpen("libartd.so", true);
+            if (LIKELY(art_lib_handle.IsOpened())) {
+                eng_build = true;
+            } else {
+                // Alibaba YunOS AOC runtime?
+                constexpr const char* kLibAocPath = "/system/lib"
 #ifdef __LP64__
-                "64"
+                                                    "64"
 #endif
-                "/libaoc.so";
-            if (access(kLibAocPath, R_OK) == 0) {
-                art_lib_handle.Open(kLibAocPath, true);
+                                                    "/libaoc.so";
+                if (access(kLibAocPath, R_OK) == 0) {
+                    art_lib_handle.Open(kLibAocPath, true);
+                }
             }
         }
+
         if (Android::version >= Android::kR) {
             suspend_all = reinterpret_cast<void (*)(void*, const char*, bool)>(art_lib_handle.GetSymbolAddress(
                     "_ZN3art16ScopedSuspendAllC1EPKcb"));
@@ -92,7 +100,7 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
         art::Thread::Init(&art_lib_handle);
         art::ArtMethod::Init(&art_lib_handle);
         if (sdk_version >= kN) {
-            ElfImg jit_lib_handle("libart-compiler.so", false);
+            ElfImg jit_lib_handle(eng_build ? "libartd-compiler.so" : "libart-compiler.so", false);
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
 
