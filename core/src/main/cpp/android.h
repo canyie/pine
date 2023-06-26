@@ -118,14 +118,16 @@ namespace pine {
                 return Is64Bit() ? 528 : 0 /* TODO: Calculate offset on 32-bit. Currently force fallback to search memory. */;
             }
             switch (version) {
+                default:
+                    LOGW("Unsupported Android API level %d", Android::version);
+                    [[fallthrough]];
+                case kU :
                 case kT:
                 case kSL:
                 case kS:
                 case kR:
                 case kQ:
                     return Is64Bit() ? 496 : 288;
-                default:
-                    FATAL("Unexpected android version %d", version);
             }
         }
 

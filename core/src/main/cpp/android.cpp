@@ -210,7 +210,8 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
     // This commit added a pointer member between `class_linker_` and `java_vm_`. Need to calibrate offset here.
     // https://android.googlesource.com/platform/art/+/4dcac3629ea5925e47b522073f3c49420e998911
     // https://github.com/crdroidandroid/android_art/commit/aa7999027fa830d0419c9518ab56ceb7fcf6f7f1
-    bool has_smaller_irt = handle->GetSymbolAddress(
+    // https://android.googlesource.com/platform/art/+/849d09a81907f16d8ccc6019b8baf86a304b730c
+    bool has_smaller_irt = version >= kT || handle->GetSymbolAddress(
             "_ZN3art17SmallIrtAllocator10DeallocateEPNS_8IrtEntryE", false) != nullptr;
 
     size_t jvm_offset = OffsetOfJavaVm(has_smaller_irt);
