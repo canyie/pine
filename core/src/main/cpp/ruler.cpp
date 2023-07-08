@@ -6,12 +6,12 @@
 #include "utils/macros.h"
 #include "utils/log.h"
 
-void Ruler_m1(JNIEnv*, jclass) {
+void Ruler_m1(JNIEnv*, jclass, jfloat) {
     LOGI("Don't call me...");
 }
 
 static const JNINativeMethod gMethods[] = {
-        {"m1", "()V", reinterpret_cast<void*>(Ruler_m1)}
+        {"m1", "(F)V", reinterpret_cast<void*>(Ruler_m1)}
 };
 
 bool register_Ruler(JNIEnv* env, jclass Ruler) {

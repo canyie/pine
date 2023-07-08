@@ -77,7 +77,7 @@ void Pine_init0(JNIEnv* env, jclass Pine, jint androidVersion, jboolean debug, j
     Android::Init(env, androidVersion, disableHiddenApiPolicy, disableHiddenApiPolicyForPlatformDomain);
     {
         ScopedLocalClassRef Ruler(env, "top/canyie/pine/Ruler");
-        auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "()V", true);
+        auto m1 = art::ArtMethod::Require(env, Ruler.Get(), "m1", "(F)V", true);
         auto m2 = art::ArtMethod::Require(env, Ruler.Get(), "m2", "()V", true);
 
         uint32_t expected_access_flags;
