@@ -6,7 +6,7 @@ package top.canyie.pine;
  */
 @SuppressWarnings("unused")
 final class Ruler {
-    private static native void m1();
+    private static native void m1(float f);
     private static native void m2();
 
     private interface I {
