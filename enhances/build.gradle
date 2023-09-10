@@ -3,8 +3,7 @@ apply plugin: 'maven-publish'
 apply plugin: 'signing'
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdk
     ndkVersion rootProject.ext.ndkVersion
 
     defaultConfig {

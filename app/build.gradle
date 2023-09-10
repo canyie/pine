@@ -1,8 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdk
     ndkVersion rootProject.ext.ndkVersion
     defaultConfig {
         applicationId "top.canyie.pine.examples"

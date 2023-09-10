@@ -18,6 +18,6 @@ public class Arg84Test extends Test {
 
     private static int target(long l, int i) {
         Log.i(ExampleApp.TAG, "Arg84Test: l=" + l + " i=" + i);
-        return  l == 5150256501661869116L && i == 326646792 ? SUCCESS : FAILED;
+        return l == 5150256501661869116L && i == 326646792 ? SUCCESS : FAILED;
     }
 }

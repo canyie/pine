@@ -18,7 +18,7 @@ public class Arg8888Test extends Test {
     }
 
     private static int target(long l, long l2, long l3, long l4) {
-        Log.i(ExampleApp.TAG, "Arg8888Test: l=" + l + " l2=" + l2 + " l3" + l3);
+        Log.i(ExampleApp.TAG, "Arg8888Test: l=" + l + " l2=" + l2 + " l3=" + l3 + " l4=" + l4);
         return l == 6477721089490648113L && l2 == -1L && l3 == 6477721089490648113L
                 && l4 == 5370953174012904355L ? SUCCESS : FAILED;
     }
