@@ -155,7 +155,7 @@ HOOK_ENTRY(MarkClassInitialized, void*, void* thiz, void* self, uint32_t* cls_pt
     return result;
 }
 
-HOOK_ENTRY(UpdateMethodsCode, void, void* thiz, void* method, const void* quick_code) {
+bool PreUpdateMethodsCode(void* thiz, void*& method, const void*& quick_code) {
     instrumentation_ = thiz;
     if (IsMethodHooked(method, true)) {
         auto backup = GetMethodBackup(method);
@@ -165,10 +165,25 @@ HOOK_ENTRY(UpdateMethodsCode, void, void* thiz, void* method, const void* quick_
         } else {
             ScopedLock lk(pending_entries_mutex_);
             pending_entries_[method] = quick_code;
-            return;
+            return true;
         }
     }
+    return false;
+}
+
+HOOK_ENTRY(UpdateMethodsCode, void, void* thiz, void* method, const void* quick_code) {
+    if (PreUpdateMethodsCode(thiz, method, quick_code)) return;
     backup_UpdateMethodsCode(thiz, method, quick_code);
+}
+
+HOOK_ENTRY(UpdateMethodsCodeImpl, void, void* thiz, void* method, const void* quick_code) {
+    if (PreUpdateMethodsCode(thiz, method, quick_code)) return;
+    backup_UpdateMethodsCodeImpl(thiz, method, quick_code);
+}
+
+HOOK_ENTRY(InitializeMethodsCode, void, void* thiz, void* method, const void* aot_code) {
+    if (PreUpdateMethodsCode(thiz, method, aot_code)) return;
+    backup_InitializeMethodsCode(thiz, method, aot_code);
 }
 
 void PineEnhances_careClassInit(JNIEnv*, jclass, jlong address) {
@@ -279,6 +294,12 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
              LOGE("Failed to hook ShouldUseInterpreterEntrypoint/ShouldStayInSwitchInterpreter. Hook may not work.");
          }
          hooked = false;
+
+         HOOK_SYMBOL(UpdateMethodsCodeImpl, "_ZN3art15instrumentation15Instrumentation21UpdateMethodsCodeImplEPNS_9ArtMethodEPKv");
+     }
+     HOOK_SYMBOL(UpdateMethodsCode, "_ZN3art15instrumentation15Instrumentation17UpdateMethodsCodeEPNS_9ArtMethodEPKv");
+     if (sdk_level >= __ANDROID_API_T__) {
+         HOOK_SYMBOL(InitializeMethodsCode, "_ZN3art15instrumentation15Instrumentation21InitializeMethodsCodeEPNS_9ArtMethodEPKv");
      }
 
      if (sdk_level >= __ANDROID_API_Q__) {
@@ -289,16 +310,9 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          if (MarkClassInitialized) {
              HOOK_FUNC(MarkClassInitialized);
              HOOK_SYMBOL(FixupStaticTrampolinesWithThread, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6ThreadENS_6ObjPtrINS_6mirror5ClassEEE");
-
-             bool orig_hooked = hooked;
-             hooked = false;
-             HOOK_SYMBOL(UpdateMethodsCode, "_ZN3art15instrumentation15Instrumentation21UpdateMethodsCodeImplEPNS_9ArtMethodEPKv");
-             if (!hooked) {
-                 LOGE("Failed to hook UpdateMethodsCode, something may not work!");
-             }
-             hooked = orig_hooked;
          }
      }
+
      HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
      if (!hooked) {
          // Before Android 8.0, it uses raw mirror::Class* without ObjPtr<>
