@@ -112,6 +112,7 @@ namespace pine::art {
         }
 
         void* DecodeJObject(jobject o) {
+            if (!decode_jobject) return nullptr;
             return decode_jobject(this, o);
         }
 

@@ -66,5 +66,5 @@ void Thread::Init(const ElfImg* handle) {
     }
 
     decode_jobject = reinterpret_cast<void* (*)(Thread*, jobject)>(handle->GetSymbolAddress(
-            "_ZNK3art6Thread13DecodeJObjectEP8_jobject")); // art::Thread::DecodeJObject(_jobject *)
+            "_ZNK3art6Thread13DecodeJObjectEP8_jobject", false)); // art::Thread::DecodeJObject(_jobject *)
 }

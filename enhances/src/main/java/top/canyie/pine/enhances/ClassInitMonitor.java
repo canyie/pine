@@ -36,7 +36,7 @@ public class ClassInitMonitor {
 
     public static void care(Class<?> cls) {
         if (cls == null) throw new NullPointerException("cls == null");
-        PineEnhances.careClassInit(Pine.getAddress(Primitives.currentArtThread(), cls));
+        PineEnhances.careClassInit(Primitives.getAddress(cls));
     }
 
     public interface Callback {
