@@ -69,6 +69,11 @@ public final class Pine {
 
     /**
      * Initialize the Pine library if not initialized.
+     * WARNING: Calling this API will disable hidden api policy when
+     * {@code PineConfig.disableHiddenApiPolicy} or {@code PineConfig.disableHiddenApiPolicyForPlatformDomain}.
+     * Due to an ART bug, if a thread changes hidden api policy while another thread is calling
+     * a API that lists members of a class, a out-of-bounds write may occur and causes crashes.
+     * See <a href="https://github.com/tiann/FreeReflection/issues/60">...</a> for more details.
      */
     public static void ensureInitialized() {
         if (initialized) return;

@@ -131,6 +131,8 @@ private static void methodLocked() {
 ```
 In the example, we recommend you to hook `methodLocked` instead of `method`.
 
+- Pine will disable hidden api policy on initialization by default. Due to an ART bug, if a thread changes hidden api policy while another thread is calling a API that lists members of a class, a out-of-bounds write may occur and causes crashes. We have no way to fix system bugs, so the only way is, initialize our library before other threads is started to avoid the race condition. For more info, see tiann/FreeReflection#60.
+
 - For more, see [issues](https://github.com/canyie/pine/issues).
 
 ## Discussion
