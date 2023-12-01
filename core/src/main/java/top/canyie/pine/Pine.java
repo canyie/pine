@@ -103,8 +103,7 @@ public final class Pine {
         int sdkLevel = PineConfig.sdkLevel;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
-        else if (sdkLevel > Build.VERSION_CODES.S_V2) {
-            Log.w(TAG, "Android version too high, not tested now...");
+        else if (sdkLevel == Build.VERSION_CODES.TIRAMISU) {
             if (isAtLeastPreReleaseCodename("UpsideDownCake")) {
                 // Android 14 (UpsideDownCake) Preview
                 sdkLevel = Build.VERSION_CODES.TIRAMISU + 1;

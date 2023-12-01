@@ -5,6 +5,7 @@
 #ifndef PINE_ANDROID_H
 #define PINE_ANDROID_H
 
+#include <vector>
 #include <jni.h>
 #include <android/api-level.h>
 #include "art/gc_defs.h"
@@ -113,22 +114,24 @@ namespace pine {
         static void InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle, bool has_small_irt);
         static void InitJitCodeCache(void* runtime, size_t java_vm_offset, const ElfImg* handle);
 
-        static size_t OffsetOfJavaVm(bool has_small_irt) {
-            if (has_small_irt) {
-                return Is64Bit() ? 528 : 0 /* TODO: Calculate offset on 32-bit. Currently force fallback to search memory. */;
+        static std::vector<size_t> OffsetOfJavaVm(bool has_small_irt) {
+            std::vector<size_t> offsets;
+            // This function will only be called on Android 10+ where ART is always an apex module.
+            // Since APEX module can be upgraded through Gogole Play update without the need to
+            // update Android major version, hardcode offset will be meaningless on old Android
+            // major versions with new ART. We list all offsets we known.
+            if (LIKELY(has_small_irt)) {
+                offsets.emplace_back(Is64Bit() ? 632 : 356); // ART 14
+                if (version < kU)
+                    offsets.emplace_back(Is64Bit() ? 624 : 352); // ART 13
+                if (UNLIKELY(version < kT))
+                    offsets.emplace_back(Is64Bit() ? 528 : 304); // ART 12
+            } else {
+                offsets.emplace_back(Is64Bit() ? 520 : 300); // ART 12
+                if (UNLIKELY(version < kS))
+                    offsets.emplace_back(Is64Bit() ? 496 : 288); // ART 10-11
             }
-            switch (version) {
-                default:
-                    LOGW("Unsupported Android API level %d", Android::version);
-                    [[fallthrough]];
-                case kU :
-                case kT:
-                case kSL:
-                case kS:
-                case kR:
-                case kQ:
-                    return Is64Bit() ? 496 : 288;
-            }
+            return offsets;
         }
 
         static void (*suspend_vm)();

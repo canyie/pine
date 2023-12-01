@@ -214,14 +214,18 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
     bool has_smaller_irt = version >= kT || handle->GetSymbolAddress(
             "_ZN3art17SmallIrtAllocator10DeallocateEPNS_8IrtEntryE", false) != nullptr;
 
-    size_t jvm_offset = OffsetOfJavaVm(has_smaller_irt);
-    auto val = jvm_offset
-            ? reinterpret_cast<std::unique_ptr<JavaVM>*>(reinterpret_cast<uintptr_t>(runtime) + jvm_offset)->get()
-            : nullptr;
-    if (LIKELY(val == jvm)) {
-        LOGD("JavaVM offset matches the default offset");
-    } else {
-        LOGW("JavaVM offset mismatches the default offset, try search the memory of Runtime");
+    std::vector<size_t> known_offsets = OffsetOfJavaVm(has_smaller_irt);
+    size_t jvm_offset = 0;
+    for (size_t offset : known_offsets) {
+        auto val = reinterpret_cast<std::unique_ptr<JavaVM>*>(
+                reinterpret_cast<uintptr_t>(runtime) + offset)->get();
+        if (val == jvm) {
+            jvm_offset = offset;
+            break;
+        }
+    }
+    if (UNLIKELY(!jvm_offset)) {
+        LOGW("JavaVM offset mismatches default offsets, trying a linear search");
         int offset = Memory::FindOffset(runtime, jvm, 1024, 4);
         if (UNLIKELY(offset == -1)) {
             LOGE("Failed to find java vm from Runtime");
