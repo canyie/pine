@@ -25,6 +25,7 @@ public class ExampleApp extends Application {
     public static final TestItem TOGGLE_DELAY_HOOK_TEST  = new TestItem("Enable/Disable Delay Hook", new DelayHookTest());
     public static final TestItem[] ALL_TESTS = {
             TOGGLE_DELAY_HOOK_TEST,
+            new TestItem("Access Hidden API", new AccessHiddenApiTest()),
             new TestItem("Non-Static Method Hook", new NonStaticTest()),
             new TestItem("Direct Method Hook", new DirectMethodTest()),
             new TestItem("Constructor Hook", new ConstructorTest()),
@@ -82,11 +83,9 @@ public class ExampleApp extends Application {
         tombstones.setReadable(true, false);
         tombstones.setExecutable(true, false);
 
-        ICrashCallback callback = new ICrashCallback() {
-            @Override public void onCrash(String logPath, String emergency) {
-                Log.e(TAG, "XCrash triggered: logPath " + logPath + " emergency " + emergency);
-                new File(logPath).setReadable(true, false);
-            }
+        ICrashCallback callback = (logPath, emergency) -> {
+            Log.e(TAG, "XCrash triggered: logPath " + logPath + " emergency " + emergency);
+            new File(logPath).setReadable(true, false);
         };
 
         final int logLinesOfSystemAndEventMax = 300;
