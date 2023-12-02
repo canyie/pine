@@ -35,6 +35,7 @@ bool PineConfig::debug = false;
 bool PineConfig::debuggable = false;
 bool PineConfig::anti_checks = false;
 bool PineConfig::jit_compilation_allowed = true;
+bool PineConfig::auto_compile_bridge = false;
 
 EXPORT_C void PineSetAndroidVersion(int version) {
     Android::version = version;
@@ -143,7 +144,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
 
-    if (PineConfig::jit_compilation_allowed) {
+    if (PineConfig::jit_compilation_allowed && PineConfig::auto_compile_bridge) {
         // The bridge method entry will be hardcoded in the trampoline, subsequent optimization
         // operations that require modification of the bridge method entry will not take effect.
         // Try to do JIT compilation first to get the best performance.
@@ -157,7 +158,7 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
 
     TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
 
-    if (UNLIKELY(is_inline_hook && trampoline_installer->IsReplacementOnly())) {
+    if (is_inline_hook && (trampoline_installer->IsReplacementOnly() || !target->IsCompiled())) {
         is_inline_hook = false;
     }
 
@@ -264,8 +265,9 @@ jboolean Pine_disableJitInline0(JNIEnv*, jclass) {
     return static_cast<jboolean>(art::Jit::DisableInline());
 }
 
-void Pine_setJitCompilationAllowed(JNIEnv*, jclass, jboolean allowed) {
-    PineConfig::jit_compilation_allowed = allowed;
+void Pine_setJitCompilationAllowed(JNIEnv*, jclass, jboolean allowed, jboolean autoCompileBridge) {
+    PineConfig::jit_compilation_allowed = JBOOL_TRUE(allowed);
+    PineConfig::auto_compile_bridge = JBOOL_TRUE(autoCompileBridge);
 }
 
 jboolean Pine_disableProfileSaver0(JNIEnv*, jclass) {
@@ -454,7 +456,7 @@ static const struct {
         {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V"},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z"},
         {"disableJitInline0", "()Z"},
-        {"setJitCompilationAllowed0", "(Z)V"},
+        {"setJitCompilationAllowed0", "(ZZ)V"},
         {"disableProfileSaver0", "()Z"},
         {"getObject0", "(JJ)Ljava/lang/Object;"},
         {"getAddress0", "(JLjava/lang/Object;)J"},
@@ -488,7 +490,7 @@ static const JNINativeMethod gMethods[] = {
         {"compile0", "(JLjava/lang/reflect/Member;)Z", (void*) Pine_compile0},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z", (void*) Pine_decompile0},
         {"disableJitInline0", "()Z", (void*) Pine_disableJitInline0},
-        {"setJitCompilationAllowed0", "(Z)V", (void*) Pine_setJitCompilationAllowed},
+        {"setJitCompilationAllowed0", "(ZZ)V", (void*) Pine_setJitCompilationAllowed},
         {"disableProfileSaver0", "()Z", (void*) Pine_disableProfileSaver0},
         {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_syncMethodInfo},
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},

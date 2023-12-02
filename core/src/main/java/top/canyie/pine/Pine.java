@@ -36,7 +36,7 @@ public final class Pine {
     private static final Map<Long, HookRecord> sHookRecords = new ConcurrentHashMap<>();
     private static final Object sHookLock = new Object();
     private static int arch;
-    private static volatile int hookMode = HookMode.AUTO;
+    private static volatile int hookMode;
     private static HookHandler sHookHandler = new HookHandler() {
         @Override
         public MethodHook.Unhook handleHook(HookRecord hookRecord, MethodHook hook, int modifiers,
@@ -119,6 +119,8 @@ public final class Pine {
         if (vmVersion == null || !vmVersion.startsWith("2"))
             throw new RuntimeException("Only supports ART runtime");
 
+        hookMode = sdkLevel < Build.VERSION_CODES.O ? HookMode.INLINE_WITHOUT_JIT : HookMode.REPLACEMENT;
+
         try {
             LibLoader libLoader = PineConfig.libLoader;
             if (libLoader != null) libLoader.loadLib();
@@ -168,17 +170,26 @@ public final class Pine {
     }
 
     /**
-     * Set how Pine to hook method.
-     * @param newHookMode One of {@code Pine.HookMode.AUTO}, {@code Pine.HookMode.INLINE} or
-     *                    {@code Pine.HookMode.REPLACEMENT}.
+     * Set the way how Pine hook method.
+     * @param newHookMode One of {@code Pine.HookMode.AUTO}, {@code Pine.HookMode.INLINE},
+     *                    {@code Pine.HookMode.REPLACEMENT} or {@code Pine.HookMode.INLINE_WITHOUT_JIT}.
      * @throws IllegalArgumentException If the {@code newHookMode} is not one of
-     *                     {@code Pine.HookMode.AUTO}, {@code Pine.HookMode.INLINE} or
-     *                     {@code Pine.HookMode.REPLACEMENT}.
+     *                     {@code Pine.HookMode.AUTO}, {@code Pine.HookMode.INLINE},
+     *                     {@code Pine.HookMode.REPLACEMENT}, or {@code Pine.HookMode.INLINE_WITHOUT_JIT}.
      * @see Pine.HookMode
      */
     public static void setHookMode(int newHookMode) {
-        if (newHookMode < HookMode.AUTO || newHookMode > HookMode.REPLACEMENT)
+        if (newHookMode < HookMode.AUTO || newHookMode > HookMode.INLINE_WITHOUT_JIT)
             throw new IllegalArgumentException("Illegal hookMode " + newHookMode);
+        if (newHookMode == HookMode.AUTO) {
+            // On Android N or lower, entry_point_from_compiled_code_ may be hard-coded in the machine code
+            // (sharpening optimization), entry replacement will most likely not take effect,
+            // so we prefer to use inline hook; And on Android O+, this optimization is not performed,
+            // so we prefer a more stable entry replacement mode.
+
+            newHookMode = PineConfig.sdkLevel < Build.VERSION_CODES.O
+                    ? HookMode.INLINE_WITHOUT_JIT : HookMode.REPLACEMENT;
+        }
         hookMode = newHookMode;
     }
 
@@ -309,17 +320,8 @@ public final class Pine {
 
     static void hookNewMethod(HookRecord hookRecord, int modifiers, boolean canInitDeclaringClass) {
         Member method = hookRecord.target;
-        boolean isInlineHook;
-        if (hookMode == HookMode.AUTO) {
-            // On Android N or lower, entry_point_from_compiled_code_ may be hard-coded in the machine code
-            // (sharpening optimization), entry replacement will most likely not take effect,
-            // so we prefer to use inline hook; And on Android O+, this optimization is not performed,
-            // so we prefer a more stable entry replacement mode.
-
-            isInlineHook = PineConfig.sdkLevel < Build.VERSION_CODES.O;
-        } else {
-            isInlineHook = hookMode == HookMode.INLINE;
-        }
+        final int mode = hookMode;
+        boolean isInlineHook = mode == HookMode.INLINE || mode == HookMode.INLINE_WITHOUT_JIT;
 
         long thread = currentArtThread0();
         if ((hookRecord.isStatic = Modifier.isStatic(modifiers)) && canInitDeclaringClass) {
@@ -344,10 +346,12 @@ public final class Pine {
         if (isInlineHook) {
             // Cannot compile native or proxy methods.
             if (!(jni || proxy)) {
-                boolean compiled = compile0(thread, method);
-                if (!compiled) {
-                    Log.w(TAG, "Cannot compile the target method, force replacement mode.");
-                    isInlineHook = false;
+                if (mode == HookMode.INLINE) {
+                    boolean compiled = compile0(thread, method);
+                    if (!compiled) {
+                        Log.w(TAG, "Cannot compile the target method, force replacement mode.");
+                        isInlineHook = false;
+                    }
                 }
             } else {
                 isInlineHook = false;
@@ -580,12 +584,21 @@ public final class Pine {
      * @param allowed {@code true} if allowed, {@code false} otherwise.
      */
     public static void setJitCompilationAllowed(boolean allowed) {
+        setJitCompilationAllowed(allowed, false);
+    }
+
+    /**
+     * Set whether we can manually JIT compile a method.
+     * @param allowed {@code true} if allowed, {@code false} otherwise.
+     * @param autoCompileBridge {@code true} if try to automatically compile bridge methods for better performance
+     */
+    public static void setJitCompilationAllowed(boolean allowed, boolean autoCompileBridge) {
         if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
             // No JIT.
             return;
         }
         ensureInitialized();
-        setJitCompilationAllowed0(allowed);
+        setJitCompilationAllowed0(allowed, autoCompileBridge);
     }
 
     /**
@@ -750,7 +763,7 @@ public final class Pine {
 
     private static native boolean disableJitInline0();
 
-    private static native void setJitCompilationAllowed0(boolean allowed);
+    private static native void setJitCompilationAllowed0(boolean allowed, boolean autoCompileBridge);
 
     private static native boolean disableProfileSaver0();
 
@@ -816,15 +829,25 @@ public final class Pine {
         int AUTO = 0;
 
         /**
-         * INLINE: Use inline hook (overwrite the first few instructions to hook) first.
+         * INLINE: Prefer inline hook (overwrite the first few instructions to hook),
+         * try to manually compile the method if not compiled.
          * If the method cannot be hooked in this mode, fallback to {@code REPLACEMENT}.
+         * @deprecated Since manually do a JIT compilation causes crashes on some devices,
+         * we prefer {@code INLINE_WITHOUT_JIT} instead.
          */
+        @Deprecated
         int INLINE = 1;
 
         /**
          * REPLACEMENT: Always change entry point of the method to hook it.
          */
         int REPLACEMENT = 2;
+
+        /**
+         * Similar to {@code INLINE}, but when the target method isn't compiled yet,
+         * automatically fallback to {@code REPLACEMENT} mode instead of manually compile it
+         */
+        int INLINE_WITHOUT_JIT = 3;
     }
 
     /**
