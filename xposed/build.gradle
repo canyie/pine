@@ -4,9 +4,10 @@ apply plugin: 'signing'
 
 android {
     compileSdk rootProject.ext.compileSdk
+    namespace "top.canyie.pine.xposed"
     defaultConfig {
-        minSdkVersion 19
-        targetSdkVersion 33
+        minSdkVersion rootProject.ext.minSdk
+        targetSdkVersion rootProject.ext.targetSdk
         versionCode 1
         versionName "1.0"
 

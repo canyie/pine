@@ -3,11 +3,11 @@ apply plugin: 'com.android.application'
 android {
     compileSdk rootProject.ext.compileSdk
     ndkVersion rootProject.ext.ndkVersion
+    namespace "top.canyie.pine.examples"
     defaultConfig {
         applicationId "top.canyie.pine.examples"
-        minSdkVersion 19
-        // noinspection ExpiredTargetSdkVersion
-        targetSdkVersion 27
+        minSdkVersion rootProject.ext.minSdk
+        targetSdkVersion rootProject.ext.targetSdk
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -41,6 +41,7 @@ android {
 
     buildFeatures {
         // prefab true
+        buildConfig true
     }
 }
 
@@ -48,7 +49,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':core')
     implementation project(':enhances')
-    implementation 'com.iqiyi.xcrash:xcrash-android-lib:2.4.9'
+    implementation 'com.iqiyi.xcrash:xcrash-android-lib:3.0.0'
 
     androidTestImplementation "androidx.test.ext:junit:1.1.5"
     androidTestImplementation "androidx.test:runner:1.5.2"
