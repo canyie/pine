@@ -23,6 +23,7 @@ IT NE
 ldrne pc, pine_thumb_bridge_jump_trampoline_call_origin_entry
 
 ldr ip, pine_thumb_bridge_jump_trampoline_extras
+str r4, [sp, #-128] // Backup R4 because we clobbered it in the next STREX instruction
 
 acquire_lock:
 ldrex r0, [ip]
@@ -34,16 +35,17 @@ wfene // other thread holding the lock, wait it release lock
 mov r0, #0
 
 IT EQ
-strexeq r0, r0, [ip]
+strexeq r4, r0, [ip]
 
 IT EQ
-cmpeq r0, #0 // store succeeded?
+cmpeq r4, #0 // store succeeded?
 
 bne acquire_lock // acquire lock failed, try again
 
 dmb
 
 // Now we hold the lock!
+ldr r4, [sp, #-128] // Restore R4
 str r1, [ip, #4]
 str r2, [ip, #8]
 str r3, [ip, #12]

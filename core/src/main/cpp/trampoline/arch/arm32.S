@@ -18,18 +18,20 @@ ldr ip, pine_bridge_jump_trampoline_target_method
 cmp r0, ip
 ldrne pc, pine_bridge_jump_trampoline_call_origin_entry
 ldr ip, pine_bridge_jump_trampoline_extras
+str r4, [sp, #-128]
 
 acquire_lock:
 ldrex r0, [ip]
 cmp r0, #1
 wfene // other thread holding the lock, wait it release lock
 mov r0, #0
-strexeq r0, r0, [ip]
-cmpeq r0, #0 // store succeeded?
+strexeq r4, r0, [ip]
+cmpeq r4, #0 // store succeeded?
 bne acquire_lock // acquire lock failed, try again
 dmb
 
 // Now we hold the lock!
+ldr r4, [sp, #-128]
 str r1, [ip, #4]
 str r2, [ip, #8]
 str r3, [ip, #12]
