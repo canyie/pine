@@ -9,6 +9,9 @@ Currently it supports Android 4.4(ART only) ~ **14** with thumb-2/arm64 architec
 About its working principle, you can refer to this Chinese [article](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/).
 
 Note: For Android 6.0 devices with arm32/thumb-2 architectures, the arguments may be wrong; and for Android 9.0+, pine will disable the hidden api restriction policy.
+
+~~The name, Pine, represents a class of antipsychotic drugs represented by Quetiapine and Clozapine. It is also an acronym for "Pine Is Not Epic".~~
+
 ## Usage
 ### Basic Usage
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/core.svg)](https://repo1.maven.org/maven2/top/canyie/pine/core/)
@@ -101,7 +104,7 @@ PineXposed.loadModule(new File(modulePath));
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
 
-## Enhanced Features
+### Enhanced Features
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/enhances.svg)](https://repo1.maven.org/maven2/top/canyie/pine/enhances/)
 
 With [Dobby](https://github.com/jmpews/Dobby), you can use some enhanced features:
@@ -112,6 +115,41 @@ implementation 'top.canyie.pine:enhances:<version>'
 - Delay hook (aka pending hook) support, hooking static methods without initializing its declaring class immediately:
 ```java
 PineEnhances.enableDelayHook();
+```
+
+### ProGuard
+Add the following code to your `proguard-rules.pro`:
+```
+# Pine
+-keep class top.canyie.pine.Pine {
+    public static long openElf;
+    public static long findElfSymbol;
+    public static long closeElf;
+    private static int arch;
+}
+-keep class top.canyie.pine.Ruler { *; }
+-keep class top.canyie.pine.Ruler$I { *; }
+-keep class top.canyie.pine.entry.**Entry {
+    static *** **Bridge(...);
+}
+
+# Prevent R8 from removing "unused" library native methods while they're still being used
+-keep class * {
+    native <methods>;
+}
+```
+If you are using enhanced features:
+```
+# Pine Enhances
+-keep class top.canyie.pine.enhances.PineEnhances {
+    private static void onClassInit(long);
+}
+```
+If you use Xposed features and Xposed APIs need to be called outside your module (e.g. you call `PineXposed.loadModule()` to load external modules):
+```
+# Keep Xposed APIs
+-keep class de.robv.android.xposed.** { *; }
+-keep class android.** { *; }
 ```
 
 ## Known issues

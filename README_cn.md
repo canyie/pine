@@ -8,6 +8,8 @@ Pine是一个在虚拟机层面、以Java方法为粒度的运行时动态hook�
 
 注：在Android 6.0 & 32位架构上，参数解析可能错误；另外在Android 9.0及以上，Pine会关闭系统的隐藏API限制策略。
 
+~~此项目的名称，Pine，表示以喹硫平、氯氮平为代表的一类抗精神病药物。它同样是 Pine Is Not Epic 的首字母缩写。~~
+
 ## 使用
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/core.svg)](https://repo1.maven.org/maven2/top/canyie/pine/core/)
 
@@ -109,7 +111,7 @@ PineXposed.loadModule(new File(modulePath));
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
 
-## 增强功能
+### 增强功能
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/enhances.svg)](https://repo1.maven.org/maven2/top/canyie/pine/enhances/)
 
 借助[Dobby](https://github.com/jmpews/Dobby), 你可以使用一些增强功能:
@@ -120,6 +122,41 @@ implementation 'top.canyie.pine:enhances:<version>'
 - Delay hook (也称为pending hook), hook静态方法无需立刻初始化它所在的类，只需要加入以下代码:
 ```java
 PineEnhances.enableDelayHook();
+```
+
+### ProGuard
+将以下代码添加到你的 `proguard-rules.pro`:
+```
+# Pine
+-keep class top.canyie.pine.Pine {
+    public static long openElf;
+    public static long findElfSymbol;
+    public static long closeElf;
+    private static int arch;
+}
+-keep class top.canyie.pine.Ruler { *; }
+-keep class top.canyie.pine.Ruler$I { *; }
+-keep class top.canyie.pine.entry.**Entry {
+    static *** **Bridge(...);
+}
+
+# Prevent R8 from removing "unused" library native methods while they're still being used
+-keep class * {
+    native <methods>;
+}
+```
+如果你同时使用增强功能:
+```
+# Pine Enhances
+-keep class top.canyie.pine.enhances.PineEnhances {
+    private static void onClassInit(long);
+}
+```
+如果你使用 Xposed 功能，并且 Xposed 相关接口会被外部调用 (比如你调用 `PineXposed.loadModule()` 加载其他模块):
+```
+# Keep Xposed APIs
+-keep class de.robv.android.xposed.** { *; }
+-keep class android.** { *; }
 ```
 
 ## 已知问题：
