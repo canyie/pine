@@ -106,6 +106,15 @@ public final class XposedBridge {
 	}
 
 	/**
+	 * Deoptimize a method to avoid callee being inlined.
+	 *
+	 * @param method The method to deoptmize. Generally it should be a caller of a method that is inlined.
+	 */
+	public static void deoptimizeMethod(Member method) {
+		Pine.decompile(method, true);
+	}
+
+	/**
 	 * Hook any method (or constructor) with the specified callback. See below for some wrappers
 	 * that make it easier to find a method/constructor in one step.
 	 *

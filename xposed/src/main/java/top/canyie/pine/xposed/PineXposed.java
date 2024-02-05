@@ -46,13 +46,17 @@ public final class PineXposed {
     }
 
     public static void loadModule(File module, boolean startsSystemServer) {
+        loadModule(module, null, startsSystemServer);
+    }
+
+    public static void loadModule(File module, String librarySearchPath, boolean startsSystemServer) {
         if (!module.exists()) {
             Log.e(TAG, "  File " + module + " does not exist");
             return;
         }
         ClassLoader initCl = PineXposed.class.getClassLoader();
         String modulePath = module.getAbsolutePath();
-        ModuleClassLoader mcl = new ModuleClassLoader(modulePath, initCl);
+        ModuleClassLoader mcl = new ModuleClassLoader(modulePath, librarySearchPath, initCl);
         loadOpenedModule(modulePath, mcl, startsSystemServer);
     }
 
