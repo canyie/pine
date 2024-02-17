@@ -4,6 +4,8 @@ import android.annotation.SuppressLint;
 import android.os.Build;
 import android.util.Log;
 
+import org.lsposed.hiddenapibypass.HiddenApiBypass;
+
 import top.canyie.pine.callback.MethodHook;
 import top.canyie.pine.entry.Arm64MarshmallowEntry;
 
@@ -108,10 +110,15 @@ public final class Pine {
         int sdkLevel = PineConfig.sdkLevel;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
-        else if (sdkLevel == Build.VERSION_CODES.TIRAMISU) {
-            if (isAtLeastPreReleaseCodename("UpsideDownCake")) {
-                // Android 14 (UpsideDownCake) Preview
-                sdkLevel = Build.VERSION_CODES.TIRAMISU + 1;
+        else if (sdkLevel == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (isAtLeastPreReleaseCodename("VanillaIceCream")) {
+                // Android 15 (VanillaIceCream) Preview
+                sdkLevel = Build.VERSION_CODES.UPSIDE_DOWN_CAKE + 1;
+
+                // Temporary support for Android 15 DP1 which uses a stripped libart.so
+                // thus many symbols cannot be found and breaks our hidden api bypass
+                if (PineConfig.disableHiddenApiPolicy || PineConfig.disableHiddenApiPolicyForPlatformDomain)
+                    HiddenApiBypass.addHiddenApiExemptions("");
             }
         }
 
