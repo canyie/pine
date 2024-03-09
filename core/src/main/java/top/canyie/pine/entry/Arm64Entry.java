@@ -133,7 +133,7 @@ public final class Arm64Entry {
                         } else if (paramType == long.class) {
                             value = asLong;
                         } else if (paramType == boolean.class) {
-                            value = asLong != 0;
+                            value = (asLong & INT_BITS) != 0;
                         } else if (paramType == short.class) {
                             value = (short) (asLong & SHORT_BITS);
                         } else if (paramType == char.class) {
