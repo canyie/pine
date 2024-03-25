@@ -68,7 +68,7 @@ publishing {
         mavenJava(MavenPublication) {
             group rootProject.groupId
             artifactId 'core'
-            version '0.2.8'
+            version '0.2.9'
             // the components are created only during the afterEvaluate phase
             afterEvaluate {
                 from components.release

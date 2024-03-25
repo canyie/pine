@@ -125,26 +125,6 @@ PineEnhances.enableDelayHook();
 ```
 
 ### ProGuard
-将以下代码添加到你的 `proguard-rules.pro`:
-```
-# Pine
--keep class top.canyie.pine.Pine {
-    public static long openElf;
-    public static long findElfSymbol;
-    public static long closeElf;
-    private static int arch;
-}
--keep class top.canyie.pine.Ruler { *; }
--keep class top.canyie.pine.Ruler$I { *; }
--keep class top.canyie.pine.entry.**Entry {
-    static *** **Bridge(...);
-}
-
-# Prevent R8 from removing "unused" library native methods while they're still being used
--keep class * {
-    native <methods>;
-}
-```
 如果你同时使用增强功能:
 ```
 # Pine Enhances
