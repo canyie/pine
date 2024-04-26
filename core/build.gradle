@@ -60,7 +60,6 @@ android {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
-    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
 }
 
 publishing {

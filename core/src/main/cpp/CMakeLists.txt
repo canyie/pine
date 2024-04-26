@@ -13,6 +13,13 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${LINKER_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${LINKER_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${LINKER_FLAGS}")
 
+include_directories(external/xz-embedded/linux/include/linux external/xz-embedded/userspace)
+
+set(XZ_EMBEDDED_SOURCE
+        external/xz-embedded/linux/lib/xz/xz_crc32.c
+        external/xz-embedded/linux/lib/xz/xz_dec_lzma2.c
+        external/xz-embedded/linux/lib/xz/xz_dec_stream.c)
+
 set(PINE_SOURCES
         pine.cpp
         ruler.cpp
@@ -25,7 +32,8 @@ set(PINE_SOURCES
         utils/memory.cpp
         utils/scoped_memory_access_protection.cpp
         utils/elf_img.cpp
-        utils/well_known_classes.cpp)
+        utils/well_known_classes.cpp
+        ${XZ_EMBEDDED_SOURCE})
 
 if (CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
     set(CMAKE_ASM_FLAGS "${CMAKE_ASM_FLAGS} -arch armv7")

@@ -9,6 +9,7 @@
 #ifndef PINE_ELF_IMG_H
 #define PINE_ELF_IMG_H
 
+#include <vector>
 #include <linux/elf.h>
 #include <stdio.h>
 #include "macros.h"
@@ -62,6 +63,8 @@ namespace pine {
         ~ElfImg();
 
     private:
+        bool ParseMemory(Elf_Ehdr* header, bool is_debugdata);
+        bool ParseDebugdata(uint8_t* debugdata, size_t size);
         // Pine changed: GetModuleBase is private
         void* GetModuleBase(const char* name);
 
@@ -81,7 +84,6 @@ namespace pine {
         off_t size = 0;
         off_t bias = -4396;
         Elf_Ehdr* header = nullptr;
-        Elf_Shdr* section_header = nullptr;
         Elf_Shdr* symtab = nullptr;
         Elf_Shdr* strtab = nullptr;
         Elf_Shdr* dynsym = nullptr;
@@ -96,6 +98,7 @@ namespace pine {
         Elf_Off dynsym_offset = 0;
         Elf_Off symtab_size = 0;
         Elf_Off dynsym_size = 0;
+        std::vector<uint8_t> debugdata_;
     };
 }
 

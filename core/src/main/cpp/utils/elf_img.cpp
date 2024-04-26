@@ -12,6 +12,7 @@
 #include <malloc.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <xz.h>
 #include "io_wrapper.h"
 #include "log.h"
 #include "macros.h"
@@ -41,10 +42,22 @@ void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
 
     close(fd);
 
-    // Pine changed: Use uintptr_t instead of size_t
+    ParseMemory(header, false);
 
+    if (UNLIKELY(!symtab_offset && warn_if_symtab_not_found)) {
+        // Pine changed: print log with filename
+        // LOGW("can't find symtab from sections\n");
+        LOGW("can't find symtab from sections in %s\n", path);
+    }
+
+    //load module base
+    base = GetModuleBase(path);
+}
+
+bool ElfImg::ParseMemory(Elf_Ehdr* header, bool is_debugdata) {
+    // Pine changed: Use uintptr_t instead of size_t
     // section_header = reinterpret_cast<Elf_Shdr *>(((size_t) header) + header->e_shoff);
-    section_header = reinterpret_cast<Elf_Shdr*>(((uintptr_t) header) + header->e_shoff);
+    Elf_Shdr* section_header = reinterpret_cast<Elf_Shdr*>(((uintptr_t) header) + header->e_shoff);
 
     // size_t shoff = reinterpret_cast<size_t>(section_header);
     auto shoff = reinterpret_cast<uintptr_t>(section_header);
@@ -58,7 +71,7 @@ void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
         Elf_Off entsize = section_h->sh_entsize;
         switch (section_h->sh_type) {
             case SHT_DYNSYM:
-                if (bias == -4396) {
+                if (bias == -4396 && !is_debugdata) {
                     dynsym = section_h;
                     dynsym_offset = section_h->sh_offset;
                     dynsym_size = section_h->sh_size;
@@ -89,22 +102,49 @@ void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
                 }
                 break;
             case SHT_PROGBITS:
-                if (strtab == nullptr || dynsym == nullptr) break;
+                if (strtab == nullptr || dynsym == nullptr || is_debugdata) break;
                 if (bias == -4396) {
                     bias = (off_t) section_h->sh_addr - (off_t) section_h->sh_offset;
+                }
+                if (strcmp(".gnu_debugdata", sname) == 0) {
+                    auto debugdata = reinterpret_cast<uint8_t*>((uintptr_t) header + section_h->sh_offset);
+                    if (!ParseDebugdata(debugdata, section_h->sh_size)) [[unlikely]] {
+                        debugdata_.clear();
+                    }
                 }
                 break;
         }
     }
+    return true;
+}
 
-    if (UNLIKELY(!symtab_offset && warn_if_symtab_not_found)) {
-        // Pine changed: print log with filename
-        // LOGW("can't find symtab from sections\n");
-        LOGW("can't find symtab from sections in %s\n", path);
+bool ElfImg::ParseDebugdata(uint8_t* debugdata, size_t size) {
+    uint8_t buf[8192];
+    xz_crc32_init();
+    struct xz_dec *dec = xz_dec_init(XZ_DYNALLOC, 1 << 20);
+    if (!dec) [[unlikely]] {
+        LOGE("Failed to initialize xz decoder!");
+        return false;
     }
-
-    //load module base
-    base = GetModuleBase(path);
+    struct xz_buf b = {
+            .in = debugdata,
+            .in_pos = 0,
+            .in_size = size,
+            .out = buf,
+            .out_pos = 0,
+            .out_size = sizeof(buf)
+    };
+    do {
+        enum xz_ret ret = xz_dec_run(dec, &b);
+        if (ret != XZ_OK && ret != XZ_STREAM_END) [[unlikely]] {
+            xz_dec_end(dec);
+            return false;
+        }
+        debugdata_.insert(debugdata_.end(), buf, buf + b.out_pos);
+        b.out_pos = 0;
+    } while (b.in_pos != size);
+    xz_dec_end(dec);
+    return ParseMemory(reinterpret_cast<Elf_Ehdr*>(debugdata_.data()), true);
 }
 
 void ElfImg::RelativeOpen(const char* elf, bool warn_if_symtab_not_found) {
