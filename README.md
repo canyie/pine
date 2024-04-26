@@ -103,6 +103,9 @@ PineXposed.loadModule(new File(modulePath));
 // 2. call all 'IXposedHookLoadPackage' callback
 PineXposed.onPackageLoad(packageName, processName, appInfo, isFirstApp, classLoader);
 ```
+Note:
+1. Hooks will only take effect in the current process. If you want hooks take effect in other processes, inject your code into them first. There's nothing to do with us.
+2. Modules that use unsupported features (e.g. Resources hook or XSharedPreferences) will not work.
 
 ### Enhanced Features
 [![Download](https://img.shields.io/maven-central/v/top.canyie.pine/enhances.svg)](https://repo1.maven.org/maven2/top/canyie/pine/enhances/)

@@ -6,7 +6,6 @@ import android.content.SharedPreferences;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
-import android.system.StructStat;
 import android.util.Log;
 
 import com.android.internal.util.XmlUtils;
@@ -32,12 +31,36 @@ import java.util.Set;
 @Deprecated
 public final class XSharedPreferences implements SharedPreferences {
 	private static final String TAG = "XSharedPreferences";
+	private static Loader sLoader = Loader.SYNC;
 	private final File mFile;
 //	private final String mFilename;
 	private Map<String, Object> mMap;
 	private boolean mLoaded = false;
 	private long mLastModified;
 	private long mFileSize;
+
+	public interface Loader {
+		Loader SYNC = (pref, action) -> {
+			StrictMode.ThreadPolicy policy = StrictMode.allowThreadDiskReads();
+			try {
+				action.run();
+			} finally {
+				StrictMode.setThreadPolicy(policy);
+			}
+		};
+		Loader ASYNC = (pref, action) -> new Thread("XSharedPreferences-load") {
+            @Override public void run() {
+                synchronized (pref) {
+                    action.run();
+                }
+            }
+        }.start();
+		void run(XSharedPreferences pref, Runnable action);
+	}
+
+	public static void setLoader(Loader loader) {
+		sLoader = loader;
+	}
 
 	/**
 	 * Read settings from the specified file.
@@ -106,14 +129,7 @@ public final class XSharedPreferences implements SharedPreferences {
 		synchronized (this) {
 			mLoaded = false;
 		}
-		new Thread("XSharedPreferences-load") {
-			@Override
-			public void run() {
-				synchronized (XSharedPreferences.this) {
-					loadFromDiskLocked();
-				}
-			}
-		}.start();
+		sLoader.run(this, this::loadFromDiskLocked);
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
