@@ -119,8 +119,8 @@ static bool HookFunc(void* target, void* replace, void** backup) {
     return DobbyHook(target, replace, backup) == RS_SUCCESS;
 }
 
-static bool HookSymbol(void* handle, const char* symbol, void* replace, void** backup) {
-    void* target = FindElfSymbol(handle, symbol, true);
+static bool HookSymbol(void* handle, const char* symbol, void* replace, void** backup, bool required) {
+    void* target = FindElfSymbol(handle, symbol, required);
     if (!target) return false;
     return HookFunc(target, replace, backup);
 }
@@ -279,28 +279,28 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 
      bool hooked = false;
 #define HOOK_FUNC(name) hooked |= HookFunc(name, (void*) replace_##name , (void**) &backup_##name)
-#define HOOK_SYMBOL(name, symbol) hooked |= HookSymbol(handle, symbol, (void*) replace_##name , (void**) &backup_##name )
+#define HOOK_SYMBOL(name, symbol, required) hooked |= HookSymbol(handle, symbol, (void*) replace_##name , (void**) &backup_##name , required)
 
      // Before 7.0, it is NeedsInterpreter which is inlined so cannot be hooked
      // But the logic which forces code to be executed by interpreter is added in Android 8.0
      // And we have hooked UpdateMethodsCode to avoid entry updating, so it should be safe to skip
      if (sdk_level >= __ANDROID_API_N__) {
-         HOOK_SYMBOL(ShouldUseInterpreterEntrypoint, "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv");
+         HOOK_SYMBOL(ShouldUseInterpreterEntrypoint, "_ZN3art11ClassLinker30ShouldUseInterpreterEntrypointEPNS_9ArtMethodEPKv", false);
          if (!hooked) {
              // Android Tiramisu?
-             HOOK_SYMBOL(ShouldStayInSwitchInterpreter, "_ZN3art11interpreter29ShouldStayInSwitchInterpreterEPNS_9ArtMethodE");
+             HOOK_SYMBOL(ShouldStayInSwitchInterpreter, "_ZN3art11interpreter29ShouldStayInSwitchInterpreterEPNS_9ArtMethodE", true);
          }
          if (!hooked) {
              LOGE("Failed to hook ShouldUseInterpreterEntrypoint/ShouldStayInSwitchInterpreter. Hook may not work.");
          }
          hooked = false;
 
-         HOOK_SYMBOL(UpdateMethodsCodeImpl, "_ZN3art15instrumentation15Instrumentation21UpdateMethodsCodeImplEPNS_9ArtMethodEPKv");
+         HOOK_SYMBOL(UpdateMethodsCodeImpl, "_ZN3art15instrumentation15Instrumentation21UpdateMethodsCodeImplEPNS_9ArtMethodEPKv", true);
      }
      else
-         HOOK_SYMBOL(UpdateMethodsCode, "_ZN3art15instrumentation15Instrumentation17UpdateMethodsCodeEPNS_9ArtMethodEPKv");
+         HOOK_SYMBOL(UpdateMethodsCode, "_ZN3art15instrumentation15Instrumentation17UpdateMethodsCodeEPNS_9ArtMethodEPKv", true);
      if (sdk_level >= __ANDROID_API_T__) {
-         HOOK_SYMBOL(InitializeMethodsCode, "_ZN3art15instrumentation15Instrumentation21InitializeMethodsCodeEPNS_9ArtMethodEPKv");
+         HOOK_SYMBOL(InitializeMethodsCode, "_ZN3art15instrumentation15Instrumentation21InitializeMethodsCodeEPNS_9ArtMethodEPKv", true);
      }
 
      if (sdk_level >= __ANDROID_API_Q__) {
@@ -310,14 +310,14 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          void* MarkClassInitialized = FindElfSymbol(handle, "_ZN3art11ClassLinker20MarkClassInitializedEPNS_6ThreadENS_6HandleINS_6mirror5ClassEEE", sdk_level >= __ANDROID_API_R__);
          if (MarkClassInitialized) {
              HOOK_FUNC(MarkClassInitialized);
-             HOOK_SYMBOL(FixupStaticTrampolinesWithThread, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6ThreadENS_6ObjPtrINS_6mirror5ClassEEE");
+             HOOK_SYMBOL(FixupStaticTrampolinesWithThread, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6ThreadENS_6ObjPtrINS_6mirror5ClassEEE", false);
          }
      }
 
-     HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE");
+     HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesENS_6ObjPtrINS_6mirror5ClassEEE", false);
      if (!hooked) {
          // Before Android 8.0, it uses raw mirror::Class* without ObjPtr<>
-         HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6mirror5ClassE");
+         HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6mirror5ClassE", true);
      }
 #undef HOOK_SYMBOL
 
