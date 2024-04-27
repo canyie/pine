@@ -63,8 +63,8 @@ namespace pine {
         ~ElfImg();
 
     private:
-        bool ParseMemory(Elf_Ehdr* header, bool is_debugdata);
-        bool ParseDebugdata(uint8_t* debugdata, size_t size);
+        void ParseMemory(Elf_Ehdr* header, bool is_debugdata);
+        void ParseDebugdata(uint8_t* debugdata, size_t size);
         // Pine changed: GetModuleBase is private
         void* GetModuleBase(const char* name);
 

@@ -54,7 +54,7 @@ void ElfImg::Open(const char* path, bool warn_if_symtab_not_found) {
     base = GetModuleBase(path);
 }
 
-bool ElfImg::ParseMemory(Elf_Ehdr* header, bool is_debugdata) {
+void ElfImg::ParseMemory(Elf_Ehdr* header, bool is_debugdata) {
     // Pine changed: Use uintptr_t instead of size_t
     // section_header = reinterpret_cast<Elf_Shdr *>(((size_t) header) + header->e_shoff);
     Elf_Shdr* section_header = reinterpret_cast<Elf_Shdr*>(((uintptr_t) header) + header->e_shoff);
@@ -108,23 +108,20 @@ bool ElfImg::ParseMemory(Elf_Ehdr* header, bool is_debugdata) {
                 }
                 if (strcmp(".gnu_debugdata", sname) == 0) {
                     auto debugdata = reinterpret_cast<uint8_t*>((uintptr_t) header + section_h->sh_offset);
-                    if (!ParseDebugdata(debugdata, section_h->sh_size)) [[unlikely]] {
-                        debugdata_.clear();
-                    }
+                    ParseDebugdata(debugdata, section_h->sh_size);
                 }
                 break;
         }
     }
-    return true;
 }
 
-bool ElfImg::ParseDebugdata(uint8_t* debugdata, size_t size) {
+void ElfImg::ParseDebugdata(uint8_t* debugdata, size_t size) {
     uint8_t buf[8192];
     xz_crc32_init();
     struct xz_dec *dec = xz_dec_init(XZ_DYNALLOC, 1 << 20);
     if (!dec) [[unlikely]] {
         LOGE("Failed to initialize xz decoder!");
-        return false;
+        return;
     }
     struct xz_buf b = {
             .in = debugdata,
@@ -137,14 +134,16 @@ bool ElfImg::ParseDebugdata(uint8_t* debugdata, size_t size) {
     do {
         enum xz_ret ret = xz_dec_run(dec, &b);
         if (ret != XZ_OK && ret != XZ_STREAM_END) [[unlikely]] {
+            LOGE("Failed to decompress debugdata!");
             xz_dec_end(dec);
-            return false;
+            debugdata_.clear();
+            return;
         }
         debugdata_.insert(debugdata_.end(), buf, buf + b.out_pos);
         b.out_pos = 0;
     } while (b.in_pos != size);
     xz_dec_end(dec);
-    return ParseMemory(reinterpret_cast<Elf_Ehdr*>(debugdata_.data()), true);
+    ParseMemory(reinterpret_cast<Elf_Ehdr*>(debugdata_.data()), true);
 }
 
 void ElfImg::RelativeOpen(const char* elf, bool warn_if_symtab_not_found) {
