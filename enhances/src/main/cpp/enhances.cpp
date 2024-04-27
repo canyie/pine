@@ -4,8 +4,9 @@
 
 #include <cstring>
 #include <cerrno>
-#include <unordered_map>
-#include <unordered_set>
+#include <map>
+#include <set>
+#include <list>
 #include <mutex>
 #include <shared_mutex>
 #include <jni.h>
@@ -24,27 +25,45 @@
 #define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, LOG_TAG, __VA_ARGS__)
 #define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 
-// Special flag, means "delaying, not yet actually hooked"
-#define DELAYING (nullptr)
+typedef void const* ClassDef;
+typedef void const* ArtMethod;
+typedef struct {
+    ArtMethod target;
+    ArtMethod backup;
+    const void* entrypoint;
+} HookRecord;
+
 // Special flag, means "redirects farther entry update, but backup is not available yet".
-#define REDIRECT_ENTRY_UPDATE (reinterpret_cast<void* const>(0x1))
+#define REDIRECT_ENTRY_UPDATE (nullptr)
 
 static JavaVM* jvm_;
 static jclass PineEnhances_;
 static jmethodID onClassInit_;
-static void*(*GetClassDef)(void* cls) = nullptr;
+static ClassDef(*GetClassDef)(void* cls) = nullptr;
 static size_t page_size_ = static_cast<const size_t>(sysconf(_SC_PAGESIZE));
-static std::unordered_set<void*> cared_classes_;
-static std::unordered_map<void*, void*> hooked_methods_;
-static std::unordered_map<void*, const void*> pending_entries_;
+
+// Legacy ClassInitMonitor implementation.
+static std::set<ClassDef> cared_classes_;
 static std::mutex cared_classes_mutex_;
-static std::shared_mutex hooked_methods_mutex_;
-static std::mutex pending_entries_mutex_;
 static bool care_no_class_def_ = false;
+
+// target -> backup if hooked, REDIRECT_ENTRY_UPDATE if not hooked but need to prevent entry update
+static std::map<ArtMethod, ArtMethod> hooked_methods_;
+static std::shared_mutex hooked_methods_mutex_;
+
+// target -> entry point (pending)
+static std::map<ArtMethod, const void*> pending_entries_;
+static std::mutex pending_entries_mutex_;
+
+// declaring class -> hook record list
+static std::map<ClassDef, std::list<const HookRecord>> hook_records_;
+static std::shared_mutex hook_records_mutex_;
 
 static void* instrumentation_ = nullptr;
 
 static void* (*FindElfSymbol)(void*, const char*, bool);
+static void* (*GetMethodDeclaringClass)(ArtMethod);
+static void (*SyncMethodEntry)(ArtMethod target, ArtMethod backup, const void* entry);
 
 class ScopedLock {
 public:
@@ -77,25 +96,13 @@ static bool Unprotect(void* addr) {
     return true;
 }
 
-bool AcquireClassCareFlag(void* ptr) {
-    if (ptr == nullptr) return false;
-    void* class_def = GetClassDef(ptr);
-    if (class_def == nullptr) {
-        return care_no_class_def_;
-    }
-    ScopedLock lk(cared_classes_mutex_);
-    return cared_classes_.erase(class_def) != 0;
-}
-
-bool IsMethodHooked(void* method, bool redirect_entry_update) {
+bool IsMethodHooked(ArtMethod method) {
     std::shared_lock<std::shared_mutex> lk(hooked_methods_mutex_);
     auto i = hooked_methods_.find(method);
-    if (i == hooked_methods_.end()) return false;
-    if (redirect_entry_update) return i->second != DELAYING;
-    return true;
+    return i != hooked_methods_.end();
 }
 
-void* GetMethodBackup(void* method) {
+ArtMethod GetMethodBackup(ArtMethod method) {
     std::shared_lock<std::shared_mutex> lk(hooked_methods_mutex_);
     auto i = hooked_methods_.find(method);
     if (i == hooked_methods_.end()) return nullptr;
@@ -103,8 +110,27 @@ void* GetMethodBackup(void* method) {
     return second == REDIRECT_ENTRY_UPDATE ? nullptr : second;
 }
 
-void MaybeCallClassInitMonitor(void* ptr) {
-    if (!AcquireClassCareFlag(ptr)) return;
+void MaybeClassInit(void* ptr) {
+    if (ptr == nullptr) return;
+    auto class_def = GetClassDef(ptr);
+    bool call_monitor;
+    if (class_def) {
+        {
+            std::shared_lock<std::shared_mutex> lk(hook_records_mutex_);
+            auto i = hook_records_.find(class_def);
+            if (i != hook_records_.end()) {
+                for (const HookRecord& record : i->second) {
+                    LOGE("Restore %p to %p", record.target, record.entrypoint);
+                    SyncMethodEntry(record.target, record.backup, record.entrypoint);
+                }
+            }
+        }
+        ScopedLock lk(cared_classes_mutex_);
+        call_monitor = cared_classes_.erase(class_def) != 0;
+    } else {
+        call_monitor = care_no_class_def_;
+    }
+    if (!call_monitor) return;
     JNIEnv* env = CurrentEnv();
     env->CallStaticVoidMethod(PineEnhances_, onClassInit_, reinterpret_cast<jlong>(ptr));
     if (env->ExceptionCheck()) {
@@ -130,34 +156,34 @@ static return_type (*backup_##name)(__VA_ARGS__) = nullptr;\
 return_type replace_##name (__VA_ARGS__)
 
 HOOK_ENTRY(ShouldUseInterpreterEntrypoint, bool, void* method, const void* quick_code) {
-    if (quick_code != nullptr && IsMethodHooked(method, false)) return false;
+    if (quick_code != nullptr && IsMethodHooked(method)) return false;
     return backup_ShouldUseInterpreterEntrypoint(method, quick_code);
 }
 
 HOOK_ENTRY(ShouldStayInSwitchInterpreter, bool, void* method) {
-    if (IsMethodHooked(method, false)) return false;
+    if (IsMethodHooked(method)) return false;
     return backup_ShouldStayInSwitchInterpreter(method);
 }
 
 HOOK_ENTRY(FixupStaticTrampolines, void, void* thiz, void* cls) {
     backup_FixupStaticTrampolines(thiz, cls);
-    MaybeCallClassInitMonitor(cls);
+    MaybeClassInit(cls);
 }
 
 HOOK_ENTRY(FixupStaticTrampolinesWithThread, void, void* thiz, void* self, void* cls) {
     backup_FixupStaticTrampolinesWithThread(thiz, self, cls);
-    MaybeCallClassInitMonitor(cls);
+    MaybeClassInit(cls);
 }
 
 HOOK_ENTRY(MarkClassInitialized, void*, void* thiz, void* self, uint32_t* cls_ptr) {
     void* result = backup_MarkClassInitialized(thiz, self, cls_ptr);
-    if (cls_ptr) MaybeCallClassInitMonitor(reinterpret_cast<void*>(*cls_ptr));
+    if (cls_ptr) MaybeClassInit(reinterpret_cast<void*>(*cls_ptr));
     return result;
 }
 
-bool PreUpdateMethodsCode(void* thiz, void*& method, const void*& quick_code) {
+bool PreUpdateMethodsCode(void* thiz, ArtMethod& method, const void*& quick_code) {
     instrumentation_ = thiz;
-    if (IsMethodHooked(method, true)) {
+    if (IsMethodHooked(method)) {
         auto backup = GetMethodBackup(method);
         if (backup) {
             // Redirect entry update to backup
@@ -171,24 +197,24 @@ bool PreUpdateMethodsCode(void* thiz, void*& method, const void*& quick_code) {
     return false;
 }
 
-HOOK_ENTRY(UpdateMethodsCode, void, void* thiz, void* method, const void* quick_code) {
+HOOK_ENTRY(UpdateMethodsCode, void, void* thiz, ArtMethod method, const void* quick_code) {
     if (PreUpdateMethodsCode(thiz, method, quick_code)) return;
     backup_UpdateMethodsCode(thiz, method, quick_code);
 }
 
-HOOK_ENTRY(UpdateMethodsCodeImpl, void, void* thiz, void* method, const void* quick_code) {
+HOOK_ENTRY(UpdateMethodsCodeImpl, void, void* thiz, ArtMethod method, const void* quick_code) {
     if (PreUpdateMethodsCode(thiz, method, quick_code)) return;
     backup_UpdateMethodsCodeImpl(thiz, method, quick_code);
 }
 
-HOOK_ENTRY(InitializeMethodsCode, void, void* thiz, void* method, const void* aot_code) {
+HOOK_ENTRY(InitializeMethodsCode, void, void* thiz, ArtMethod method, const void* aot_code) {
     if (PreUpdateMethodsCode(thiz, method, aot_code)) return;
     backup_InitializeMethodsCode(thiz, method, aot_code);
 }
 
 void PineEnhances_careClassInit(JNIEnv*, jclass, jlong address) {
     void* ptr = reinterpret_cast<void*>(address);
-    void* class_def = GetClassDef(ptr);
+    auto class_def = GetClassDef(ptr);
     if (class_def == nullptr) {
         // This class have no class def. That's mostly impossible, these classes (like proxy classes)
         // should be initialized before. But if it happens...
@@ -200,13 +226,30 @@ void PineEnhances_careClassInit(JNIEnv*, jclass, jlong address) {
     cared_classes_.insert(class_def);
 }
 
-void PineEnhances_recordMethodHooked(JNIEnv*, jclass, jlong method, jlong backup) {
-    auto o = reinterpret_cast<void*>(method);
-    auto b = reinterpret_cast<void*>(backup);
+void PineEnhances_recordMethodHooked(JNIEnv*, jclass, jlong target, jlong entry, jlong backup) {
+    auto o = reinterpret_cast<ArtMethod>(target);
+    auto b = reinterpret_cast<ArtMethod>(backup);
     {
         std::unique_lock<std::shared_mutex> lk(hooked_methods_mutex_);
         hooked_methods_[o] = b;
     }
+    if (b == REDIRECT_ENTRY_UPDATE) return;
+    // Record hooked methods using declaring class def.
+    {
+        std::unique_lock<std::shared_mutex> lk(hook_records_mutex_);
+        const HookRecord record {
+            .target = o,
+            .backup = b,
+            .entrypoint = reinterpret_cast<const void*>(entry)
+        };
+        // null class def means it's a runtime class (e.g. proxy class) which is already
+        // visibly initialized so just skip
+        // Shall we do STW here to prevent it from being moved by GC?
+        auto class_def = GetClassDef( GetMethodDeclaringClass(o));
+        if (class_def) hook_records_[class_def].emplace_back(record);
+    }
+
+    // Sync pending entry point to backup if needed
     if (!(instrumentation_ && backup_UpdateMethodsCode)) return;
     const void* saved_entry;
     {
@@ -252,7 +295,8 @@ std::string GetRuntimeLibraryName(JNIEnv* env) {
 }
 
 jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jint sdk_level,
-                                           jlong openElf, jlong findElfSymbol, jlong closeElf) {
+                                           jlong openElf, jlong findElfSymbol, jlong closeElf,
+                                           jlong getMethodDeclaringClass, jlong syncMethodEntry) {
      onClassInit_ = env->GetStaticMethodID(PineEnhances, "onClassInit", "(J)V");
      if (!onClassInit_) {
          LOGE("Unable to find onClassInit");
@@ -266,11 +310,13 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
      auto OpenElf = reinterpret_cast<void* (*)(const char*)>(openElf);
      FindElfSymbol = reinterpret_cast<void* (*)(void*, const char*, bool)>(findElfSymbol);
      auto CloseElf = reinterpret_cast<void (*)(void*)>(closeElf);
+     GetMethodDeclaringClass = reinterpret_cast<void* (*)(ArtMethod)>(getMethodDeclaringClass);
+     SyncMethodEntry = reinterpret_cast<void (*)(ArtMethod, ArtMethod, const void*)>(syncMethodEntry);
 
      auto vm_library = GetRuntimeLibraryName(env);
      void* handle = OpenElf(vm_library.data());
 
-     GetClassDef = reinterpret_cast<void* (*)(void*)>(FindElfSymbol(handle,
+     GetClassDef = reinterpret_cast<ClassDef (*)(void*)>(FindElfSymbol(handle,
              "_ZN3art6mirror5Class11GetClassDefEv", true));
      if (!GetClassDef) {
          LOGE("Cannot find symbol art::Class::GetClassDef");
@@ -331,9 +377,9 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 }
 
  JNINativeMethod JNI_METHODS[] = {
-         {"initClassInitMonitor", "(IJJJ)Z", (void*) PineEnhances_initClassInitMonitor},
+         {"initClassInitMonitor", "(IJJJJJ)Z", (void*) PineEnhances_initClassInitMonitor},
          {"careClassInit", "(J)V", (void*) PineEnhances_careClassInit},
-         {"recordMethodHooked", "(JJ)V", (void*) PineEnhances_recordMethodHooked}
+         {"recordMethodHooked", "(JJJ)V", (void*) PineEnhances_recordMethodHooked}
 };
 
 EXPORT bool init_PineEnhances(JavaVM* jvm, JNIEnv* env, jclass cls) {

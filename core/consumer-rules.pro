@@ -5,6 +5,9 @@
     public static long closeElf;
     private static int arch;
 }
+-keep class top.canyie.pine.Pine$HookRecord {
+    public long trampoline;
+}
 -keep class top.canyie.pine.Ruler { *; }
 -keep class top.canyie.pine.Ruler$I { *; }
 -keep class top.canyie.pine.entry.**Entry {

@@ -60,8 +60,8 @@ public final class Pine {
 
     private static HookListener sHookListener;
 
-    /** Internal API, used by enhances library. DO NOT USE IT. */
-    public static long openElf, findElfSymbol, closeElf;
+    /** Internal API, used by enhances library. DO NOT USE THEM. */
+    public static long openElf, findElfSymbol, closeElf, getMethodDeclaringClass, syncMethodEntry;
 
     private Pine() {
         throw new RuntimeException("Use static methods");
@@ -191,6 +191,15 @@ public final class Pine {
                     ? HookMode.INLINE_WITHOUT_JIT : HookMode.REPLACEMENT;
         }
         hookMode = newHookMode;
+    }
+
+    /**
+     * Return the current hook mode.
+     * @return One of {@code Pine.HookMode.INLINE}, {@code Pine.HookMode.REPLACEMENT} or
+     * {@code Pine.HookMode.INLINE_WITHOUT_JIT}.
+     */
+    public static int getHookMode() {
+        return hookMode;
     }
 
     /**
@@ -359,6 +368,7 @@ public final class Pine {
         }
 
         String bridgeMethodName;
+        // FIXME: WARNING: The following code will cause parameter types and return type to be initialized!!!
         if (method instanceof Method) {
             hookRecord.paramTypes = ((Method) method).getParameterTypes();
             Class<?> returnType = ((Method) method).getReturnType();
@@ -371,13 +381,14 @@ public final class Pine {
 
         hookRecord.paramNumber = hookRecord.paramTypes.length;
 
-        Method bridge = PineConfig.sdkLevel == Build.VERSION_CODES.M && arch == ARCH_ARM64
+        hookRecord.bridge = PineConfig.sdkLevel == Build.VERSION_CODES.M && arch == ARCH_ARM64
                 ? Arm64MarshmallowEntry.getBridge(bridgeMethodName, hookRecord.paramNumber)
                 : sBridgeMethods.get(bridgeMethodName);
-        if (bridge == null)
+        if (hookRecord.bridge == null)
             throw new AssertionError("Cannot find bridge method for " + method);
 
-        Method backup = hook0(thread, declaring, method, bridge, isInlineHook, jni, proxy);
+        Method backup = hook0(thread, declaring, hookRecord, method, hookRecord.bridge, isInlineHook,
+                jni, proxy);
 
         if (backup == null)
             throw new RuntimeException("Failed to hook method " + method);
@@ -434,13 +445,14 @@ public final class Pine {
         return getAddress0(thread, o);
     }
 
-    static Object callBackupMethod(Member origin, Method backup, Object thisObject, Object[] args) throws InvocationTargetException, IllegalAccessException {
+    static Object callBackupMethod(HookRecord hookRecord, Object thisObject, Object[] args) throws InvocationTargetException, IllegalAccessException {
         // java.lang.Class object is movable and may cause crash when invoke backup method,
         // native entry of JNI method may be changed by RegisterNatives and UnregisterNatives,
         // so we need to update them when invoke backup method.
-
+        Member origin = hookRecord.target;
+        Method backup = hookRecord.backup;
         Class<?> declaring = origin.getDeclaringClass();
-        syncMethodInfo(origin, backup);
+        syncMethodInfo(origin, backup, hookRecord.skipUpdateDeclaringClass);
         // FIXME: GC happens here (you can add Runtime.getRuntime().gc() to test) will crash backup calling
         Object result = backup.invoke(thisObject, args);
         // Explicit use declaring_class object to ensure it has reference on stack
@@ -509,7 +521,7 @@ public final class Pine {
 //            }
         }
 
-        return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
+        return callBackupMethod(hookRecord, thisObject, args);
     }
 
     /**
@@ -661,7 +673,7 @@ public final class Pine {
 
         if (PineConfig.disableHooks || hookRecord.emptyCallbacks()) {
             try {
-                return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
+                return callBackupMethod(hookRecord, thisObject, args);
             } catch (InvocationTargetException e) {
                 throw e.getTargetException();
             }
@@ -754,8 +766,9 @@ public final class Pine {
 
     public static native long getArtMethod(Member method);
 
-    private static native Method hook0(long thread, Class<?> declaring, Member target, Method bridge,
-                                       boolean isInlineHook, boolean jni, boolean proxy);
+    private static native Method hook0(long thread, Class<?> declaring, HookRecord hookRecord,
+                                       Member target, Method bridge, boolean isInlineHook,
+                                       boolean jni, boolean proxy);
 
     private static native boolean compile0(long thread, Member method);
 
@@ -777,7 +790,7 @@ public final class Pine {
 
     public static native void getArgsX86(int extras, int[] out, int ebx);
 
-    private static native void syncMethodInfo(Member origin, Method backup);
+    private static native void syncMethodInfo(Member origin, Method backup, boolean skipDeclaringClass);
 
     public static native long currentArtThread0();
 
@@ -866,12 +879,15 @@ public final class Pine {
     public static final class HookRecord {
         public final Member target;
         public final long artMethod;
+        public Method bridge;
         public Method backup;
+        public long trampoline;
         public boolean isStatic;
         public int paramNumber;
         public Class<?>[] paramTypes;
         private Set<MethodHook> callbacks = new HashSet<>();
         public volatile Object paramTypesCache;
+        public boolean skipUpdateDeclaringClass;
 
         public HookRecord(Member target, long artMethod) {
             this.target = target;
@@ -1019,7 +1035,7 @@ public final class Pine {
          * @see Pine#invokeOriginalMethod(Member, Object, Object...)
          */
         public Object invokeOriginalMethod() throws InvocationTargetException, IllegalAccessException {
-            return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
+            return callBackupMethod(hookRecord, thisObject, args);
         }
 
         /**
@@ -1033,7 +1049,7 @@ public final class Pine {
          * @see #invokeOriginalMethod(Member, Object, Object...)
          */
         public Object invokeOriginalMethod(Object thisObject, Object... args) throws InvocationTargetException, IllegalAccessException {
-            return callBackupMethod(hookRecord.target, hookRecord.backup, thisObject, args);
+            return callBackupMethod(hookRecord, thisObject, args);
         }
     }
 }

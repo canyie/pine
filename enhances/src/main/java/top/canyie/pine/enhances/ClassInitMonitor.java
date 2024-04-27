@@ -14,7 +14,9 @@ public class ClassInitMonitor {
     static {
         try {
             Pine.ensureInitialized();
-            canWork = PineEnhances.initClassInitMonitor(PineConfig.sdkLevel, Pine.openElf, Pine.findElfSymbol, Pine.closeElf);
+            canWork = PineEnhances.initClassInitMonitor(PineConfig.sdkLevel, Pine.openElf,
+                    Pine.findElfSymbol, Pine.closeElf, Pine.getMethodDeclaringClass,
+                    Pine.syncMethodEntry);
         } catch (Throwable e) {
             PineEnhances.logE("Error in initClassInitMonitor", e);
         }

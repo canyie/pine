@@ -53,6 +53,22 @@ EXPORT_C void* PineGetElfSymbolAddress(void* handle, const char* symbol, bool wa
     return static_cast<ElfImg*>(handle)->GetSymbolAddress(symbol, warn_if_missing);
 }
 
+void* GetMethodDeclaringClass(void* method) {
+    return reinterpret_cast<void*>(static_cast<art::ArtMethod*>(method)->GetDeclaringClass());
+}
+
+void SyncMethodEntry(void* target, void* backup, void* entry) {
+    auto t = reinterpret_cast<art::ArtMethod*>(target);
+    void* updated_entry = t->GetEntryPointFromCompiledCode();
+    // We hooked a lot of functions to avoid missing any calls. There may be multiple hooks
+    // take effect at the same time, the second hook can attempt change backup entry to updated one,
+    // while the first one already changed target entry to hook bridge, resulting an infinite loop.
+    if (entry != updated_entry) {
+        reinterpret_cast<art::ArtMethod*>(backup)->SetEntryPointFromCompiledCode(updated_entry);
+    }
+    t->SetEntryPointFromCompiledCode(entry);
+}
+
 EXPORT_C bool PineNativeInlineHookSymbolNoBackup(const char* elf, const char* symbol, void* replace) {
     ElfImg handle(elf);
     void* addr = handle.GetSymbolAddress(symbol);
@@ -135,11 +151,20 @@ else env->SetStaticLongField(Pine, field, (value));
     SET_JAVA_VALUE("openElf", "J", reinterpret_cast<jlong>(PineOpenElf));
     SET_JAVA_VALUE("findElfSymbol", "J", reinterpret_cast<jlong>(PineGetElfSymbolAddress));
     SET_JAVA_VALUE("closeElf", "J", reinterpret_cast<jlong>(PineCloseElf));
+    SET_JAVA_VALUE("getMethodDeclaringClass", "J", reinterpret_cast<jlong>(GetMethodDeclaringClass));
+    SET_JAVA_VALUE("syncMethodEntry", "J", reinterpret_cast<jlong>(SyncMethodEntry));
 #undef SET_JAVA_VALUE
 }
 
-jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject javaTarget,
-            jobject javaBridge, jboolean isInlineHook, jboolean isJni, jboolean isProxy) {
+jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject hookRecord,
+                   jobject javaTarget, jobject javaBridge, jboolean isInlineHook, jboolean isJni,
+                   jboolean isProxy) {
+    static jfieldID HookRecord_trampoline = [&]() {
+        jclass HookRecord = env->GetObjectClass(hookRecord);
+        jfieldID field = env->GetFieldID(HookRecord, "trampoline", "J");
+        env->DeleteLocalRef(HookRecord);
+        return field;
+    }();
     auto thread = reinterpret_cast<art::Thread*>(threadAddress);
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
@@ -211,9 +236,8 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         }
     }
 
-    bool success;
+    void* new_entrypoint;
     char error_msg[288];
-
     {
         // ArtMethod objects are very important. Many threads depend on their values,
         // so we need to suspend other threads to avoid errors.
@@ -226,18 +250,19 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         if (LIKELY(call_origin)) {
             backup->BackupFrom(target, call_origin, is_inline_hook, is_native, is_proxy);
             target->AfterHook(is_inline_hook, is_native_or_proxy);
-            success = true;
+            new_entrypoint = target->GetEntryPointFromCompiledCode();
         } else {
             snprintf(error_msg, sizeof(error_msg), "Failed to install %s trampoline on method %p: %s (%d).",
                      is_inline_hook ? "inline" : "replacement", target, strerror(errno), errno);
             if (errno == EACCES || errno == EPERM)
                 strlcat(error_msg, " This is a security failure, check selinux policy, seccomp or capabilities. Earlier log may point out root cause.", sizeof(error_msg));
             LOGE("%s", error_msg);
-            success = false;
+            new_entrypoint = nullptr;
         }
     }
 
-    if (LIKELY(success)) {
+    if (LIKELY(new_entrypoint)) {
+        env->SetLongField(hookRecord, HookRecord_trampoline, reinterpret_cast<jlong>(new_entrypoint));
         return env->ToReflectedMethod(declaring, backup->ToMethodID(),
                                       static_cast<jboolean>(backup->IsStatic()));
     } else {
@@ -402,13 +427,13 @@ void Pine_getArgsX86(JNIEnv* env, jclass, jint javaExtras, jintArray javaArray, 
 }
 #endif
 
-void Pine_syncMethodInfo(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBackup) {
+void Pine_syncMethodInfo(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBackup, jboolean skipDeclaringClass) {
     auto origin = art::ArtMethod::FromReflectedMethod(env, javaOrigin);
     auto backup = art::ArtMethod::FromReflectedMethod(env, javaBackup);
 
     // An ArtMethod is actually an instance of java class "java.lang.reflect.ArtMethod" on pre M
     // declaring_class is a reference field so the runtime itself will update it if moved by GC
-    if (Android::version >= Android::kM) {
+    if (skipDeclaringClass == JNI_FALSE && Android::version >= Android::kM) {
         uint32_t declaring_class = origin->GetDeclaringClass();
         if (declaring_class != backup->GetDeclaringClass()) {
             LOGI("GC moved declaring class of method %p, also update in backup %p", origin, backup);
@@ -486,13 +511,13 @@ static const JNINativeMethod gMethods[] = {
         {"init0", "(IZZZZZ)V", (void*) Pine_init0},
         {"enableFastNative", "()V", (void*) Pine_enableFastNative},
         {"getArtMethod", "(Ljava/lang/reflect/Member;)J", (void*) Pine_getArtMethod},
-        {"hook0", "(JLjava/lang/Class;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;ZZZ)Ljava/lang/reflect/Method;", (void*) Pine_hook0},
+        {"hook0", "(JLjava/lang/Class;Ltop/canyie/pine/Pine$HookRecord;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;ZZZ)Ljava/lang/reflect/Method;", (void*) Pine_hook0},
         {"compile0", "(JLjava/lang/reflect/Member;)Z", (void*) Pine_compile0},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z", (void*) Pine_decompile0},
         {"disableJitInline0", "()Z", (void*) Pine_disableJitInline0},
         {"setJitCompilationAllowed0", "(ZZ)V", (void*) Pine_setJitCompilationAllowed},
         {"disableProfileSaver0", "()Z", (void*) Pine_disableProfileSaver0},
-        {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V", (void*) Pine_syncMethodInfo},
+        {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;Z)V", (void*) Pine_syncMethodInfo},
         {"getObject0", "(JJ)Ljava/lang/Object;", (void*) Pine_getObject0},
         {"getAddress0", "(JLjava/lang/Object;)J", (void*) Pine_getAddress0},
         {"setDebuggable0", "(Z)V", (void*) Pine_setDebuggable},

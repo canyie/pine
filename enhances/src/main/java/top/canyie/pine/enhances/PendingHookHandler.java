@@ -23,13 +23,11 @@ import static top.canyie.pine.enhances.PineEnhances.recordMethodHooked;
  */
 @SuppressLint("SoonBlockedPrivateApi")
 public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Callback {
-    // Special flag, means "delaying, not yet actually hooked"
-    private static final long DELAYING = 0x0;
     // Special flag, means "prevents farther entry update, but backup is not available yet".
-    private static final long PREVENT_ENTRY_UPDATE = 0x1;
+    private static final long PREVENT_ENTRY_UPDATE = 0x0;
     private static volatile PendingHookHandler instance;
     private static Field status;
-    private Pine.HookHandler realHandler;
+    private final Pine.HookHandler realHandler;
     private ClassInitMonitor.Callback previousCb;
     private boolean enabled;
     private final Map<Class<?>, Set<Pine.HookRecord>> pendingMap = new HashMap<>();
@@ -114,11 +112,23 @@ public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Ca
     }
 
     @Override
-    public MethodHook.Unhook handleHook(Pine.HookRecord hookRecord, MethodHook hook, int modifiers, boolean newMethod, boolean canInitDeclaringClass) {
-        Member target = hookRecord.target;
-        if (hook != null && shouldDelay(target, newMethod, modifiers)) {
-            PineEnhances.logD("Delay hook method %s", target);
-            recordMethodHooked(hookRecord.artMethod, DELAYING);
+    public MethodHook.Unhook handleHook(Pine.HookRecord hookRecord, MethodHook hook, int modifiers,
+                                        boolean newMethod, boolean canInitDeclaringClass) {
+        boolean skipInit = hook != null && shouldDelay(hookRecord.target, newMethod, modifiers);
+        if (newMethod) recordMethodHooked(hookRecord.artMethod, PREVENT_ENTRY_UPDATE, PREVENT_ENTRY_UPDATE);
+        if (Pine.getHookMode() == Pine.HookMode.REPLACEMENT) {
+            // Here we always need to record hooked methods even if they don't need to be delayed
+            // because we manually have shut the debug switch down, we need to skip ShouldUseInterpreterEntrypoint
+            // WARNING: Do not log the target method here, as it may trigger
+            // initialization of parameters and return type
+            MethodHook.Unhook u = realHandler.handleHook(hookRecord, hook, modifiers, newMethod,
+                    !skipInit && canInitDeclaringClass);
+            if (newMethod) recordMethodHooked(hookRecord.artMethod, hookRecord.trampoline,
+                    Pine.getArtMethod(hookRecord.backup));
+            return u;
+        }
+
+        if (skipInit) {
             Class<?> declaring = hookRecord.target.getDeclaringClass();
             synchronized (pendingMap) {
                 Set<Pine.HookRecord> pendingHooks = pendingMap.get(declaring);
@@ -132,10 +142,9 @@ public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Ca
             hookRecord.addCallback(hook);
             return hook.new Unhook(hookRecord);
         }
-        PineEnhances.logD("Not delay method %s", target);
-        if (newMethod) recordMethodHooked(hookRecord.artMethod, PREVENT_ENTRY_UPDATE);
         MethodHook.Unhook u = realHandler.handleHook(hookRecord, hook, modifiers, newMethod, canInitDeclaringClass);
-        if (newMethod) recordMethodHooked(hookRecord.artMethod, Pine.getArtMethod(hookRecord.backup));
+        if (newMethod) recordMethodHooked(hookRecord.artMethod, hookRecord.trampoline,
+                Pine.getArtMethod(hookRecord.backup));
         return u;
     }
 
@@ -153,10 +162,9 @@ public class PendingHookHandler implements Pine.HookHandler, ClassInitMonitor.Ca
         for (Pine.HookRecord hookRecord : pendingHooks) {
             Member target = hookRecord.target;
             PineEnhances.logD("Flushing pending hooks for method %s", target);
-            // Place 0x1 to prevent method entry updating
-            recordMethodHooked(hookRecord.artMethod, PREVENT_ENTRY_UPDATE);
             realHandler.handleHook(hookRecord, null, target.getModifiers(), true, false);
-            recordMethodHooked(hookRecord.artMethod, Pine.getArtMethod(hookRecord.backup));
+            recordMethodHooked(hookRecord.artMethod, hookRecord.trampoline,
+                    Pine.getArtMethod(hookRecord.backup));
         }
     }
 }

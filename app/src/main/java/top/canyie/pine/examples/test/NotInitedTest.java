@@ -1,6 +1,9 @@
 package top.canyie.pine.examples.test;
 
+import android.util.Log;
+
 import top.canyie.pine.Pine;
+import top.canyie.pine.examples.ExampleApp;
 
 /**
  * @author canyie
@@ -20,6 +23,9 @@ public class NotInitedTest extends Test {
     }
 
     private static class I {
+        static {
+            Log.i(ExampleApp.TAG, "NotInitedTest initializing", new Throwable());
+        }
         static int target(int i) {
             return i == 1919810 ? 1 : -1;
         }

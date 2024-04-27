@@ -57,12 +57,10 @@ namespace pine::art {
             return reinterpret_cast<jmethodID>(this);
         }
 
-        // Only works on Android 6.0+
         uint32_t GetDeclaringClass() {
             return declaring_class.Get(this);
         }
 
-        // Only works on Android 6.0+
         void SetDeclaringClass(uint32_t new_declaring_class) {
             declaring_class.Set(this, new_declaring_class);
         }
