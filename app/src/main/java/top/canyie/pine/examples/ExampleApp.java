@@ -111,7 +111,7 @@ public class ExampleApp extends Application {
 
         PineConfig.debug = true;
         PineConfig.debuggable = BuildConfig.DEBUG;
-        Pine.disableJitInline();
+        Pine.ensureInitialized();
     }
 
     public static ExampleApp getInstance() {

@@ -581,14 +581,16 @@ public final class Pine {
     /**
      * Prevent any JIT inlining in the current process. DOES NOT WORK FOR NOW.
      * @return {@code true} if successfully disabled jit inlining, {@code false} otherwise.
+     * @deprecated Never worked on any Android versions. Its functionality has been removed.
      */
-    public static boolean disableJitInline() {
-        if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
-            // No JIT.
-            return false;
-        }
+    @Deprecated public static boolean disableJitInline() {
+//        if (PineConfig.sdkLevel < Build.VERSION_CODES.N) {
+//            // No JIT.
+//            return false;
+//        }
         ensureInitialized();
-        return disableJitInline0();
+//        return disableJitInline0();
+        return false;
     }
 
     /**
