@@ -10,7 +10,7 @@
 #include "thread.h"
 #include "../utils/log.h"
 #include "../utils/member.h"
-#include "../utils/elf_img.h"
+#include "../utils/elf_image.h"
 
 namespace pine::art {
     class JitCompiler final {
@@ -22,7 +22,7 @@ namespace pine::art {
 
     class Jit final {
     public:
-        static void Init(const ElfImg* art_lib_handle, const ElfImg* jit_lib_handle);
+        static void Init(const ElfImage* art_lib_handle, const ElfImage* jit_lib_handle);
 
         static JitCompiler* GetCompiler() {
             return LIKELY(self_compiler) ? self_compiler : GetGlobalCompiler();

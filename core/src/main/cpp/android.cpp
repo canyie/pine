@@ -16,7 +16,7 @@
 using namespace pine;
 
 int Android::version = -1;
-JavaVM* Android::jvm = nullptr;
+JavaVM* Android::jvm_ = nullptr;
 
 void (*Android::suspend_vm)() = nullptr;
 void (*Android::resume_vm)() = nullptr;
@@ -34,7 +34,7 @@ void (*Android::move_obsolete_method_)(void*, void*, void*) = nullptr;
 
 void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, bool disable_hiddenapi_policy_for_platform) {
     Android::version = sdk_version;
-    if (UNLIKELY(env->GetJavaVM(&jvm) != JNI_OK)) {
+    if (UNLIKELY(env->GetJavaVM(&jvm_) != JNI_OK)) {
         LOGF("Cannot get java vm");
         env->FatalError("Cannot get java vm");
         abort();
@@ -42,10 +42,10 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
 
     {
         bool eng_build = false;
-        ElfImg art_lib_handle("libart.so");
+        ElfImage art_lib_handle("libart.so");
         if (UNLIKELY(!art_lib_handle.IsOpened())) {
             // Running on eng build ROMs?
-            art_lib_handle.RelativeOpen("libartd.so", true);
+            art_lib_handle.RelativeOpen("libartd.so", true, true);
             if (LIKELY(art_lib_handle.IsOpened())) {
                 eng_build = true;
             } else {
@@ -56,7 +56,7 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
 #endif
                                                     "/libaoc.so";
                 if (access(kLibAocPath, R_OK) == 0) {
-                    art_lib_handle.Open(kLibAocPath, true);
+                    art_lib_handle.Open(kLibAocPath, true, true);
                 }
             }
         }
@@ -100,11 +100,11 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
         art::Thread::Init(&art_lib_handle);
         art::ArtMethod::Init(&art_lib_handle);
         if (sdk_version >= kN) {
-            ElfImg jit_lib_handle(eng_build ? "libartd-compiler.so" : "libart-compiler.so", false);
+            ElfImage jit_lib_handle(eng_build ? "libartd-compiler.so" : "libart-compiler.so", true, false);
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }
 
-        InitMembersFromRuntime(jvm, &art_lib_handle);
+        InitMembersFromRuntime(jvm_, &art_lib_handle);
     }
 
     WellKnownClasses::Init(env);
@@ -117,8 +117,8 @@ static int FakeHandleHiddenApi() {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "cppcoreguidelines-macro-usage"
 
-void Android::DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform) {
-    TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
+void Android::DisableHiddenApiPolicy(const ElfImage* handle, bool application, bool platform) {
+    auto trampoline_installer = TrampolineInstaller::GetDefault();
     void* replace = reinterpret_cast<void*>(FakeHandleHiddenApi);
 
 #define HOOK_SYMBOL(symbol) do { \
@@ -163,7 +163,7 @@ bool Android::DisableProfileSaver() {
     // I think most users don't need this feature, so I don't get the symbol during initialization...
     void* process_profiling_info;
     {
-        ElfImg handle("libart.so");
+        ElfImage handle("libart.so");
 
         // MIUI added, size of the original function is smaller than size of a direct jump trampoline
         // and cannot be hooked, else we will write overflow and corrupt the next function
@@ -187,7 +187,7 @@ bool Android::DisableProfileSaver() {
     return true;
 }
 
-void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
+void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImage* handle) {
     if (version < kQ) {
         // ClassLinker is unnecessary before R.
         // JIT was added in Android N but MoveObsoleteMethod was added in Android O
@@ -238,7 +238,7 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle) {
     InitJitCodeCache(runtime, jvm_offset, handle);
 }
 
-void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle, bool has_small_irt) {
+void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImage* handle, bool has_small_irt) {
     // ClassStatus::kVisiblyInitialized is not implemented in official Android Q
     // but some weird ROMs cherry-pick this commit to these Q ROMs
     // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
@@ -261,7 +261,7 @@ void Android::InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg
     SetClassLinker(class_linker);
 }
 
-void Android::InitJitCodeCache(void *runtime, size_t java_vm_offset, const ElfImg *handle) {
+void Android::InitJitCodeCache(void *runtime, size_t java_vm_offset, const ElfImage *handle) {
     move_obsolete_method_ = reinterpret_cast<void (*)(void*, void*, void*)>(handle->GetSymbolAddress(
             "_ZN3art3jit12JitCodeCache18MoveObsoleteMethodEPNS_9ArtMethodES3_"));
     if (UNLIKELY(!move_obsolete_method_)) {

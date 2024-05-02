@@ -22,7 +22,7 @@ void* (*Thread::decode_jobject)(Thread*, jobject) = nullptr;
 
 void* (*Thread::alloc_non_movable)(void*, Thread*) = nullptr;
 
-void Thread::Init(const ElfImg* handle) {
+void Thread::Init(const ElfImage* handle) {
     if (Android::version == Android::kL || Android::version == Android::kLMr1) {
         // This function is needed to create the backup method on Lollipop.
         // Below M, an ArtMethod is actually a instance of java.lang.reflect.ArtMethod, can't use malloc()

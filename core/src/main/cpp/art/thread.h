@@ -11,7 +11,7 @@
 #include "../android.h"
 #include "../utils/log.h"
 #include "../utils/macros.h"
-#include "../utils/elf_img.h"
+#include "../utils/elf_image.h"
 
 #if defined(__aarch64__)
 #define __get_tls() ({ void** __val; __asm__("mrs %0, tpidr_el0" : "=r"(__val)); __val; })
@@ -26,7 +26,7 @@
 namespace pine::art {
     class Thread final {
     public:
-        static void Init(const ElfImg* handle);
+        static void Init(const ElfImage* handle);
 
         static inline Thread* Current(JNIEnv* env) {
             Thread* thread;
@@ -105,7 +105,7 @@ namespace pine::art {
             if (LIKELY(new_local_ref)) {
                 return new_local_ref(env, obj);
             }
-            jweak global_weak_ref = add_weak_global_ref(Android::jvm, this, obj);
+            jweak global_weak_ref = add_weak_global_ref(Android::jvm_, this, obj);
             jobject local_ref = env->NewLocalRef(global_weak_ref);
             env->DeleteWeakGlobalRef(global_weak_ref);
             return local_ref;

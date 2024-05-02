@@ -5,7 +5,7 @@
 #include <jni.h>
 #include "art_method.h"
 #include "../jni_bridge.h"
-#include "../utils/elf_img.h"
+#include "../utils/elf_image.h"
 #include "../utils/well_known_classes.h"
 #include "../utils/scoped_local_ref.h"
 #include "../utils/memory.h"
@@ -31,7 +31,7 @@ Member<ArtMethod, void*> ArtMethod::entry_point_from_compiled_code_;
 Member<ArtMethod, void*>* ArtMethod::entry_point_from_interpreter_;
 Member<ArtMethod, uint32_t> ArtMethod::declaring_class;
 
-void ArtMethod::Init(const ElfImg* handle) {
+void ArtMethod::Init(const ElfImage* handle) {
     art_quick_to_interpreter_bridge = handle->GetSymbolAddress("art_quick_to_interpreter_bridge");
     art_quick_generic_jni_trampoline = handle->GetSymbolAddress("art_quick_generic_jni_trampoline");
     ExecuteNterpImpl = handle->GetSymbolAddress("ExecuteNterpImpl", false);

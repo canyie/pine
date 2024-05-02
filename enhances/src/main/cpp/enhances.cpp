@@ -120,7 +120,6 @@ void MaybeClassInit(void* ptr) {
             auto i = hook_records_.find(class_def);
             if (i != hook_records_.end()) {
                 for (const HookRecord& record : i->second) {
-                    LOGE("Restore %p to %p", record.target, record.entrypoint);
                     SyncMethodEntry(record.target, record.backup, record.entrypoint);
                 }
             }

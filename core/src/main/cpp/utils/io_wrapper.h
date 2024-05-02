@@ -23,6 +23,9 @@ namespace pine {
                 return fd;
             }
 
+            if (LIKELY(errno == ENOENT))
+                return -1;
+
             if (LIKELY(CanRetry(errno) && max_retries-- > 0)) {
                 LOGW("Retrying to open %s with flags %d: errno %d (%s)",
                      pathname, flags, errno, strerror(errno));

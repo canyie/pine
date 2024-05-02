@@ -31,7 +31,7 @@ set(PINE_SOURCES
         trampoline/trampoline_installer.cpp
         utils/memory.cpp
         utils/scoped_memory_access_protection.cpp
-        utils/elf_img.cpp
+        utils/elf_image.cpp
         utils/well_known_classes.cpp
         ${XZ_EMBEDDED_SOURCE})
 

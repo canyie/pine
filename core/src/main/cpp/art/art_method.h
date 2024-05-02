@@ -13,7 +13,7 @@
 #include "../android.h"
 #include "../pine_config.h"
 #include "../utils/macros.h"
-#include "../utils/elf_img.h"
+#include "../utils/elf_image.h"
 #include "../utils/member.h"
 #include "../utils/log.h"
 #include "../utils/well_known_classes.h"
@@ -23,7 +23,7 @@
 namespace pine::art {
     class ArtMethod final {
     public:
-        static void Init(const ElfImg* handle);
+        static void Init(const ElfImage* handle);
 
         static void InitMembers(JNIEnv* env, ArtMethod* m1, ArtMethod* m2, ArtMethod* m3, uint32_t access_flags);
 

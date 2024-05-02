@@ -11,7 +11,7 @@
 #include "art/gc_defs.h"
 #include "utils/log.h"
 #include "utils/macros.h"
-#include "utils/elf_img.h"
+#include "utils/elf_image.h"
 
 namespace pine {
     class ScopedGCCriticalSection {
@@ -31,12 +31,11 @@ namespace pine {
 
         static void Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, bool disable_hiddenapi_policy_for_platform);
         static void DisableHiddenApiPolicy(bool application, bool platform) {
-            ElfImg handle("libart.so");
+            ElfImage handle("libart.so");
             DisableHiddenApiPolicy(&handle, application, platform);
         }
         static bool DisableProfileSaver();
         static void SetClassLinker(void* class_linker) {
-            LOGI("Got class linker %p", class_linker);
             class_linker_ = class_linker;
         }
         static void* GetClassLinker() {
@@ -61,7 +60,7 @@ namespace pine {
         }
 
         static int version;
-        static JavaVM* jvm;
+        static JavaVM* jvm_;
 
         static void StartGCCriticalSection(void* cookie, void* self, art::GcCause cause, art::CollectorType collector) {
             if (start_gc_critical_section) {
@@ -110,10 +109,10 @@ namespace pine {
         static constexpr int kU = 34;
         static constexpr int kV = 35;
     private:
-        static void DisableHiddenApiPolicy(const ElfImg* handle, bool application, bool platform);
-        static void InitMembersFromRuntime(JavaVM* jvm, const ElfImg* handle);
-        static void InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImg* handle, bool has_small_irt);
-        static void InitJitCodeCache(void* runtime, size_t java_vm_offset, const ElfImg* handle);
+        static void DisableHiddenApiPolicy(const ElfImage* handle, bool application, bool platform);
+        static void InitMembersFromRuntime(JavaVM* jvm, const ElfImage* handle);
+        static void InitClassLinker(void* runtime, size_t java_vm_offset, const ElfImage* handle, bool has_small_irt);
+        static void InitJitCodeCache(void* runtime, size_t java_vm_offset, const ElfImage* handle);
 
         static std::vector<size_t> OffsetOfJavaVm(bool has_small_irt) {
             std::vector<size_t> offsets;
