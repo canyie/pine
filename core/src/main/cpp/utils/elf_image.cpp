@@ -27,7 +27,6 @@ void ElfImage::Open(const char* path, bool warn_if_nonexist, bool warn_if_symtab
             LOGE("Failed to open %s: %s", path, strerror(errno));
         return;
     }
-    LOGE("opened %s", path);
 
     size_ = lseek(fd, 0, SEEK_END);
     if (UNLIKELY(size_ <= 0)) {

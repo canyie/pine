@@ -99,7 +99,8 @@ void Android::Init(JNIEnv* env, int sdk_version, bool disable_hiddenapi_policy, 
 
         art::Thread::Init(&art_lib_handle);
         art::ArtMethod::Init(&art_lib_handle);
-        if (sdk_version >= kN) {
+        // JIT API is not supported yet in Android R+
+        if (UNLIKELY(sdk_version >= kN && sdk_version < kR)) {
             ElfImage jit_lib_handle(eng_build ? "libartd-compiler.so" : "libart-compiler.so", true, false);
             art::Jit::Init(&art_lib_handle, &jit_lib_handle);
         }

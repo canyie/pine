@@ -20,9 +20,6 @@ JitCompiler** Jit::global_compiler_ptr = nullptr;
 Member<void, size_t>* Jit::CompilerOptions_inline_max_code_units = nullptr;
 
 void Jit::Init(const ElfImage* art_lib_handle, const ElfImage* jit_lib_handle) {
-    if (LIKELY(Android::version >= Android::kR)) {
-        return; // JIT API is unavailable in Android R
-    }
     global_compiler_ptr = static_cast<JitCompiler**>(art_lib_handle->GetSymbolAddress(
             "_ZN3art3jit3Jit20jit_compiler_handle_E"));
 
@@ -59,7 +56,7 @@ void Jit::Init(const ElfImage* art_lib_handle, const ElfImage* jit_lib_handle) {
 }
 
 bool Jit::CompileMethod(Thread* thread, void* method) {
-    if (UNLIKELY(Android::version >= Android::kR)) {
+    if (LIKELY(Android::version >= Android::kR)) {
         LOGW("JIT compilation is not supported in Android R yet");
         return false;
     }
@@ -92,7 +89,7 @@ static void fake_jit_update_options(void* handle) {
 }
 
 bool Jit::DisableInline() {
-    if (UNLIKELY(Android::version >= Android::kR)) {
+    if (LIKELY(Android::version >= Android::kR)) {
         LOGW("JIT API is not supported in Android R yet");
         return false;
     }
