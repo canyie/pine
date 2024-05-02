@@ -49,6 +49,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(':core')
     implementation project(':enhances')
+    implementation project(':xposed')
     implementation 'com.iqiyi.xcrash:xcrash-android-lib:3.0.0'
 
     androidTestImplementation "androidx.test.ext:junit:1.1.5"
