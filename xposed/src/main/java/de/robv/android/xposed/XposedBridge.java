@@ -51,6 +51,26 @@ public final class XposedBridge {
 	// Pine changed: Move sLoadedPackageCallbacks to PineXposed.
 	// /*package*/ static final CopyOnWriteSortedSet<XC_LoadPackage> sLoadedPackageCallbacks = new CopyOnWriteSortedSet<>();
 
+	private static HookProvider hookProvider = HookProvider.PINE;
+
+	public interface HookProvider {
+		HookProvider PINE = new HookProvider() {
+			@Override
+			public void hook(Member method, CopyOnWriteSortedSet<XC_MethodHook> callbacks) {
+				Handler handler = new Handler(callbacks);
+				Pine.hook(method, handler);
+			}
+
+			@Override
+			public Object invokeOriginal(Member method, Object thisObject, Object[] args) throws NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+				return Pine.invokeOriginalMethod(method, thisObject, args);
+			}
+		};
+		void hook(Member method, CopyOnWriteSortedSet<XC_MethodHook> callbacks);
+		Object invokeOriginal(Member method, Object thisObject, Object[] args) throws
+				NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException;
+	}
+
 	private XposedBridge() {}
 
 	/**
@@ -63,6 +83,14 @@ public final class XposedBridge {
 	// Pine added
 	public static void setXposedVersion(int version) {
 		XPOSED_BRIDGE_VERSION = version;
+	}
+
+	public static HookProvider getHookProvider() {
+		return hookProvider;
+	}
+
+	public static void setHookProvider(HookProvider provider) {
+		hookProvider = provider;
 	}
 
 	// Pine added: New API for querying supported features
@@ -153,8 +181,7 @@ public final class XposedBridge {
 		callbacks.add(callback);
 
 		if (newMethod) {
-			Handler handler = new Handler(callbacks);
-			Pine.hook(hookMethod, handler);
+			hookProvider.hook(hookMethod, callbacks);
 		}
 
 		return callback.new Unhook(hookMethod);
@@ -246,7 +273,7 @@ public final class XposedBridge {
 	 */
 	public static Object invokeOriginalMethod(Member method, Object thisObject, Object[] args)
 			throws NullPointerException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		return Pine.invokeOriginalMethod(method, thisObject, args);
+		return hookProvider.invokeOriginal(method, thisObject, args);
 	}
 
 	// Pine added: Handler class for help dispatch

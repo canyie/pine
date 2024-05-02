@@ -400,6 +400,12 @@ public final class Pine {
     public static Method hookReplace(HookRecord hookRecord, Method replacement, Method backup,
                                      boolean canInitDeclaringClass) {
         Member method = hookRecord.target;
+        long artMethod = getArtMethod(method);
+        synchronized (sHookRecords) {
+            if (sHookRecords.containsKey(artMethod))
+                throw new IllegalStateException("Attempting to re-hook " + method);
+            sHookRecords.put(artMethod, hookRecord);
+        }
         int modifiers = method.getModifiers();
         final int mode = hookMode;
         boolean isInlineHook = mode != HookMode.REPLACEMENT;
