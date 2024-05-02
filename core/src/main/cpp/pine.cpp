@@ -156,15 +156,20 @@ else env->SetStaticLongField(Pine, field, (value));
 #undef SET_JAVA_VALUE
 }
 
-jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject hookRecord,
-                   jobject javaTarget, jobject javaBridge, jboolean isInlineHook, jboolean isJni,
-                   jboolean isProxy) {
-    static jfieldID HookRecord_trampoline = [&]() {
+static jfieldID GetHookRecordTrampolineField(JNIEnv* env, jobject hookRecord) {
+    static jfieldID field = [&]() {
         jclass HookRecord = env->GetObjectClass(hookRecord);
         jfieldID field = env->GetFieldID(HookRecord, "trampoline", "J");
         env->DeleteLocalRef(HookRecord);
         return field;
     }();
+    return field;
+}
+
+jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject hookRecord,
+                   jobject javaTarget, jobject javaBridge, jboolean isInlineHook, jboolean isJni,
+                   jboolean isProxy) {
+    jfieldID HookRecord_trampoline = GetHookRecordTrampolineField(env, hookRecord);
     auto thread = reinterpret_cast<art::Thread*>(threadAddress);
     auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
     auto bridge = art::ArtMethod::FromReflectedMethod(env, javaBridge);
@@ -246,6 +251,68 @@ jobject Pine_hook0(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, j
         void* call_origin = is_inline_hook
                             ? trampoline_installer->InstallInlineTrampoline(target, bridge, skip_first_few_bytes)
                             : trampoline_installer->InstallReplacementTrampoline(target, bridge);
+
+        if (LIKELY(call_origin)) {
+            backup->BackupFrom(target, call_origin, is_inline_hook, is_native, is_proxy);
+            target->AfterHook(is_inline_hook, is_native_or_proxy);
+            new_entrypoint = target->GetEntryPointFromCompiledCode();
+        } else {
+            snprintf(error_msg, sizeof(error_msg), "Failed to install %s trampoline on method %p: %s (%d).",
+                     is_inline_hook ? "inline" : "replacement", target, strerror(errno), errno);
+            if (errno == EACCES || errno == EPERM)
+                strlcat(error_msg, " This is a security failure, check selinux policy, seccomp or capabilities. Earlier log may point out root cause.", sizeof(error_msg));
+            LOGE("%s", error_msg);
+            new_entrypoint = nullptr;
+        }
+    }
+
+    if (LIKELY(new_entrypoint)) {
+        env->SetLongField(hookRecord, HookRecord_trampoline, reinterpret_cast<jlong>(new_entrypoint));
+        return env->ToReflectedMethod(declaring, backup->ToMethodID(),
+                                      static_cast<jboolean>(backup->IsStatic()));
+    } else {
+        JNIHelper::Throw(env, errno == EACCES || errno == EPERM ? "java/lang/SecurityException" : "java/lang/RuntimeException", error_msg);
+        return nullptr;
+    }
+}
+
+jobject Pine_hookReplace(JNIEnv* env, jclass, jlong threadAddress, jclass declaring, jobject hookRecord,
+                         jobject javaTarget, jobject javaReplacement, jobject javaBackup,
+                         jboolean isInlineHook, jboolean isJni, jboolean isProxy) {
+    jfieldID HookRecord_trampoline = GetHookRecordTrampolineField(env, hookRecord);
+    auto thread = reinterpret_cast<art::Thread*>(threadAddress);
+    auto target = art::ArtMethod::FromReflectedMethod(env, javaTarget);
+    auto replacement = art::ArtMethod::FromReflectedMethod(env, javaReplacement);
+    auto backup = art::ArtMethod::FromReflectedMethod(env, javaBackup);
+
+    bool is_inline_hook = JBOOL_TRUE(isInlineHook);
+    const bool is_native = JBOOL_TRUE(isJni);
+    const bool is_proxy = JBOOL_TRUE(isProxy);
+    const bool is_native_or_proxy = is_native || is_proxy;
+
+    TrampolineInstaller* trampoline_installer = TrampolineInstaller::GetDefault();
+
+    if (is_inline_hook && (trampoline_installer->IsReplacementOnly() || !target->IsCompiled())) {
+        is_inline_hook = false;
+    }
+
+    if (UNLIKELY(is_inline_hook && trampoline_installer->CannotSafeInlineHook(target))) {
+        LOGW("Cannot safe inline hook the target method, force replacement mode.");
+        is_inline_hook = false;
+    }
+
+    bool skip_first_few_bytes = PineConfig::anti_checks && is_inline_hook
+            && trampoline_installer->CanSkipFirstFewBytes(target);
+    void* new_entrypoint;
+    char error_msg[288];
+    {
+        // ArtMethod objects are very important. Many threads depend on their values,
+        // so we need to suspend other threads to avoid errors.
+        ScopedSuspendVM suspend_vm(thread);
+
+        void* call_origin = is_inline_hook
+                            ? trampoline_installer->InstallDirectJumpInlineTrampoline(target, replacement, skip_first_few_bytes)
+                            : trampoline_installer->InstallDirectJumpReplacementTrampoline(target, replacement);
 
         if (LIKELY(call_origin)) {
             backup->BackupFrom(target, call_origin, is_inline_hook, is_native, is_proxy);
@@ -512,6 +579,7 @@ static const JNINativeMethod gMethods[] = {
         {"enableFastNative", "()V", (void*) Pine_enableFastNative},
         {"getArtMethod", "(Ljava/lang/reflect/Member;)J", (void*) Pine_getArtMethod},
         {"hook0", "(JLjava/lang/Class;Ltop/canyie/pine/Pine$HookRecord;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;ZZZ)Ljava/lang/reflect/Method;", (void*) Pine_hook0},
+        {"hookReplace0", "(JLjava/lang/Class;Ltop/canyie/pine/Pine$HookRecord;Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;Ljava/lang/reflect/Method;ZZZ)Ljava/lang/reflect/Method;", (void*) Pine_hookReplace},
         {"compile0", "(JLjava/lang/reflect/Member;)Z", (void*) Pine_compile0},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z", (void*) Pine_decompile0},
         {"disableJitInline0", "()Z", (void*) Pine_disableJitInline0},

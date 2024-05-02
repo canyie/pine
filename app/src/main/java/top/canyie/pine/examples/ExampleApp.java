@@ -66,6 +66,7 @@ public class ExampleApp extends Application {
             new TestItem("Arg8884 Hook", new Arg8884Test()),
             new TestItem("Arg8888 Hook", new Arg8888Test()),
             new TestItem("ArgLLLILLZZZIIIL Hook", new ArgLLLILLZZZIIILTest()),
+            new TestItem("Hook Replacement Primitive", new HookReplacementPrimitiveTest()),
             TOAST_TEST,
             GC_TEST
     };

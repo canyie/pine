@@ -397,6 +397,61 @@ public final class Pine {
         hookRecord.backup = backup;
     }
 
+    public static Method hookReplace(HookRecord hookRecord, Method replacement, Method backup,
+                                     boolean canInitDeclaringClass) {
+        Member method = hookRecord.target;
+        int modifiers = method.getModifiers();
+        final int mode = hookMode;
+        boolean isInlineHook = mode != HookMode.REPLACEMENT;
+
+        long thread = currentArtThread0();
+        if ((hookRecord.isStatic = Modifier.isStatic(modifiers)) && canInitDeclaringClass) {
+            resolve((Method) method);
+            if (PineConfig.sdkLevel >= Build.VERSION_CODES.Q) {
+                // Android R has a new class state called "visibly initialized",
+                // and FixupStaticTrampolines will be called after class was initialized.
+                // The entry point will be reset. Make this class be visibly initialized before hook
+                // Note: this feature does not exist on official Android Q,
+                // but some weird ROMs cherry-pick this commit to these Android Q ROMs
+                // https://github.com/crdroidandroid/android_art/commit/ef76ced9d2856ac988377ad99288a357697c4fa2
+                makeClassesVisiblyInitialized(thread);
+            }
+        }
+
+        Class<?> declaring = method.getDeclaringClass();
+
+        final boolean jni = Modifier.isNative(modifiers);
+        final boolean proxy = Proxy.isProxyClass(declaring);
+
+        // Only try compile target method when trying inline hook.
+        if (isInlineHook) {
+            // Cannot compile native or proxy methods.
+            if (!(jni || proxy)) {
+                if (mode == HookMode.INLINE) {
+                    boolean compiled = compile0(thread, method);
+                    if (!compiled) {
+                        Log.w(TAG, "Cannot compile the target method, force replacement mode.");
+                        isInlineHook = false;
+                    }
+                }
+            } else {
+                isInlineHook = false;
+            }
+        }
+
+        hookRecord.bridge = replacement;
+        hookRecord.skipUpdateDeclaringClass = true;
+
+        backup = hookReplace0(thread, declaring, hookRecord, method, replacement, backup,
+                isInlineHook, jni, proxy);
+
+        if (backup == null)
+            throw new RuntimeException("Failed to hook method " + method);
+
+        backup.setAccessible(true);
+        return hookRecord.backup = backup;
+    }
+
     private static void resolve(Method method) {
         Object[] badArgs;
         if (method.getParameterTypes().length > 0) {
@@ -772,6 +827,10 @@ public final class Pine {
                                        Member target, Method bridge, boolean isInlineHook,
                                        boolean jni, boolean proxy);
 
+    private static native Method hookReplace0(long thread, Class<?> declaring, HookRecord hookRecord,
+                                              Member target, Method replacement, Method backup,
+                                              boolean isInlineHook, boolean jni, boolean proxy);
+
     private static native boolean compile0(long thread, Member method);
 
     private static native boolean decompile0(Member method, boolean disableJit);
@@ -914,6 +973,10 @@ public final class Pine {
 
         public boolean isPending() {
             return backup == null;
+        }
+
+        public Object callBackup(Object thisObject, Object... args) throws InvocationTargetException, IllegalAccessException {
+            return callBackupMethod(this, thisObject, args);
         }
     }
 

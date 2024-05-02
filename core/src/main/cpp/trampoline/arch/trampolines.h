@@ -19,6 +19,10 @@ void pine_thumb_bridge_jump_trampoline_bridge_method();
 void pine_thumb_bridge_jump_trampoline_bridge_entry();
 void pine_thumb_bridge_jump_trampoline_call_origin_entry();
 
+void pine_thumb_method_jump_trampoline();
+void pine_thumb_method_jump_trampoline_dest_method();
+void pine_thumb_method_jump_trampoline_dest_entry();
+
 void pine_thumb_call_origin_trampoline();
 void pine_thumb_call_origin_trampoline_origin_method();
 void pine_thumb_call_origin_trampoline_origin_code_entry();
@@ -30,6 +34,8 @@ void pine_thumb_backup_trampoline_remaining_code_entry();
 
 void pine_thumb_trampolines_end();
 #else
+void pine_direct_jump_trampoline();
+void pine_direct_jump_trampoline_jump_entry();
 
 void pine_bridge_jump_trampoline();
 void pine_bridge_jump_trampoline_target_method();
@@ -38,8 +44,9 @@ void pine_bridge_jump_trampoline_bridge_method();
 void pine_bridge_jump_trampoline_bridge_entry();
 void pine_bridge_jump_trampoline_call_origin_entry();
 
-void pine_direct_jump_trampoline();
-void pine_direct_jump_trampoline_jump_entry();
+void pine_method_jump_trampoline();
+void pine_method_jump_trampoline_dest_method();
+void pine_method_jump_trampoline_dest_entry();
 
 void pine_call_origin_trampoline();
 void pine_call_origin_trampoline_origin_method();

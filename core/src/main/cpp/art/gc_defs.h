@@ -8,87 +8,87 @@
 namespace pine::art {
     class GCCriticalSection {
     private:
-        void* self_;
-        const char* section_name_;
+        [[maybe_unused]] void* self_;
+        [[maybe_unused]] const char* section_name_;
     };
 
     enum GcCause {
         // Invalid GC cause used as a placeholder.
-        kGcCauseNone,
+        kGcCauseNone [[maybe_unused]],
         // GC triggered by a failed allocation. Thread doing allocation is blocked waiting for GC before
         // retrying allocation.
-        kGcCauseForAlloc,
+        kGcCauseForAlloc [[maybe_unused]],
         // A background GC trying to ensure there is free memory ahead of allocations.
-        kGcCauseBackground,
+        kGcCauseBackground [[maybe_unused]],
         // An explicit System.gc() call.
-        kGcCauseExplicit,
+        kGcCauseExplicit [[maybe_unused]],
         // GC triggered for a native allocation when NativeAllocationGcWatermark is exceeded.
         // (This may be a blocking GC depending on whether we run a non-concurrent collector).
-        kGcCauseForNativeAlloc,
+        kGcCauseForNativeAlloc [[maybe_unused]],
         // GC triggered for a collector transition.
-        kGcCauseCollectorTransition,
+        kGcCauseCollectorTransition [[maybe_unused]],
         // Not a real GC cause, used when we disable moving GC (currently for GetPrimitiveArrayCritical).
-        kGcCauseDisableMovingGc,
+        kGcCauseDisableMovingGc [[maybe_unused]],
         // Not a real GC cause, used when we trim the heap.
-        kGcCauseTrim,
+        kGcCauseTrim [[maybe_unused]],
         // Not a real GC cause, used to implement exclusion between GC and instrumentation.
-        kGcCauseInstrumentation,
+        kGcCauseInstrumentation [[maybe_unused]],
         // Not a real GC cause, used to add or remove app image spaces.
-        kGcCauseAddRemoveAppImageSpace,
+        kGcCauseAddRemoveAppImageSpace [[maybe_unused]],
         // Not a real GC cause, used to implement exclusion between GC and debugger.
         kGcCauseDebugger,
         // GC triggered for background transition when both foreground and background collector are CMS.
-        kGcCauseHomogeneousSpaceCompact,
+        kGcCauseHomogeneousSpaceCompact [[maybe_unused]],
         // Class linker cause, used to guard filling art methods with special values.
-        kGcCauseClassLinker,
+        kGcCauseClassLinker [[maybe_unused]],
         // Not a real GC cause, used to implement exclusion between code cache metadata and GC.
-        kGcCauseJitCodeCache,
+        kGcCauseJitCodeCache [[maybe_unused]],
         // Not a real GC cause, used to add or remove system-weak holders.
-        kGcCauseAddRemoveSystemWeakHolder,
+        kGcCauseAddRemoveSystemWeakHolder [[maybe_unused]],
         // Not a real GC cause, used to prevent hprof running in the middle of GC.
-        kGcCauseHprof,
+        kGcCauseHprof [[maybe_unused]],
         // Not a real GC cause, used to prevent GetObjectsAllocated running in the middle of GC.
-        kGcCauseGetObjectsAllocated,
+        kGcCauseGetObjectsAllocated [[maybe_unused]],
         // GC cause for the profile saver.
-        kGcCauseProfileSaver,
+        kGcCauseProfileSaver [[maybe_unused]],
     };
 
     enum CollectorType {
         // No collector selected.
-        kCollectorTypeNone,
+        kCollectorTypeNone [[maybe_unused]],
         // Non concurrent mark-sweep.
-        kCollectorTypeMS,
+        kCollectorTypeMS [[maybe_unused]],
         // Concurrent mark-sweep.
-        kCollectorTypeCMS,
+        kCollectorTypeCMS [[maybe_unused]],
         // Semi-space / mark-sweep hybrid, enables compaction.
-        kCollectorTypeSS,
+        kCollectorTypeSS [[maybe_unused]],
         // Heap trimming collector, doesn't do any actual collecting.
-        kCollectorTypeHeapTrim,
+        kCollectorTypeHeapTrim [[maybe_unused]],
         // A (mostly) concurrent copying collector.
-        kCollectorTypeCC,
+        kCollectorTypeCC [[maybe_unused]],
         // The background compaction of the concurrent copying collector.
-        kCollectorTypeCCBackground,
+        kCollectorTypeCCBackground [[maybe_unused]],
         // Instrumentation critical section fake collector.
-        kCollectorTypeInstrumentation,
+        kCollectorTypeInstrumentation [[maybe_unused]],
         // Fake collector for adding or removing application image spaces.
-        kCollectorTypeAddRemoveAppImageSpace,
+        kCollectorTypeAddRemoveAppImageSpace [[maybe_unused]],
         // Fake collector used to implement exclusion between GC and debugger.
         kCollectorTypeDebugger,
         // A homogeneous space compaction collector used in background transition
         // when both foreground and background collector are CMS.
-        kCollectorTypeHomogeneousSpaceCompact,
+        kCollectorTypeHomogeneousSpaceCompact [[maybe_unused]],
         // Class linker fake collector.
-        kCollectorTypeClassLinker,
+        kCollectorTypeClassLinker [[maybe_unused]],
         // JIT Code cache fake collector.
-        kCollectorTypeJitCodeCache,
+        kCollectorTypeJitCodeCache [[maybe_unused]],
         // Hprof fake collector.
-        kCollectorTypeHprof,
+        kCollectorTypeHprof [[maybe_unused]],
         // Fake collector for installing/removing a system-weak holder.
-        kCollectorTypeAddRemoveSystemWeakHolder,
+        kCollectorTypeAddRemoveSystemWeakHolder [[maybe_unused]],
         // Fake collector type for GetObjectsAllocated
-        kCollectorTypeGetObjectsAllocated,
+        kCollectorTypeGetObjectsAllocated [[maybe_unused]],
         // Fake collector type for ScopedGCCriticalSection
-        kCollectorTypeCriticalSection,
+        kCollectorTypeCriticalSection [[maybe_unused]],
     };
 }
 

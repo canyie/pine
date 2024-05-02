@@ -19,8 +19,8 @@ namespace pine {
         ALWAYS_INLINE ScopedGCCriticalSection(void* self, art::GcCause cause, art::CollectorType collector);
         ALWAYS_INLINE ~ScopedGCCriticalSection();
     private:
-        art::GCCriticalSection critical_section_;
-        const char* old_no_suspend_reason_;
+        [[maybe_unused]] art::GCCriticalSection critical_section_;
+        [[maybe_unused]] const char* old_no_suspend_reason_;
     };
 
     class Android final {

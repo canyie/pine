@@ -23,6 +23,12 @@ void Arm64TrampolineInstaller::InitTrampolines() {
     kBridgeJumpTrampolineOriginCodeEntryOffset = BridgeJumpTrampolineOffset(
             AS_VOID_PTR(pine_bridge_jump_trampoline_call_origin_entry));
 
+    kMethodJumpTrampoline = AS_VOID_PTR(pine_method_jump_trampoline);
+    kMethodJumpTrampolineDestMethodOffset = MethodJumpTrampolineOffset(
+            AS_VOID_PTR(pine_method_jump_trampoline_dest_method));
+    kMethodJumpTrampolineDestEntryOffset = MethodJumpTrampolineOffset(
+            AS_VOID_PTR(pine_method_jump_trampoline_dest_entry));
+
     kCallOriginTrampoline = AS_VOID_PTR(pine_call_origin_trampoline);
     kCallOriginTrampolineOriginMethodOffset = CallOriginTrampolineOffset(
             AS_VOID_PTR(pine_call_origin_trampoline_origin_method));

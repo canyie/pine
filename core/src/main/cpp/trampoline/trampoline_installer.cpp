@@ -87,6 +87,28 @@ TrampolineInstaller::CreateBridgeJumpTrampoline(art::ArtMethod* target, art::Art
     return mem;
 }
 
+void* TrampolineInstaller::CreateMethodJumpTrampoline(art::ArtMethod* dest) {
+    void* mem = Memory::AllocUnprotected(kMethodJumpTrampolineSize);
+    if (UNLIKELY(!mem)) {
+        LOGE("Failed to allocate method jump trampoline!");
+        return nullptr;
+    }
+    memcpy(mem, kMethodJumpTrampoline, kMethodJumpTrampolineSize);
+    uintptr_t addr = reinterpret_cast<uintptr_t>(mem);
+
+    auto dest_method_out = reinterpret_cast<art::ArtMethod**>(addr +
+            kMethodJumpTrampolineDestMethodOffset);
+    *dest_method_out = dest;
+
+    auto origin_entry_out = reinterpret_cast<void**>(addr +
+            kMethodJumpTrampolineDestEntryOffset);
+    *origin_entry_out = dest->GetEntryPointFromCompiledCode();
+
+    Memory::FlushCache(mem, kMethodJumpTrampolineSize);
+
+    return mem;
+}
+
 void*
 TrampolineInstaller::CreateCallOriginTrampoline(art::ArtMethod* origin, void* original_code_entry) {
     void* mem = Memory::AllocUnprotected(kCallOriginTrampolineSize);
@@ -161,6 +183,20 @@ TrampolineInstaller::InstallReplacementTrampoline(art::ArtMethod* target, art::A
     return origin_code_entry;
 }
 
+void*
+TrampolineInstaller::InstallDirectJumpReplacementTrampoline(art::ArtMethod* target, art::ArtMethod* replacement) {
+    void* origin_code_entry = target->GetEntryPointFromCompiledCode();
+    void* trampoline = CreateMethodJumpTrampoline(replacement);
+    if (UNLIKELY(!trampoline)) return nullptr;
+    target->SetEntryPointFromCompiledCode(trampoline);
+
+    if (PineConfig::debug)
+        LOGD("InstallDirectJumpReplacementTrampoline: origin %p origin_entry %p jump_to %p",
+             target, origin_code_entry, trampoline);
+
+    return origin_code_entry;
+}
+
 void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge,
                                                    bool skip_first_few_bytes) {
     void* target_code_addr = target->GetCompiledCodeAddr();
@@ -193,6 +229,44 @@ void* TrampolineInstaller::InstallInlineTrampoline(art::ArtMethod* target, art::
     if (PineConfig::debug)
         LOGD("InstallInlineTrampoline: target_code_addr %p backup %p bridge_jump %p",
                 target_code_addr, backup, bridge_jump_trampoline);
+
+    return backup;
+}
+
+
+void* TrampolineInstaller::InstallDirectJumpInlineTrampoline(art::ArtMethod* target,
+                                                             art::ArtMethod* replacement,
+                                                             bool skip_first_few_bytes) {
+    void* target_code_addr = target->GetCompiledCodeAddr();
+    bool target_code_writable = Memory::Unprotect(target_code_addr);
+    if (UNLIKELY(!target_code_writable)) {
+        LOGE("Failed to make target code writable!");
+        return nullptr;
+    }
+
+    size_t backup_size = kDirectJumpTrampolineSize;
+    if (skip_first_few_bytes) backup_size += kSkipBytes;
+
+    void* backup = Backup(target, backup_size);
+    if (UNLIKELY(!backup)) return nullptr;
+
+    void* method_jump_trampoline = CreateMethodJumpTrampoline(replacement);
+    if (UNLIKELY(!method_jump_trampoline)) return nullptr;
+
+    {
+        ScopedMemoryAccessProtection protection(target_code_addr, kDirectJumpTrampolineSize);
+        if (skip_first_few_bytes) {
+            FillWithNopImpl(target_code_addr, kSkipBytes);
+            WriteDirectJumpTrampolineTo(AS_VOID_PTR(AS_PTR_NUM(target_code_addr) + kSkipBytes),
+                                        method_jump_trampoline);
+        } else {
+            WriteDirectJumpTrampolineTo(target_code_addr, method_jump_trampoline);
+        }
+    }
+
+    if (PineConfig::debug)
+        LOGD("InstallInlineTrampoline: target_code_addr %p backup %p jump_trampoline %p",
+             target_code_addr, backup, method_jump_trampoline);
 
     return backup;
 }

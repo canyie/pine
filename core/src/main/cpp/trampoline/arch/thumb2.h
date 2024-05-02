@@ -26,6 +26,10 @@ namespace pine {
             return ToPC(TrampolineInstaller::CreateBridgeJumpTrampoline(target, bridge, origin_code_entry));
         }
 
+        virtual void* CreateMethodJumpTrampoline(art::ArtMethod* dest) override {
+            return ToPC(TrampolineInstaller::CreateMethodJumpTrampoline(dest));
+        }
+
         virtual void* CreateCallOriginTrampoline(art::ArtMethod* origin, void* original_code_entry) override {
             return ToPC(TrampolineInstaller::CreateCallOriginTrampoline(origin, original_code_entry));
         }

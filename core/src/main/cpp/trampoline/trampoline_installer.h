@@ -34,7 +34,8 @@ namespace pine {
 
         void Init() {
             InitTrampolines();
-            kBridgeJumpTrampolineSize = SubAsSize(kCallOriginTrampoline, kBridgeJumpTrampoline);
+            kBridgeJumpTrampolineSize = SubAsSize(kMethodJumpTrampoline, kBridgeJumpTrampoline);
+            kMethodJumpTrampolineSize = SubAsSize(kCallOriginTrampoline, kMethodJumpTrampoline);
             kCallOriginTrampolineSize = SubAsSize(kBackupTrampoline, kCallOriginTrampoline);
             kBackupTrampolineSize = SubAsSize(kTrampolinesEnd, kBackupTrampoline);
         }
@@ -82,6 +83,10 @@ namespace pine {
 
         void* InstallInlineTrampoline(art::ArtMethod* target, art::ArtMethod* bridge, bool skip_first_few_bytes);
 
+        void* InstallDirectJumpReplacementTrampoline(art::ArtMethod* target, art::ArtMethod* replacement);
+
+        void* InstallDirectJumpInlineTrampoline(art::ArtMethod* target, art::ArtMethod* replacement, bool skip_first_few_bytes);
+
         virtual bool NativeHookNoBackup(void* target, void* to);
 
         bool FillWithNop(void* target, size_t size);
@@ -97,6 +102,10 @@ namespace pine {
 
         inline size_t BridgeJumpTrampolineOffset(void* ptr) {
             return SubAsSize(ptr, kBridgeJumpTrampoline);
+        }
+
+        inline size_t MethodJumpTrampolineOffset(void* ptr) {
+            return SubAsSize(ptr, kMethodJumpTrampoline);
         }
 
         inline size_t CallOriginTrampolineOffset(void* ptr) {
@@ -115,6 +124,8 @@ namespace pine {
 
         virtual void* CreateBridgeJumpTrampoline(art::ArtMethod* target, art::ArtMethod* bridge,
                                                  void* origin_code_entry);
+
+        virtual void* CreateMethodJumpTrampoline(art::ArtMethod* dest);
 
         virtual void* CreateCallOriginTrampoline(art::ArtMethod* origin, void* original_code_entry);
 
@@ -139,6 +150,11 @@ namespace pine {
         size_t kBridgeJumpTrampolineBridgeEntryOffset;
         size_t kBridgeJumpTrampolineOriginCodeEntryOffset;
         size_t kBridgeJumpTrampolineSize;
+
+        void const* kMethodJumpTrampoline;
+        size_t kMethodJumpTrampolineDestMethodOffset;
+        size_t kMethodJumpTrampolineDestEntryOffset;
+        size_t kMethodJumpTrampolineSize;
 
         void const* kCallOriginTrampoline;
         size_t kCallOriginTrampolineOriginMethodOffset;

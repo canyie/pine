@@ -25,6 +25,12 @@ void Thumb2TrampolineInstaller::InitTrampolines() {
     kBridgeJumpTrampolineOriginCodeEntryOffset = BridgeJumpTrampolineOffset(
             ToAddress(AS_VOID_PTR(pine_thumb_bridge_jump_trampoline_call_origin_entry)));
 
+    kMethodJumpTrampoline = ToAddress(AS_VOID_PTR(pine_thumb_method_jump_trampoline));
+    kMethodJumpTrampolineDestMethodOffset = MethodJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_method_jump_trampoline_dest_method)));
+    kMethodJumpTrampolineDestEntryOffset = MethodJumpTrampolineOffset(
+            ToAddress(AS_VOID_PTR(pine_thumb_method_jump_trampoline_dest_entry)));
+
     kCallOriginTrampoline = ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline));
     kCallOriginTrampolineOriginMethodOffset = CallOriginTrampolineOffset(
             ToAddress(AS_VOID_PTR(pine_thumb_call_origin_trampoline_origin_method)));

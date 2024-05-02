@@ -74,6 +74,17 @@ VAR(pine_bridge_jump_trampoline_call_origin_entry)
 .long 0
 .long 0
 
+FUNCTION(pine_method_jump_trampoline)
+LDVAR(x0, pine_method_jump_trampoline_dest_method)
+LDVAR(x17, pine_method_jump_trampoline_dest_entry)
+br x17
+VAR(pine_method_jump_trampoline_dest_method)
+.long 0
+.long 0
+VAR(pine_method_jump_trampoline_dest_entry)
+.long 0
+.long 0
+
 FUNCTION(pine_call_origin_trampoline)
 LDVAR(x0, pine_call_origin_trampoline_origin_method)
 LDVAR(x17, pine_call_origin_trampoline_origin_code_entry)
