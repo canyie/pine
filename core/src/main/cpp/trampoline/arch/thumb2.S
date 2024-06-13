@@ -10,6 +10,9 @@ name:
 .global name; \
 name:
 
+#define LDVAR(reg, var) \
+    ldr reg, var
+
 FUNCTION(pine_thumb_direct_jump_trampoline)
 ldr pc, pine_thumb_direct_jump_trampoline_jump_entry
 VAR(pine_thumb_direct_jump_trampoline_jump_entry)
