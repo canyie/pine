@@ -161,7 +161,7 @@ public final class XposedBridge {
 		if (!(hookMethod instanceof Method) && !(hookMethod instanceof Constructor<?>)) {
 			throw new IllegalArgumentException("Only methods and constructors can be hooked: " + hookMethod.toString());
 		}
-		// Pine changed: We can hook interfaces's non-abstract methods
+		// Pine changed: We can hook interfaces' non-abstract methods
 		/*else if (hookMethod.getDeclaringClass().isInterface()) {
 			throw new IllegalArgumentException("Cannot hook interfaces: " + hookMethod.toString());
 		}*/ else if (Modifier.isAbstract(hookMethod.getModifiers())) {

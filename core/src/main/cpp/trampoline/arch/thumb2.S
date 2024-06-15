@@ -75,8 +75,8 @@ VAR(pine_thumb_bridge_jump_trampoline_call_origin_entry)
 .long 0
 
 FUNCTION(pine_thumb_method_jump_trampoline)
-LDVAR(r0, pine_thumb_method_jump_trampoline_dest_method)
-LDVAR(pc, pine_thumb_method_jump_trampoline_dest_entry)
+ldr r0, pine_thumb_method_jump_trampoline_dest_method
+ldr pc, pine_thumb_method_jump_trampoline_dest_entry
 VAR(pine_thumb_method_jump_trampoline_dest_method)
 .long 0
 .long 0
