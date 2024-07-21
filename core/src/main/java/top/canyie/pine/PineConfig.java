@@ -2,6 +2,8 @@ package top.canyie.pine;
 
 import android.os.Build;
 
+import java.util.Locale;
+
 /**
  * A class to stores some configures.
  * @author canyie
@@ -46,10 +48,24 @@ import android.os.Build;
 
     static {
         sdkLevel = Build.VERSION.SDK_INT;
-        if (sdkLevel == 30 && Build.VERSION.PREVIEW_SDK_INT > 0) {
-            // Android S Preview
-            sdkLevel = 31;
+        if (sdkLevel == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (isAtLeastPreReleaseCodename("VanillaIceCream")) {
+                // Android 15 (VanillaIceCream) Preview
+                sdkLevel = Build.VERSION_CODES.UPSIDE_DOWN_CAKE + 1;
+            }
         }
+    }
+
+    // https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:core/core/src/main/java/androidx/core/os/BuildCompat.java;l=49;drc=f8ab4c3030c3fbadca32a9593c522c89a9f2cadf
+    private static boolean isAtLeastPreReleaseCodename(String codename) {
+        final String buildCodename = Build.VERSION.CODENAME.toUpperCase(Locale.ROOT);
+
+        // Special case "REL", which means the build is not a pre-release build.
+        if ("REL".equals(buildCodename)) {
+            return false;
+        }
+
+        return buildCodename.compareTo(codename.toUpperCase(Locale.ROOT)) >= 0;
     }
 
     private PineConfig() {

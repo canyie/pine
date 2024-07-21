@@ -301,7 +301,7 @@ void ArtMethod::AfterHook(bool is_inline_hook, bool is_native_or_proxy) {
     if (Android::version >= Android::kQ) {
         // On Android 10+, a method can be execute with fast interpreter is cached in access flags,
         // and we may need to disable fast interpreter for a hooked method.
-        // Clear the cached flag(kAccFastInterpreterToInterpreterInvoke) to refresh the state.
+        // Clear the cached flag (kAccFastInterpreterToInterpreterInvoke) to refresh the state.
         access_flags &= ~AccessFlags::kFastInterpreterToInterpreterInvoke;
     }
 

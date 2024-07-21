@@ -1,6 +1,5 @@
 package top.canyie.pine;
 
-import android.annotation.SuppressLint;
 import android.os.Build;
 import android.util.Log;
 
@@ -15,7 +14,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,28 +90,10 @@ public final class Pine {
         return initialized;
     }
 
-    // https://cs.android.com/androidx/platform/frameworks/support/+/androidx-main:core/core/src/main/java/androidx/core/os/BuildCompat.java;l=49;drc=f8ab4c3030c3fbadca32a9593c522c89a9f2cadf
-    private static boolean isAtLeastPreReleaseCodename(String codename) {
-        final String buildCodename = Build.VERSION.CODENAME.toUpperCase(Locale.ROOT);
-
-        // Special case "REL", which means the build is not a pre-release build.
-        if ("REL".equals(buildCodename)) {
-            return false;
-        }
-
-        return buildCodename.compareTo(codename.toUpperCase(Locale.ROOT)) >= 0;
-    }
-
-    @SuppressLint("ObsoleteSdkInt") private static void initialize() {
+    private static void initialize() {
         int sdkLevel = PineConfig.sdkLevel;
         if (sdkLevel < Build.VERSION_CODES.KITKAT)
             throw new RuntimeException("Unsupported android sdk level " + sdkLevel);
-        else if (sdkLevel == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            if (isAtLeastPreReleaseCodename("VanillaIceCream")) {
-                // Android 15 (VanillaIceCream) Preview
-                sdkLevel = Build.VERSION_CODES.UPSIDE_DOWN_CAKE + 1;
-            }
-        }
 
         String vmVersion = System.getProperty("java.vm.version");
         if (vmVersion == null || !vmVersion.startsWith("2"))
