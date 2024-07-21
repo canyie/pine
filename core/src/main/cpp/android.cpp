@@ -212,8 +212,9 @@ void Android::InitMembersFromRuntime(JavaVM* jvm, const ElfImage* handle) {
     // https://android.googlesource.com/platform/art/+/4dcac3629ea5925e47b522073f3c49420e998911
     // https://github.com/crdroidandroid/android_art/commit/aa7999027fa830d0419c9518ab56ceb7fcf6f7f1
     // https://android.googlesource.com/platform/art/+/849d09a81907f16d8ccc6019b8baf86a304b730c
-    bool has_smaller_irt = version >= kT || handle->GetSymbolAddress(
-            "_ZN3art17SmallIrtAllocator10DeallocateEPNS_8IrtEntryE", false) != nullptr;
+    bool has_smaller_irt = version >= kT
+            || handle->HasSymbol("_ZN3art17SmallIrtAllocator10DeallocateEPNS_8IrtEntryE")
+            || handle->HasSymbol("_ZN3art3jni17SmallLrtAllocatorC2Ev");
 
     std::vector<size_t> known_offsets = OffsetOfJavaVm(has_smaller_irt);
     size_t jvm_offset = 0;

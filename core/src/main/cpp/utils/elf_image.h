@@ -51,6 +51,7 @@ namespace pine {
 
         Elf_Addr LinearLookup(const char* name) const;
         void* GetSymbolAddress(const char* name, bool warn_if_missing = true) const;
+        bool HasSymbol(const char* name) const;
 
         void Open(const char* path, bool warn_if_nonexist, bool warn_if_symtab_not_found);
         void RelativeOpen(const char* elf, bool warn_if_nonexist, bool warn_if_symtab_not_found);

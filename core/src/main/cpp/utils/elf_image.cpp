@@ -218,6 +218,10 @@ void* ElfImage::GetSymbolAddress(const char* name, bool warn_if_missing) const {
     return reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(base_) + offset - bias_);
 }
 
+bool ElfImage::HasSymbol(const char* name) const {
+    return GetSymbolAddress(name, false) != nullptr;
+}
+
 void* ElfImage::GetModuleBase(const char* name) {
     FILE* maps;
     char buff[256];
