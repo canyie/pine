@@ -87,7 +87,7 @@ namespace pine::art {
 
                 SetEntryPointFromCompiledCode(interpreter_bridge);
 
-                if (art_interpreter_to_interpreter_bridge) {
+                if (UNLIKELY(art_interpreter_to_interpreter_bridge)) {
                     SetEntryPointFromInterpreter(art_interpreter_to_interpreter_bridge);
                 }
 
@@ -231,8 +231,9 @@ namespace pine::art {
         static int32_t GetDefaultAccessFlagsOffset() {
             switch (Android::version) {
                 default:
-                    LOGW("Unsupported Android API level %d, using Android UpsideDownCake", Android::version);
+                    LOGW("Unsupported Android API level %d, using Android VanillaIceCream", Android::version);
                     [[fallthrough]];
+                case Android::kV :
                 case Android::kU :
                 case Android::kT :
                 case Android::kSL :
@@ -257,8 +258,9 @@ namespace pine::art {
         static int32_t GetDefaultEntryPointFromJniOffset() {
             switch (Android::version) {
                 default:
-                    LOGW("Unsupported Android API level %d, using Android UpsideDownCake", Android::version);
+                    LOGW("Unsupported Android API level %d, using Android VanillaIceCream", Android::version);
                     [[fallthrough]];
+                case Android::kV :
                 case Android::kU :
                 case Android::kT :
                 case Android::kSL :
@@ -286,13 +288,14 @@ namespace pine::art {
         static int32_t GetDefaultEntryPointFromQuickCompiledCodeOffset() {
             switch (Android::version) {
                 default:
-                    LOGW("Unsupported Android API level %d, using Android UpsideDownCake", Android::version);
+                    LOGW("Unsupported Android API level %d, using Android VanillaIceCream", Android::version);
                     [[fallthrough]];
+                case Android::kV :
                 case Android::kU :
                 case Android::kT :
                 case Android::kSL :
                 case Android::kS :
-                    return 24;
+                    return Android::Is64Bit() ? 24 : 20;
                 case Android::kR :
                 case Android::kQ :
                 case Android::kP :

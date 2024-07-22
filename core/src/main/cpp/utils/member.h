@@ -34,7 +34,7 @@ public:
         if (UNLIKELY(!IsValid())) {
             return;
         }
-        memcpy(reinterpret_cast<void *> ((uintptr_t) instance + offset), &value, sizeof(ToType));
+        memcpy(reinterpret_cast<void *>((uintptr_t) instance + offset), &value, sizeof(ToType));
     }
 
     void Set(IType* instance, MType value) {

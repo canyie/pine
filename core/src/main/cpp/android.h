@@ -117,11 +117,11 @@ namespace pine {
         static std::vector<size_t> OffsetOfJavaVm(bool has_small_irt) {
             std::vector<size_t> offsets;
             // This function will only be called on Android 10+ where ART is always an apex module.
-            // Since APEX module can be upgraded through Gogole Play update without the need to
+            // Since APEX module can be upgraded through Google Play update without the need to
             // update Android major version, hardcode offset will be meaningless on old Android
             // major versions with new ART. We list all offsets we known.
             if (LIKELY(has_small_irt)) {
-                offsets.emplace_back(Is64Bit() ? 632 : 356); // ART 14
+                offsets.emplace_back(Is64Bit() ? 632 : 356); // ART 14, 15
                 if (version < kU)
                     offsets.emplace_back(Is64Bit() ? 624 : 352); // ART 13
                 if (UNLIKELY(version < kT))
