@@ -1,3 +1,6 @@
 [submodule "core/src/main/cpp/external/xz-embedded"]
 	path = core/src/main/cpp/external/xz-embedded
 	url = https://github.com/tukaani-project/xz-embedded
+[submodule "enhances/src/main/cpp/external/dobby"]
+	path = enhances/src/main/cpp/external/dobby
+	url = https://github.com/canyie/dobby

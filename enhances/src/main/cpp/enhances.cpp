@@ -141,7 +141,8 @@ void MaybeClassInit(void* ptr) {
 static bool HookFunc(void* target, void* replace, void** backup) {
     // Dobby does not unprotect the memory before reading it
     if (!Unprotect(target)) return false;
-    return DobbyHook(target, replace, backup) == RS_SUCCESS;
+    return DobbyHook(target, reinterpret_cast<dobby_dummy_func_t>(replace),
+                     reinterpret_cast<dobby_dummy_func_t*>(backup)) == RS_SUCCESS;
 }
 
 static bool HookSymbol(void* handle, const char* symbol, void* replace, void** backup, bool required) {

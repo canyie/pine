@@ -62,7 +62,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "io.github.vvb2060.ndk:dobby:1.2"
     implementation 'dev.rikka.ndk.thirdparty:cxx:1.2.0'
     compileOnly project(':core')
 }
