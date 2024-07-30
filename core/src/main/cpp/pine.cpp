@@ -545,7 +545,7 @@ static const struct {
     const char* signature;
 } gFastNativeMethods[] = {
         {"getArtMethod", "(Ljava/lang/reflect/Member;)J"},
-        {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;)V"},
+        {"syncMethodInfo", "(Ljava/lang/reflect/Member;Ljava/lang/reflect/Method;Z)V"},
         {"decompile0", "(Ljava/lang/reflect/Member;Z)Z"},
         {"disableJitInline0", "()Z"},
         {"setJitCompilationAllowed0", "(ZZ)V"},
