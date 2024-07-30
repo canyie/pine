@@ -59,7 +59,8 @@ public final class Pine {
     private static HookListener sHookListener;
 
     /** Internal API, used by enhances library. DO NOT USE THEM. */
-    public static long openElf, findElfSymbol, closeElf, getMethodDeclaringClass, syncMethodEntry;
+    public static long openElf, findElfSymbol, closeElf, getMethodDeclaringClass, syncMethodEntry,
+            suspendVM, resumeVM;
 
     private Pine() {
         throw new RuntimeException("Use static methods");
@@ -136,8 +137,10 @@ public final class Pine {
             // Use Class.forName() to ensure entry class is initialized.
             Class<?> entryClass = Class.forName(entryClassName, true, Pine.class.getClassLoader());
 
-            String[] bridgeMethodNames = {"voidBridge", "intBridge", "longBridge", "doubleBridge", "floatBridge",
-                    "booleanBridge", "byteBridge", "charBridge", "shortBridge", "objectBridge"};
+            String[] bridgeMethodNames = {
+                    "voidBridge", "intBridge", "longBridge", "doubleBridge", "floatBridge",
+                    "booleanBridge", "byteBridge", "charBridge", "shortBridge", "objectBridge"
+            };
 
             for (String bridgeMethodName : bridgeMethodNames) {
                 Method bridge = entryClass.getDeclaredMethod(bridgeMethodName, paramTypes);

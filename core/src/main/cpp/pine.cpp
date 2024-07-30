@@ -57,6 +57,14 @@ void* GetMethodDeclaringClass(void* method) {
     return reinterpret_cast<void*>(static_cast<art::ArtMethod*>(method)->GetDeclaringClass());
 }
 
+void* PineSuspendVM(JNIEnv* env) {
+    return new ScopedSuspendVM(art::Thread::Current(env));
+}
+
+void PineResumeVM(void* handle) {
+    delete reinterpret_cast<ScopedSuspendVM*>(handle);
+}
+
 void SyncMethodEntry(void* target, void* backup, void* entry) {
     auto t = reinterpret_cast<art::ArtMethod*>(target);
     void* updated_entry = t->GetEntryPointFromCompiledCode();
@@ -153,6 +161,8 @@ else env->SetStaticLongField(Pine, field, (value));
     SET_JAVA_VALUE("closeElf", "J", reinterpret_cast<jlong>(PineCloseElf));
     SET_JAVA_VALUE("getMethodDeclaringClass", "J", reinterpret_cast<jlong>(GetMethodDeclaringClass));
     SET_JAVA_VALUE("syncMethodEntry", "J", reinterpret_cast<jlong>(SyncMethodEntry));
+    SET_JAVA_VALUE("suspendVM", "J", reinterpret_cast<jlong>(PineSuspendVM));
+    SET_JAVA_VALUE("resumeVM", "J", reinterpret_cast<jlong>(PineResumeVM));
 #undef SET_JAVA_VALUE
 }
 

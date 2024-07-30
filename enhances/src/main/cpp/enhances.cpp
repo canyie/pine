@@ -296,7 +296,8 @@ std::string GetRuntimeLibraryName(JNIEnv* env) {
 
 jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jint sdk_level,
                                            jlong openElf, jlong findElfSymbol, jlong closeElf,
-                                           jlong getMethodDeclaringClass, jlong syncMethodEntry) {
+                                           jlong getMethodDeclaringClass, jlong syncMethodEntry,
+                                           jlong suspendVM, jlong resumeVM) {
      onClassInit_ = env->GetStaticMethodID(PineEnhances, "onClassInit", "(J)V");
      if (!onClassInit_) {
          LOGE("Unable to find onClassInit");
@@ -312,6 +313,8 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
      auto CloseElf = reinterpret_cast<void (*)(void*)>(closeElf);
      GetMethodDeclaringClass = reinterpret_cast<void* (*)(ArtMethod)>(getMethodDeclaringClass);
      SyncMethodEntry = reinterpret_cast<void (*)(ArtMethod, ArtMethod, const void*)>(syncMethodEntry);
+     auto SuspendVM = reinterpret_cast<void* (*)(JNIEnv*)>(suspendVM);
+     auto ResumeVM = reinterpret_cast<void (*)(void*)>(resumeVM);
 
      auto vm_library = GetRuntimeLibraryName(env);
      void* handle = OpenElf(vm_library.data());
@@ -323,6 +326,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          return JNI_FALSE;
      }
 
+     void* cookie = SuspendVM(env);
      bool hooked = false;
 #define HOOK_FUNC(name) hooked |= HookFunc(name, (void*) replace_##name , (void**) &backup_##name)
 #define HOOK_SYMBOL(name, symbol, required) hooked |= HookSymbol(handle, symbol, (void*) replace_##name , (void**) &backup_##name , required)
@@ -371,7 +375,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
          HOOK_SYMBOL(FixupStaticTrampolines, "_ZN3art11ClassLinker22FixupStaticTrampolinesEPNS_6mirror5ClassE", true);
      }
 #undef HOOK_SYMBOL
-
+     ResumeVM(cookie);
      CloseElf(handle);
 
      if (!hooked) {
@@ -382,7 +386,7 @@ jboolean PineEnhances_initClassInitMonitor(JNIEnv* env, jclass PineEnhances, jin
 }
 
  JNINativeMethod JNI_METHODS[] = {
-         {"initClassInitMonitor", "(IJJJJJ)Z", (void*) PineEnhances_initClassInitMonitor},
+         {"initClassInitMonitor", "(IJJJJJJJ)Z", (void*) PineEnhances_initClassInitMonitor},
          {"careClassInit", "(J)V", (void*) PineEnhances_careClassInit},
          {"recordMethodHooked", "(JJJ)V", (void*) PineEnhances_recordMethodHooked}
 };

@@ -3,6 +3,10 @@
     public static long openElf;
     public static long findElfSymbol;
     public static long closeElf;
+    public static long getMethodDeclaringClass;
+    public static long syncMethodEntry;
+    public static long suspendVM;
+    public static long resumeVM;
     private static int arch;
 }
 -keep class top.canyie.pine.Pine$HookRecord {

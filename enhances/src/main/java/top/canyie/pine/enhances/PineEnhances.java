@@ -74,7 +74,7 @@ public final class PineEnhances {
 
     static native boolean initClassInitMonitor(int sdkLevel, long openElf, long findElfSymbol,
                                                long closeElf, long getMethodDeclaringClass,
-                                               long syncMethodEntry);
+                                               long syncMethodEntry, long suspendVM, long resumeVM);
     static native void careClassInit(long ptr);
     public static native void recordMethodHooked(long target, long entrypoint, long backup);
 }
