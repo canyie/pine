@@ -71,7 +71,7 @@ publishing {
         mavenJava(MavenPublication) {
             group rootProject.groupId
             artifactId 'enhances'
-            version '0.0.4'
+            version '0.1.0'
             // the components are created only during the afterEvaluate phase
             afterEvaluate {
                 from components.release

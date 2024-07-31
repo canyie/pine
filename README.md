@@ -4,7 +4,7 @@
 ## Introduction
 Pine is a dynamic java method hook framework on ART runtime, which can intercept almost all java method calls in the current process.
 
-Currently it supports Android 4.4(ART only) ~ **14** with thumb-2/arm64 architecture.
+Currently it supports Android 4.4(ART only) ~ **15 Beta 4** with thumb-2/arm64 architecture.
 
 About its working principle, you can refer to this Chinese [article](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/).
 
@@ -121,13 +121,6 @@ PineEnhances.enableDelayHook();
 ```
 
 ### ProGuard
-If you are using enhanced features:
-```
-# Pine Enhances
--keep class top.canyie.pine.enhances.PineEnhances {
-    private static void onClassInit(long);
-}
-```
 If you use Xposed features and Xposed APIs need to be called outside your module (e.g. you call `PineXposed.loadModule()` to load external modules):
 ```
 # Keep Xposed APIs

@@ -2,7 +2,7 @@
 ## 简介
 Pine 是一个在虚拟机层面、以Java方法为粒度的运行时动态 hook 框架，它可以拦截本进程内几乎所有的 java 方法调用。
 
-目前它支持Android 4.4（只支持 ART）~ **14** 且使用 thumb-2/arm64 指令集的设备。
+目前它支持Android 4.4（只支持 ART）~ **15 Beta 4** 且使用 thumb-2/arm64 指令集的设备。
 
 关于它的实现原理，可以参考[本文](https://canyie.github.io/2020/04/27/dynamic-hooking-framework-on-art/)。
 
@@ -128,13 +128,6 @@ PineEnhances.enableDelayHook();
 ```
 
 ### ProGuard
-如果你同时使用增强功能:
-```
-# Pine Enhances
--keep class top.canyie.pine.enhances.PineEnhances {
-    private static void onClassInit(long);
-}
-```
 如果你使用 Xposed 功能，并且 Xposed 相关接口会被外部调用 (比如你调用 `PineXposed.loadModule()` 加载其他模块):
 ```
 # Keep Xposed APIs
