@@ -19,6 +19,6 @@
 }
 
 # Prevent R8 from removing "unused" library native methods while they're still being used
--keep class * {
+-keep class top.canyie.pine.Pine {
     native <methods>;
 }
