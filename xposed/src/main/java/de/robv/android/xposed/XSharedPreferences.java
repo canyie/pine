@@ -181,7 +181,9 @@ public final class XSharedPreferences implements SharedPreferences {
 		} else {
 			mMap = new HashMap<>();
 		}
-		notifyAll();
+		if (Thread.holdsLock(this)) {
+			notifyAll();
+		}
 	}
 
 	/**
