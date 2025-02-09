@@ -187,7 +187,7 @@ bool Android::DisableProfileSaver() {
             process_profiling_info = handle.GetSymbolAddress(symbol);
 
             // Android 15 QPR1
-            if (!process_profiling_info && version >= kV) {
+            if (!process_profiling_info) {
                 process_profiling_info = handle.GetSymbolAddress("_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt");
             }
         }
