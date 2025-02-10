@@ -185,6 +185,11 @@ bool Android::DisableProfileSaver() {
                                               : version < kS ? "_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt"
                                               : "_ZN3art12ProfileSaver20ProcessProfilingInfoEbbPt";
             process_profiling_info = handle.GetSymbolAddress(symbol);
+
+            // Android 15 QPR1
+            if (!process_profiling_info) {
+                process_profiling_info = handle.GetSymbolAddress("_ZN3art12ProfileSaver20ProcessProfilingInfoEbPt");
+            }
         }
     }
 
