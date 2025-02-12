@@ -19,3 +19,15 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class top.canyie.pine.examples.test.DirectRegisterJNITest{
+ native <methods>;
+}
+-keep class top.canyie.pine.examples.test.DynamicLookupJNITest{
+ native <methods>;
+}
+
+-keep class * extends top.canyie.pine.examples.test.Test{*;}
+-keep class  top.canyie.pine.examples.test.Test{*;}
+-keep class top.canyie.pine.examples.test.ConstructorTest$Target{*;}
+-keep class top.canyie.pine.examples.test.NotInitedTest$I{*;}
