@@ -61,6 +61,10 @@ add_library(pine SHARED ${PINE_SOURCES})
 find_library(log-lib log)
 find_package(cxx REQUIRED CONFIG)
 
+# support 16KB
+target_link_options(pine PRIVATE "-Wl,-z,max-page-size=16384")
+target_link_options(pine PRIVATE "-Wl,-z,common-page-size=16384")
+
 target_link_libraries(pine ${log-lib} cxx::cxx)
 
 ENABLE_LANGUAGE(ASM)
