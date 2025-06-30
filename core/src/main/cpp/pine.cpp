@@ -505,6 +505,10 @@ void Pine_getArgsX86(JNIEnv* env, jclass, jint javaExtras, jintArray javaArray, 
 #endif
 
 void Pine_syncMethodInfo(JNIEnv* env, jclass, jobject javaOrigin, jobject javaBackup, jboolean skipDeclaringClass) {
+    if (javaOrigin == nullptr || javaBackup == nullptr) {
+        LOGW("syncMethodInfo: javaOrigin or javaBackup is null");
+        return;
+    }
     auto origin = art::ArtMethod::FromReflectedMethod(env, javaOrigin);
     auto backup = art::ArtMethod::FromReflectedMethod(env, javaBackup);
 
