@@ -23,7 +23,7 @@ using namespace pine;
 void ElfImage::Open(const char* path, bool warn_if_nonexist, bool warn_if_symtab_not_found) {
     int fd = WrappedOpen(path, O_RDONLY | O_CLOEXEC);
     if (UNLIKELY(fd == -1)) {
-        if (UNLIKELY(errno != ENOENT || !warn_if_nonexist))
+        if (UNLIKELY(errno != ENOENT || warn_if_nonexist))
             LOGE("Failed to open %s: %s", path, strerror(errno));
         return;
     }
