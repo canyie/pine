@@ -494,7 +494,15 @@ public final class Pine {
         // native entry of JNI method may be changed by RegisterNatives and UnregisterNatives,
         // so we need to update them when invoke backup method.
         Member origin = hookRecord.target;
+        if (origin == null) {
+            Log.w(TAG, "Target method is null!!!");
+            return null;
+        }
         Method backup = hookRecord.backup;
+        if (backup == null) {
+            Log.w(TAG, "Backup method is null for " + hookRecord.target);
+            return null;
+        }
         Class<?> declaring = origin.getDeclaringClass();
         syncMethodInfo(origin, backup, hookRecord.skipUpdateDeclaringClass);
         // FIXME: GC happens here (you can add Runtime.getRuntime().gc() to test) will crash backup calling
